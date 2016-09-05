@@ -223,7 +223,9 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	MKL_Complex16 *otoc = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *otoc1 = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *otoc2 = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *gf    = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 
 	// effective tolerance (truncation weight)
 	double *tol_eff_A = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
@@ -233,7 +235,7 @@ int main(int argc, char *argv[])
 	size_t *D_XA = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
 	size_t *D_XB = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
 
-	// OTOC at time t = 0
+	// OTOCs at time t = 0
 	{
 		// backup copy of tensors at site 'i'
 		tensor_t XAi, XBi;
@@ -243,7 +245,19 @@ int main(int argc, char *argv[])
 		ApplySingleSiteBottomOperator(&XA.A[i_site], &bd);	//     creation operator at site i
 		ApplySingleSiteBottomOperator(&XB.A[i_site], &b);	// annihilation operator at site i
 
-		otoc[0] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
+		otoc1[0] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
+
+		// restore original tensors
+		DeleteTensor(&XA.A[i_site]);
+		DeleteTensor(&XB.A[i_site]);
+		CopyTensor(&XAi, &XA.A[i_site]);
+		CopyTensor(&XBi, &XB.A[i_site]);
+
+		ApplySingleSiteBottomOperator(&XA.A[i_site], &b);	// annihilation operator at site i
+		ApplySingleSiteBottomOperator(&XB.A[i_site], &bd);	//     creation operator at site i
+
+		otoc2[0] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
+		   gf[0] = ComplexScale(1/Zbeta, MPOTrace(&XA));
 
 		// restore original tensors
 		DeleteTensor(&XA.A[i_site]);
@@ -264,7 +278,7 @@ int main(int argc, char *argv[])
 		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XA, &tol_eff_A[n*(L - 1)]);
 		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XB, &tol_eff_B[n*(L - 1)]);
 
-		// OTOC at current time point
+		// OTOCs at current time point
 		{
 			// backup copy of tensors at site 'i'
 			tensor_t XAi, XBi;
@@ -274,7 +288,19 @@ int main(int argc, char *argv[])
 			ApplySingleSiteBottomOperator(&XA.A[i_site], &bd);	//     creation operator at site i
 			ApplySingleSiteBottomOperator(&XB.A[i_site], &b);	// annihilation operator at site i
 
-			otoc[n + 1] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
+			otoc1[n + 1] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
+
+			// restore original tensors
+			DeleteTensor(&XA.A[i_site]);
+			DeleteTensor(&XB.A[i_site]);
+			CopyTensor(&XAi, &XA.A[i_site]);
+			CopyTensor(&XBi, &XB.A[i_site]);
+
+			ApplySingleSiteBottomOperator(&XA.A[i_site], &b);	// annihilation operator at site i
+			ApplySingleSiteBottomOperator(&XB.A[i_site], &bd);	//     creation operator at site i
+
+			otoc2[n + 1] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
+			   gf[n + 1] = ComplexScale(1/Zbeta, MPOTrace(&XA));
 
 			// restore original tensors
 			DeleteTensor(&XA.A[i_site]);
@@ -288,7 +314,10 @@ int main(int argc, char *argv[])
 		GetVirtualBondDimensions(&XB, &D_XB[(n + 1)*(L + 1)]);
 	}
 
-	duprintf("OTOC at t = %g: (%g, %g)\n", params.tmax, otoc[nsteps].real, otoc[nsteps].imag);
+	duprintf("At t = %g:\n", params.tmax);
+	duprintf("<bj^dagger(t) bi^dagger(0) bj(t) bi(0)> = (%g, %g)\n", otoc1[nsteps].real, otoc1[nsteps].imag);
+	duprintf("<bj^dagger(t) bi(0) bj(t) bi^dagger(0)> = (%g, %g)\n", otoc2[nsteps].real, otoc2[nsteps].imag);
+	duprintf("<bj^dagger(t) bi(0)>                    = (%g, %g)\n",    gf[nsteps].real,    gf[nsteps].imag);
 
 	const clock_t t_end = clock();
 	double cpu_time = (double)(t_end - t_start) / CLOCKS_PER_SEC;
@@ -298,9 +327,11 @@ int main(int argc, char *argv[])
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
 
 	// save results to disk
-	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc.dat",      argv[4], L, d - 1); WriteData(filename, otoc, sizeof(MKL_Complex16), nsteps + 1, false);
-	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_A.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_A, sizeof(double), nsteps*(L - 1), false);
-	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_B.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_B, sizeof(double), nsteps*(L - 1), false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1.dat",     argv[4], L, d - 1); WriteData(filename, otoc1, sizeof(MKL_Complex16),   nsteps + 1, false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc2.dat",     argv[4], L, d - 1); WriteData(filename, otoc2, sizeof(MKL_Complex16),   nsteps + 1, false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_gf.dat",        argv[4], L, d - 1); WriteData(filename, gf,    sizeof(MKL_Complex16),   nsteps + 1, false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_A.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_A, sizeof(double),  nsteps*(L - 1), false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_B.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_B, sizeof(double),  nsteps*(L - 1), false);
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXA.dat",       argv[4], L, d - 1); WriteData(filename, D_XA, sizeof(size_t), (nsteps + 1)*(L + 1), false);
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXB.dat",       argv[4], L, d - 1); WriteData(filename, D_XB, sizeof(size_t), (nsteps + 1)*(L + 1), false);
 
@@ -309,7 +340,9 @@ int main(int argc, char *argv[])
 	MKL_free(D_XA);
 	MKL_free(tol_eff_B);
 	MKL_free(tol_eff_A);
-	MKL_free(otoc);
+	MKL_free(gf);
+	MKL_free(otoc2);
+	MKL_free(otoc1);
 	DeleteDynamicsData(&dyn_time);
 	DeleteMPO(&XB);
 	DeleteMPO(&XA);
