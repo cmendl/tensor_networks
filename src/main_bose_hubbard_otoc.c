@@ -144,6 +144,16 @@ int main(int argc, char *argv[])
 			b.data[j + (j+1)*d].real = sqrt(1.0 + j);
 		}
 	}
+	// bosonic number operator
+	tensor_t bn;
+	{
+		const size_t dim[2] = { d, d };
+		AllocateTensor(2, dim, &bn);
+		for (j = 0; j < d; j++)
+		{
+			bn.data[j + j*d].real = (double)j;
+		}
+	}
 
 	// construct two-site Bose-Hubbard Hamiltonian operators
 	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
@@ -193,6 +203,35 @@ int main(int argc, char *argv[])
 	// record trace of exp(-beta H)
 	const double Zbeta = ComplexReal(MPOTrace(&exp_betaH));
 	duprintf("Trace of exp_betaH: %g\n", Zbeta);
+
+	// compute local density
+	{
+		double *density = (double *)MKL_malloc(L*sizeof(double), MEM_DATA_ALIGN);
+
+		mpo_t exp_betaH_n;
+		CopyMPO(&exp_betaH, &exp_betaH_n);
+
+		int i;
+		for (i = 0; i < L; i++)
+		{
+			// apply number operator at site i
+			ApplySingleSiteTopOperator(&exp_betaH_n.A[i], &bn);
+
+			density[i] = ComplexReal(MPOTrace(&exp_betaH_n)) / Zbeta;
+
+			// restore original tensor at site i
+			DeleteTensor(&exp_betaH_n.A[i]);
+			CopyTensor(&exp_betaH.A[i], &exp_betaH_n.A[i]);
+		}
+
+		// save density to disk
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_density.dat", argv[4], L, d - 1);
+		WriteData(filename, density, sizeof(double), L, false);
+
+		// clean up
+		DeleteMPO(&exp_betaH_n);
+		MKL_free(density);
+	}
 
 	duprintf("Current CPU time: %g seconds\n", (double)(clock() - t_start) / CLOCKS_PER_SEC);
 	int nbuffers;
@@ -349,6 +388,7 @@ int main(int argc, char *argv[])
 	DeleteMPO(&exp_betaH);
 	DeleteLocalHamiltonianOperators(L, h);
 	MKL_free(h);
+	DeleteTensor(&bn);
 	DeleteTensor(&b);
 	DeleteTensor(&bd);
 
