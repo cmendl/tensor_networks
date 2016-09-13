@@ -15,7 +15,7 @@ int HamiltonianBoseHubbardTest()
 	printf("Testing Bose-Hubbard Hamiltonian construction...\n");
 
 	// dimensions
-	const int L = 7;
+	const int L = 7;		// number of lattice sites
 	const size_t d = 5;     // M + 1, with 'M' the maximal occupancy per site
 	// Hamiltonian parameters
 	const double t  = 0.7;
@@ -42,9 +42,32 @@ int HamiltonianBoseHubbardTest()
 		MKL_free(h_ref_i);
 	}
 
+	// construct matrix product operator representation
+	mpo_t mpoH;
+	ConstructBoseHubbardMPO(L, d - 1, t, U, mu, &mpoH);
+
+	// compare with reference
+	for (i = 0; i < L; i++)
+	{
+		const size_t num = NumTensorElements(&mpoH.A[i]);
+
+		// load reference 'W' tensor from disk
+		MKL_Complex16 *W_ref_i = MKL_malloc(num * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		char filename[1024];
+		sprintf(filename, "../test/hamiltonian_bose_hubbard_test_W%i.dat", i);
+		status = ReadData(filename, W_ref_i, sizeof(MKL_Complex16), num);
+		if (status < 0) { return status; }
+
+		// largest entrywise error
+		err = fmax(err, UniformDistance(2*num, (double *)mpoH.A[i].data, (double *)W_ref_i));
+
+		MKL_free(W_ref_i);
+	}
+
 	printf("Largest error: %g\n", err);
 
 	// clean up
+	DeleteMPO(&mpoH);
 	DeleteLocalHamiltonianOperators(L, h);
 	MKL_free(h);
 
