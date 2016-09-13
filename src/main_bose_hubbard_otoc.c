@@ -233,6 +233,22 @@ int main(int argc, char *argv[])
 		MKL_free(density);
 	}
 
+	// compute total energy
+	{
+		// construct matrix product operator representation
+		mpo_t mpoH;
+		ConstructBoseHubbardMPO(L, d - 1, params.t, params.U, params.mu, &mpoH);
+
+		const double energy = ComplexReal(MPOTraceProduct(&exp_betaH, &mpoH)) / Zbeta;
+		duprintf("Total energy Tr[exp(-beta H) H]: %g\n", energy);
+
+		// save energy to disk
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_energy.dat", argv[4], L, d - 1);
+		WriteData(filename, &energy, sizeof(double), 1, false);
+
+		DeleteMPO(&mpoH);
+	}
+
 	duprintf("Current CPU time: %g seconds\n", (double)(clock() - t_start) / CLOCKS_PER_SEC);
 	int nbuffers;
 	MKL_INT64 nbytes_alloc = MKL_Mem_Stat(&nbuffers);
