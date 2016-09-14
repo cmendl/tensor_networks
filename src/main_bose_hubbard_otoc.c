@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	duprintf("Starting a Bose-Hubbard simulation on a chain with parameters:\n");
+	duprintf("Computing OTOCs for the Bose-Hubbard model on a chain with parameters:\n");
 	duprintf("            lattice size L: %i\n", params.L);
 	duprintf("    max occupancy per site: %zu\n", params.d - 1);
 	duprintf("         kinetic hopping t: %g\n", params.t);
