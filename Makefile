@@ -11,7 +11,7 @@ CCOPTS = -Wall -O2 -xHost -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -mkl:
 LIBRARIES = -mkl:sequential
 
 
-all: proj_heisenberg proj_bose_hubbard proj_bose_hubbard_rho proj_bose_hubbard_time proj_bose_hubbard_imag_time proj_bose_hubbard_otoc proj_bose_hubbard_otoc_sym proj_test
+all: proj_heisenberg proj_bose_hubbard proj_bose_hubbard_rho proj_bose_hubbard_time proj_bose_hubbard_imag_time proj_bose_hubbard_otoc proj_bose_hubbard_otoc_sym proj_bose_hubbard_otoc_quench proj_test
 
 proj_heisenberg: ${SRCFILES} main_heisenberg.o
 	${CC} ${CCOPTS} -o bin/sim_heisenberg $? ${LIBRARIES}
@@ -33,6 +33,9 @@ proj_bose_hubbard_otoc: ${SRCFILES} main_bose_hubbard_otoc.o
 
 proj_bose_hubbard_otoc_sym: ${SRCFILES} main_bose_hubbard_otoc_sym.o
 	${CC} ${CCOPTS} -o bin/sim_bose_hubbard_otoc_sym $? ${LIBRARIES}
+
+proj_bose_hubbard_otoc_quench: ${SRCFILES} main_bose_hubbard_otoc_quench.o
+	${CC} ${CCOPTS} -o bin/sim_bose_hubbard_otoc_quench $? ${LIBRARIES}
 
 proj_test: ${SRCFILES} ${TSTFILES} run_tests.o
 	${CC} ${CCOPTS} -o bin/run_tests $? ${LIBRARIES}

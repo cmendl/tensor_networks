@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[     37814,       1157]
-NotebookOptionsPosition[     34806,       1049]
-NotebookOutlinePosition[     35149,       1064]
-CellTagsIndexPosition[     35106,       1061]
+NotebookDataLength[     37489,       1146]
+NotebookOptionsPosition[     34481,       1038]
+NotebookOutlinePosition[     34824,       1053]
+CellTagsIndexPosition[     34781,       1050]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -838,18 +838,7 @@ Cell[BoxData[{
         RowBox[{
          RowBox[{"Length", "[", 
           SubscriptBox["\[Beta]", "list"], "]"}], "-", "1"}]}], "}"}]}], 
-     "]"}]}]}], 
-  RowBox[{"(*", 
-   RowBox[{",", 
-    RowBox[{"PlotLegends", "\[Rule]", 
-     RowBox[{"(", 
-      RowBox[{
-       RowBox[{
-        RowBox[{"\"\<t=\>\"", "<>", 
-         RowBox[{"ToString", "[", 
-          RowBox[{"InputForm", "[", "#", "]"}], "]"}]}], "&"}], "/@", 
-       SubscriptBox["t", "plot"]}], ")"}]}]}], "*)"}], 
-  "]"}], "\[IndentingNewLine]", 
+     "]"}]}]}], "]"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"Export", "[", 
    RowBox[{
@@ -1147,15 +1136,15 @@ Cell[25074, 777, 443, 14, 52, "Input"],
 Cell[25520, 793, 74, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[25631, 800, 1823, 57, 76, "Input"],
-Cell[27457, 859, 6440, 151, 316, "Output"]
+Cell[25631, 800, 1498, 46, 76, "Input"],
+Cell[27132, 848, 6440, 151, 316, "Output"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[33946, 1016, 49, 0, 43, "Subsection"],
+Cell[33621, 1005, 49, 0, 43, "Subsection"],
 Cell[CellGroupData[{
-Cell[34020, 1020, 713, 22, 54, "Input"],
-Cell[34736, 1044, 30, 0, 31, "Output"]
+Cell[33695, 1009, 713, 22, 54, "Input"],
+Cell[34411, 1033, 30, 0, 31, "Output"]
 }, Open  ]]
 }, Open  ]]
 }, Open  ]]
