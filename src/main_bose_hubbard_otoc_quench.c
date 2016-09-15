@@ -115,6 +115,7 @@ int main(int argc, char *argv[])
 	duprintf("max virtual bond dimension: %zu\n", params.maxD);
 	duprintf("                  'i' site: %i\n", i_site);
 	duprintf("                  'j' site: %i\n", j_site);
+	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
 	duprintf("\n");
 
 	// number of lattice sites
@@ -187,7 +188,8 @@ int main(int argc, char *argv[])
 	duprintf("Starting time evolution...\n");
 
 	// start timer
-	const clock_t t_start = clock();
+	const clock_t t_cpu_start = clock();
+	const unsigned long long t_wall_start = GetTimeTicks();
 
 	int n;
 	for (n = 0; n <= nsteps; n++)
@@ -205,7 +207,7 @@ int main(int argc, char *argv[])
 			CopyMPO(&bdjt, &proj_bdjt);
 			for (i = 0; i < L; i++)
 			{
-				ApplySingleSiteTopOperator(&proj_bdjt.A[i], &proj);	// projection operator at site i
+				ApplySingleSiteTopOperator(&proj_bdjt.A[i], &proj);     // projection operator at site i
 			}
 
 			// backup copy of tensors at site 'i'
@@ -213,8 +215,8 @@ int main(int argc, char *argv[])
 			CopyTensor(&proj_bdjt.A[i_site], &bdAi);
 			CopyTensor(      &bjt.A[i_site], &bAi);
 
-			ApplySingleSiteBottomOperator(&proj_bdjt.A[i_site], &bd);	//     creation operator at site i
-			ApplySingleSiteBottomOperator(      &bjt.A[i_site], &b);	// annihilation operator at site i
+			ApplySingleSiteBottomOperator(&proj_bdjt.A[i_site], &bd);   //     creation operator at site i
+			ApplySingleSiteBottomOperator(      &bjt.A[i_site], &b);    // annihilation operator at site i
 
 			otoc1[n] = MPOTraceProduct(&proj_bdjt, &bjt);
 
@@ -224,8 +226,8 @@ int main(int argc, char *argv[])
 			CopyTensor(&bdAi, &proj_bdjt.A[i_site]);
 			CopyTensor( &bAi,       &bjt.A[i_site]);
 
-			ApplySingleSiteBottomOperator(&proj_bdjt.A[i_site], &b);	// annihilation operator at site i
-			ApplySingleSiteBottomOperator(      &bjt.A[i_site], &bd);	//     creation operator at site i
+			ApplySingleSiteBottomOperator(&proj_bdjt.A[i_site], &b);    // annihilation operator at site i
+			ApplySingleSiteBottomOperator(      &bjt.A[i_site], &bd);   //     creation operator at site i
 
 			otoc2[n] = MPOTraceProduct(&proj_bdjt, &bjt);
 			   gf[n] = MPOTrace(&proj_bdjt);
@@ -257,9 +259,11 @@ int main(int argc, char *argv[])
 	duprintf("<11...1| bj^dagger(t) bi(0) bj(t) bi^dagger(0) |11...1> = (%g, %g)\n", otoc2[nsteps].real, otoc2[nsteps].imag);
 	duprintf("<11...1| bj^dagger(t) bi(0) |11...1>                    = (%g, %g)\n",    gf[nsteps].real,    gf[nsteps].imag);
 
-	const clock_t t_end = clock();
-	double cpu_time = (double)(t_end - t_start) / CLOCKS_PER_SEC;
-	duprintf("\nFinished simulation, CPU time: %g seconds\n", cpu_time);
+	const clock_t t_cpu_end = clock();
+	const unsigned long long t_wall_end = GetTimeTicks();
+	double cpu_time = (double)(t_cpu_end  - t_cpu_start ) / CLOCKS_PER_SEC;
+	double walltime = (double)(t_wall_end - t_wall_start) / GetTimeResolution();
+	duprintf("\nFinished simulation, CPU time: %g seconds, wall clock time: %g seconds\n", cpu_time, walltime);
 	int nbuffers;
 	MKL_INT64 nbytes_alloc = MKL_Mem_Stat(&nbuffers);
 	duprintf("MKL memory usage: currently %lld bytes in %d buffer(s)\n", nbytes_alloc, nbuffers);

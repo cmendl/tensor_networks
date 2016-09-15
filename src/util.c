@@ -6,7 +6,10 @@
 #include <mkl.h>
 #include <memory.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <time.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 
 //________________________________________________________________________________________________________________________
@@ -184,4 +187,47 @@ int WriteData(const char *filename, const void *data, const size_t size, const s
 	fclose(fd);
 
 	return 0;
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Get current time ticks
+///
+unsigned long long GetTimeTicks()
+{
+	#ifdef _WIN32
+
+	LARGE_INTEGER t;
+	QueryPerformanceCounter(&t);
+	return (unsigned long long)(t.QuadPart);
+
+	#else
+
+	struct timespec t;
+	clock_gettime(CLOCK_MONOTONIC, &t);
+	return (unsigned long long)(1000000000ULL * t.tv_sec + t.tv_nsec);
+
+	#endif
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Get timer resolution
+///
+unsigned long long GetTimeResolution()
+{
+	#ifdef _WIN32
+
+	LARGE_INTEGER freq;
+	QueryPerformanceFrequency(&freq);
+	return (unsigned long long)(freq.QuadPart);
+
+	#else
+
+	// clock_gettime() has nanosecond resolution
+	return (unsigned long long)1000000000ULL;
+
+	#endif
 }

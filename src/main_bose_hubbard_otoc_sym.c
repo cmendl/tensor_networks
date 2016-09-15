@@ -160,7 +160,8 @@ int main(int argc, char *argv[])
 	ConstructLocalBoseHubbardOperators(L, d - 1, params.t, params.U, params.mu, h);
 
 	// start timer
-	const clock_t t_start = clock();
+	const clock_t t_cpu_start = clock();
+	const unsigned long long t_wall_start = GetTimeTicks();
 
 	// compute exp(-beta H/2) as MPO
 	mpo_t rho_beta;
@@ -204,7 +205,7 @@ int main(int argc, char *argv[])
 	const double norm_rho = MPOFrobeniusNorm(&rho_beta);
 	duprintf("Frobenius norm of rho_beta: %g, distance to 1: %g\n", norm_rho, fabs(norm_rho - 1));
 
-	duprintf("Current CPU time: %g seconds\n", (double)(clock() - t_start) / CLOCKS_PER_SEC);
+	duprintf("Current CPU time: %g seconds\n", (double)(clock() - t_cpu_start) / CLOCKS_PER_SEC);
 	int nbuffers;
 	MKL_INT64 nbytes_alloc = MKL_Mem_Stat(&nbuffers);
 	duprintf("MKL memory usage: currently %lld bytes in %d buffer(s)\n", nbytes_alloc, nbuffers);
@@ -216,8 +217,8 @@ int main(int argc, char *argv[])
 	mpo_t XA, XB;
 	CopyMPO(&rho_beta, &XA);
 	CopyMPO(&rho_beta, &XB);
-	ApplySingleSiteBottomOperator(&XA.A[j_site], &bd);	//     creation operator at site j
-	ApplySingleSiteBottomOperator(&XB.A[j_site], &b);	// annihilation operator at site j
+	ApplySingleSiteBottomOperator(&XA.A[j_site], &bd);  //     creation operator at site j
+	ApplySingleSiteBottomOperator(&XB.A[j_site], &b);   // annihilation operator at site j
 
 	// compute dynamics data for time evolution
 	dynamics_data_t dyn_time;
@@ -251,8 +252,8 @@ int main(int argc, char *argv[])
 		CopyTensor(&XA.A[i_site], &XAi);
 		CopyTensor(&XB.A[i_site], &XBi);
 
-		ApplySingleSiteBottomOperator(&XA.A[i_site], &bd);	//     creation operator at site i
-		ApplySingleSiteBottomOperator(&XB.A[i_site], &b);	// annihilation operator at site i
+		ApplySingleSiteBottomOperator(&XA.A[i_site], &bd);  //     creation operator at site i
+		ApplySingleSiteBottomOperator(&XB.A[i_site], &b);   // annihilation operator at site i
 
 		otoc1[0] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
 
@@ -262,8 +263,8 @@ int main(int argc, char *argv[])
 		CopyTensor(&XAi, &XA.A[i_site]);
 		CopyTensor(&XBi, &XB.A[i_site]);
 
-		ApplySingleSiteBottomOperator(&XA.A[i_site], &b);	// annihilation operator at site i
-		ApplySingleSiteBottomOperator(&XB.A[i_site], &bd);	//     creation operator at site i
+		ApplySingleSiteBottomOperator(&XA.A[i_site], &b);   // annihilation operator at site i
+		ApplySingleSiteBottomOperator(&XB.A[i_site], &bd);  //     creation operator at site i
 
 		otoc2[0] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
 
@@ -293,8 +294,8 @@ int main(int argc, char *argv[])
 			CopyTensor(&XA.A[i_site], &XAi);
 			CopyTensor(&XB.A[i_site], &XBi);
 
-			ApplySingleSiteBottomOperator(&XA.A[i_site], &bd);	//     creation operator at site i
-			ApplySingleSiteBottomOperator(&XB.A[i_site], &b);	// annihilation operator at site i
+			ApplySingleSiteBottomOperator(&XA.A[i_site], &bd);  //     creation operator at site i
+			ApplySingleSiteBottomOperator(&XB.A[i_site], &b);   // annihilation operator at site i
 
 			otoc1[n + 1] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
 
@@ -304,8 +305,8 @@ int main(int argc, char *argv[])
 			CopyTensor(&XAi, &XA.A[i_site]);
 			CopyTensor(&XBi, &XB.A[i_site]);
 
-			ApplySingleSiteBottomOperator(&XA.A[i_site], &b);	// annihilation operator at site i
-			ApplySingleSiteBottomOperator(&XB.A[i_site], &bd);	//     creation operator at site i
+			ApplySingleSiteBottomOperator(&XA.A[i_site], &b);   // annihilation operator at site i
+			ApplySingleSiteBottomOperator(&XB.A[i_site], &bd);  //     creation operator at site i
 
 			otoc2[n + 1] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
 
@@ -325,9 +326,11 @@ int main(int argc, char *argv[])
 	duprintf("Tr[exp(-beta H/2) bj^dagger(t) bi^dagger(0) exp(-beta H/2) bj(t) bi(0)       ] = (%g, %g)\n", otoc1[nsteps].real, otoc1[nsteps].imag);
 	duprintf("Tr[exp(-beta H/2) bj^dagger(t) bi(0)        exp(-beta H/2) bj(t) bi^dagger(0)] = (%g, %g)\n", otoc2[nsteps].real, otoc2[nsteps].imag);
 
-	const clock_t t_end = clock();
-	double cpu_time = (double)(t_end - t_start) / CLOCKS_PER_SEC;
-	duprintf("\nFinished simulation, CPU time: %g seconds\n", cpu_time);
+	const clock_t t_cpu_end = clock();
+	const unsigned long long t_wall_end = GetTimeTicks();
+	double cpu_time = (double)(t_cpu_end  - t_cpu_start ) / CLOCKS_PER_SEC;
+	double walltime = (double)(t_wall_end - t_wall_start) / GetTimeResolution();
+	duprintf("\nFinished simulation, CPU time: %g seconds, wall clock time: %g seconds\n", cpu_time, walltime);
 	nbytes_alloc = MKL_Mem_Stat(&nbuffers);
 	duprintf("MKL memory usage: currently %lld bytes in %d buffer(s)\n", nbytes_alloc, nbuffers);
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));

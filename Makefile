@@ -5,10 +5,10 @@ TSTFILES = matrix_exp_test.o mps_test.o mps_test2.o mpo_test.o hamiltonian_heise
 CC = icc
 
 # compiler options
-CCOPTS = -Wall -O2 -xHost -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -mkl:sequential
+CCOPTS = -Wall -O2 -xHost -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -mkl:parallel
 
 # set these with appropriate libraries for your system
-LIBRARIES = -mkl:sequential
+LIBRARIES = -mkl:parallel
 
 
 all: proj_heisenberg proj_bose_hubbard proj_bose_hubbard_rho proj_bose_hubbard_time proj_bose_hubbard_imag_time proj_bose_hubbard_otoc proj_bose_hubbard_otoc_sym proj_bose_hubbard_otoc_quench proj_test
