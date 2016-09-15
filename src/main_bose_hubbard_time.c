@@ -155,6 +155,7 @@ int main(int argc, char *argv[])
 	duprintf("max virtual bond dimension: %zu\n", params.maxD);
 	duprintf("         'A' operator site: %i\n", jA);
 	duprintf("         'B' operator site: %i\n", jB);
+	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
 	duprintf("\n");
 
 	// number operator

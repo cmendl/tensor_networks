@@ -99,6 +99,7 @@ int main(int argc, char *argv[])
 	duprintf("           delta beta step: %g\n", params.dbeta);
 	duprintf("             MPO tolerance: %g\n", params.tol);
 	duprintf("max virtual bond dimension: %zu\n", params.maxD);
+	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
 	duprintf("\n");
 
 	// number of lattice sites

@@ -117,6 +117,7 @@ int main(int argc, char *argv[])
 	duprintf("max virtual bond dimension: %zu\n", params.maxD);
 	duprintf("                  'i' site: %i\n", i_site);
 	duprintf("                  'j' site: %i\n", j_site);
+	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
 	duprintf("\n");
 
 	// number of lattice sites

@@ -112,6 +112,7 @@ int main(int argc, char *argv[])
 	duprintf("           delta beta step: %g\n", params.dbeta);
 	duprintf("             MPO tolerance: %g\n", params.tol);
 	duprintf("max virtual bond dimension: %zu\n", params.maxD);
+	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
 	duprintf("\n");
 
 	// number of lattice sites
@@ -137,14 +138,12 @@ int main(int argc, char *argv[])
 
 	// compute evolution dynamics data required for Strang splitting evolution
 	dynamics_data_t dyn;
-	//////ComputeDynamicsDataPRK(L, dbeta, 4, (const double **)h, &dyn);
 	ComputeDynamicsDataStrang(L, dbeta, 4, (const double **)h, &dyn);
 
 	// effective tolerance (truncation weight)
 	double *tol_eff = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
 
 	// perform evolution
-	/////EvolveMPOPRK(&dyn, nsteps, true, params.tol, params.maxD, &rho_beta, tol_eff);
 	EvolveMPOStrang(&dyn, nsteps, params.tol, params.maxD, true, &rho_beta, tol_eff);
 
 	const double norm_rho = MPOFrobeniusNorm(&rho_beta);
