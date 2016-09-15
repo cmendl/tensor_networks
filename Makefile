@@ -8,7 +8,7 @@ CC = icc
 CCOPTS = -Wall -O2 -xHost -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -mkl:parallel
 
 # set these with appropriate libraries for your system
-LIBRARIES = -mkl:parallel
+LIBRARIES = -mkl:parallel -lrt
 
 
 all: proj_heisenberg proj_bose_hubbard proj_bose_hubbard_rho proj_bose_hubbard_time proj_bose_hubbard_imag_time proj_bose_hubbard_otoc proj_bose_hubbard_otoc_sym proj_bose_hubbard_otoc_quench proj_test
