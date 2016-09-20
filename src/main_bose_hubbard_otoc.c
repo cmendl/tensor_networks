@@ -292,48 +292,10 @@ int main(int argc, char *argv[])
 	size_t *D_XA = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
 	size_t *D_XB = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
 
-	// OTOCs at time t = 0
-	{
-		// backup copy of tensors at site 'i'
-		tensor_t XAi, XBi;
-		CopyTensor(&XA.A[i_site], &XAi);
-		CopyTensor(&XB.A[i_site], &XBi);
-
-		ApplySingleSiteBottomOperator(&XA.A[i_site], &bd);  //     creation operator at site i
-		ApplySingleSiteBottomOperator(&XB.A[i_site], &b);   // annihilation operator at site i
-
-		otoc1[0] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
-
-		// restore original tensors
-		DeleteTensor(&XA.A[i_site]);
-		DeleteTensor(&XB.A[i_site]);
-		CopyTensor(&XAi, &XA.A[i_site]);
-		CopyTensor(&XBi, &XB.A[i_site]);
-
-		ApplySingleSiteBottomOperator(&XA.A[i_site], &b);   // annihilation operator at site i
-		ApplySingleSiteBottomOperator(&XB.A[i_site], &bd);  //     creation operator at site i
-
-		otoc2[0] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
-		   gf[0] = ComplexScale(1/Zbeta, MPOTrace(&XA));
-
-		// restore original tensors
-		DeleteTensor(&XA.A[i_site]);
-		DeleteTensor(&XB.A[i_site]);
-		MoveTensorData(&XAi, &XA.A[i_site]);
-		MoveTensorData(&XBi, &XB.A[i_site]);
-	}
-	// initial virtual bond dimensions
-	GetVirtualBondDimensions(&XA, D_XA);
-	GetVirtualBondDimensions(&XB, D_XB);
-
 	int n;
-	for (n = 0; n < nsteps; n++)
+	for (n = 0; n <= nsteps; n++)
 	{
-		duprintf("time step %i / %i\n", n + 1, nsteps);
-
-		// single step
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XA, &tol_eff_A[n*(L - 1)]);
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XB, &tol_eff_B[n*(L - 1)]);
+		duprintf("time step %i / %i\n", n, nsteps);
 
 		// OTOCs at current time point
 		{
@@ -345,7 +307,7 @@ int main(int argc, char *argv[])
 			ApplySingleSiteBottomOperator(&XA.A[i_site], &bd);  //     creation operator at site i
 			ApplySingleSiteBottomOperator(&XB.A[i_site], &b);   // annihilation operator at site i
 
-			otoc1[n + 1] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
+			otoc1[n] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
 
 			// restore original tensors
 			DeleteTensor(&XA.A[i_site]);
@@ -356,8 +318,8 @@ int main(int argc, char *argv[])
 			ApplySingleSiteBottomOperator(&XA.A[i_site], &b);   // annihilation operator at site i
 			ApplySingleSiteBottomOperator(&XB.A[i_site], &bd);  //     creation operator at site i
 
-			otoc2[n + 1] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
-			   gf[n + 1] = ComplexScale(1/Zbeta, MPOTrace(&XA));
+			otoc2[n] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
+			   gf[n] = ComplexScale(1/Zbeta, MPOTrace(&XA));
 
 			// restore original tensors
 			DeleteTensor(&XA.A[i_site]);
@@ -367,8 +329,22 @@ int main(int argc, char *argv[])
 		}
 
 		// record virtual bond dimensions
-		GetVirtualBondDimensions(&XA, &D_XA[(n + 1)*(L + 1)]);
-		GetVirtualBondDimensions(&XB, &D_XB[(n + 1)*(L + 1)]);
+		GetVirtualBondDimensions(&XA, &D_XA[n*(L + 1)]);
+		GetVirtualBondDimensions(&XB, &D_XB[n*(L + 1)]);
+
+		// save intermediate results to disk
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1_tmp.dat", argv[4], L, d - 1); WriteData(filename, &otoc1[n], sizeof(MKL_Complex16), 1, true);
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc2_tmp.dat", argv[4], L, d - 1); WriteData(filename, &otoc2[n], sizeof(MKL_Complex16), 1, true);
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_gf_tmp.dat",    argv[4], L, d - 1); WriteData(filename, &gf[n],    sizeof(MKL_Complex16), 1, true);
+
+		// final time step nowhere used; note that index n == nsteps would be out of range for effective tolerance
+		if (n == nsteps) {
+			break;
+		}
+
+		// single step
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XA, &tol_eff_A[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XB, &tol_eff_B[n*(L - 1)]);
 	}
 
 	duprintf("At t = %g:\n", params.tmax);
