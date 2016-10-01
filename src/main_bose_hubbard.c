@@ -214,7 +214,9 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	MKL_Complex16 *chi = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *chi  = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *chiA = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *chiB = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 
 	// effective tolerance (truncation weight)
 	double *tol_eff_A = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
@@ -225,7 +227,9 @@ int main(int argc, char *argv[])
 	size_t *D_XB = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
 
 	// response function at time t = 0
-	chi[0] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
+	chi [0] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
+	chiA[0] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &rho_beta));
+	chiB[0] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&rho_beta, &XB));
 	// initial virtual bond dimensions
 	GetVirtualBondDimensions(&XA, D_XA);
 	GetVirtualBondDimensions(&XB, D_XB);
@@ -239,14 +243,17 @@ int main(int argc, char *argv[])
 		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XA, &tol_eff_A[n*(L - 1)]);
 		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XB, &tol_eff_B[n*(L - 1)]);
 
-		chi[n + 1] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
+		chi [n + 1] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
+		chiA[n + 1] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &rho_beta));
+		chiB[n + 1] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&rho_beta, &XB));
 
 		// record virtual bond dimensions
 		GetVirtualBondDimensions(&XA, &D_XA[(n + 1)*(L + 1)]);
 		GetVirtualBondDimensions(&XB, &D_XB[(n + 1)*(L + 1)]);
 	}
 
-	duprintf("chi at t = %g: (%g, %g)\n", params.tmax, chi[nsteps].real, chi[nsteps].imag);
+	const MKL_Complex16 chi_cum = ComplexSubtract(chi[nsteps], ComplexMultiply(chiA[nsteps], chiB[nsteps]));
+	duprintf("chi at t = %g: (%g, %g), corresponding cumulant: (%g, %g)\n", params.tmax, chi[nsteps].real, chi[nsteps].imag, chi_cum.real, chi_cum.imag);
 
 	const clock_t t_end = clock();
 	double cpu_time = (double)(t_end - t_start) / CLOCKS_PER_SEC;
@@ -256,7 +263,9 @@ int main(int argc, char *argv[])
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
 
 	// save results to disk
-	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_chi.dat",       argv[4], L, d - 1); WriteData(filename, chi, sizeof(MKL_Complex16), nsteps + 1, false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_chi.dat",       argv[4], L, d - 1); WriteData(filename, chi,  sizeof(MKL_Complex16), nsteps + 1, false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_chiA.dat",      argv[4], L, d - 1); WriteData(filename, chiA, sizeof(MKL_Complex16), nsteps + 1, false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_chiB.dat",      argv[4], L, d - 1); WriteData(filename, chiB, sizeof(MKL_Complex16), nsteps + 1, false);
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_A.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_A, sizeof(double), nsteps*(L - 1), false);
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_B.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_B, sizeof(double), nsteps*(L - 1), false);
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXA.dat",       argv[4], L, d - 1); WriteData(filename, D_XA, sizeof(size_t), (nsteps + 1)*(L + 1), false);
@@ -267,6 +276,8 @@ int main(int argc, char *argv[])
 	MKL_free(D_XA);
 	MKL_free(tol_eff_B);
 	MKL_free(tol_eff_A);
+	MKL_free(chiB);
+	MKL_free(chiA);
 	MKL_free(chi);
 	DeleteDynamicsData(&dyn_time);
 	DeleteMPO(&XB);
