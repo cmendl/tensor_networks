@@ -5,6 +5,7 @@
 #define SIM_PARAMS_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 
 //________________________________________________________________________________________________________________________
@@ -37,6 +38,8 @@ typedef struct
 	// matrix product operator approximation parameters
 	double tol;             //!< tolerance
 	size_t maxD;            //!< maximum virtual bond dimension
+
+	bool save_tensors;      //!< whether to save final tensor data to disk
 }
 sim_params_t;
 

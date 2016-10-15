@@ -92,6 +92,18 @@ int ParseParameterFile(const char *filename, sim_params_t *params)
 		else if (strcmp(name, "maxD") == 0) {
 			params->maxD = atoi(value);
 		}
+		else if (strcmp(name, "save_tensors") == 0)
+		{
+			if (strcmp(value, "true") == 0) {
+				params->save_tensors = true;
+			}
+			else if (strcmp(value, "false") == 0) {
+				params->save_tensors = false;
+			}
+			else {
+				duprintf("Warning: unrecognized value '%s' for parameter 'save_tensors' in file '%s', must be true or false.\n", value, filename);
+			}
+		}
 		else {
 			duprintf("Warning: unrecognized parameter '%s' in file '%s'.\n", name, filename);
 		}
