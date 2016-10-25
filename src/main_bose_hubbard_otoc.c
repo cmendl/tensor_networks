@@ -292,8 +292,57 @@ int main(int argc, char *argv[])
 	size_t *D_XA = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
 	size_t *D_XB = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
 
+	int nstart = 0;
+
+	if (params.save_tensors)
+	{
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA", argv[4], L, d - 1); makedir(filename);
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB", argv[4], L, d - 1); makedir(filename);
+
+		// try to open 'n_step' file if it exists, to continue simulation after previous checkpoint
+		duprintf("Trying to read 'n_step' file...\n");
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_n_step.dat", argv[4], L, d - 1);
+		status = ReadData(filename, &nstart, sizeof(int), 1);
+		if (status == 0 && (nstart > 0 && nstart < nsteps))
+		{
+			duprintf("Continuing simulation after time step %i...\n", nstart);
+
+			// read intermediate results to disk
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1_tmp.dat",     argv[4], L, d - 1); status = ReadData(filename, otoc1,     sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc2_tmp.dat",     argv[4], L, d - 1); status = ReadData(filename, otoc2,     sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_gf_tmp.dat",        argv[4], L, d - 1); status = ReadData(filename, gf,        sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXA_tmp.dat",       argv[4], L, d - 1); status = ReadData(filename, D_XA,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXB_tmp.dat",       argv[4], L, d - 1); status = ReadData(filename, D_XB,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_A_tmp.dat", argv[4], L, d - 1); status = ReadData(filename, tol_eff_A, sizeof(double),  nstart     *(L - 1));  if (status < 0) { return status; }
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_B_tmp.dat", argv[4], L, d - 1); status = ReadData(filename, tol_eff_B, sizeof(double),  nstart     *(L - 1));  if (status < 0) { return status; }
+
+			// re-allocate and fill MPOs
+			DeleteMPO(&XB);
+			DeleteMPO(&XA);
+			const size_t dim[2] = { d, d };
+			AllocateMPO(L, dim, &D_XA[nstart*(L + 1)], &XA);
+			AllocateMPO(L, dim, &D_XB[nstart*(L + 1)], &XB);
+			for (i = 0; i < L; i++)
+			{
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/A%i.dat", argv[4], L, d - 1, i); status = ReadData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]));  if (status < 0) { return status; }
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/A%i.dat", argv[4], L, d - 1, i); status = ReadData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]));  if (status < 0) { return status; }
+			}
+
+			// single step
+			EvolveLiouvilleMPOPRK(&dyn_time, 1, true, params.tol, params.maxD, &XA, &tol_eff_A[nstart*(L - 1)]);
+			EvolveLiouvilleMPOPRK(&dyn_time, 1, true, params.tol, params.maxD, &XB, &tol_eff_B[nstart*(L - 1)]);
+
+			nstart++;
+		}
+		else
+		{
+			duprintf("Could not read 'n_step' file, or step out of range; starting from step 0...\n");
+			nstart = 0;
+		}
+	}
+
 	int n;
-	for (n = 0; n <= nsteps; n++)
+	for (n = nstart; n <= nsteps; n++)
 	{
 		duprintf("time step %i / %i\n", n, nsteps);
 
@@ -336,6 +385,23 @@ int main(int argc, char *argv[])
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1_tmp.dat", argv[4], L, d - 1); WriteData(filename, &otoc1[n], sizeof(MKL_Complex16), 1, true);
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc2_tmp.dat", argv[4], L, d - 1); WriteData(filename, &otoc2[n], sizeof(MKL_Complex16), 1, true);
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_gf_tmp.dat",    argv[4], L, d - 1); WriteData(filename, &gf[n],    sizeof(MKL_Complex16), 1, true);
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXA_tmp.dat",   argv[4], L, d - 1); WriteData(filename, &D_XA[n*(L + 1)], sizeof(size_t), L + 1, true);
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXB_tmp.dat",   argv[4], L, d - 1); WriteData(filename, &D_XB[n*(L + 1)], sizeof(size_t), L + 1, true);
+		if (n > 0) {
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_A_tmp.dat", argv[4], L, d - 1); WriteData(filename, &tol_eff_A[(n - 1)*(L - 1)], sizeof(double), L - 1, true);
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_B_tmp.dat", argv[4], L, d - 1); WriteData(filename, &tol_eff_B[(n - 1)*(L - 1)], sizeof(double), L - 1, true);
+		}
+		if (params.save_tensors)
+		{
+			for (i = 0; i < L; i++)
+			{
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/A%i.dat", argv[4], L, d - 1, i); WriteData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]), false);
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/A%i.dat", argv[4], L, d - 1, i); WriteData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]), false);
+			}
+		}
+
+		// record completed step
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_n_step.dat", argv[4], L, d - 1); WriteData(filename, &n, sizeof(int), 1, false);
 
 		// final time step nowhere used; note that index n == nsteps would be out of range for effective tolerance
 		if (n == nsteps) {
@@ -343,8 +409,8 @@ int main(int argc, char *argv[])
 		}
 
 		// single step
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XA, &tol_eff_A[n*(L - 1)]);
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XB, &tol_eff_B[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, true, params.tol, params.maxD, &XA, &tol_eff_A[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, true, params.tol, params.maxD, &XB, &tol_eff_B[n*(L - 1)]);
 	}
 
 	duprintf("At t = %g:\n", params.tmax);
@@ -369,18 +435,6 @@ int main(int argc, char *argv[])
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_B.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_B, sizeof(double),  nsteps*(L - 1), false);
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXA.dat",       argv[4], L, d - 1); WriteData(filename, D_XA, sizeof(size_t), (nsteps + 1)*(L + 1), false);
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXB.dat",       argv[4], L, d - 1); WriteData(filename, D_XB, sizeof(size_t), (nsteps + 1)*(L + 1), false);
-
-	if (params.save_tensors)
-	{
-		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA", argv[4], L, d - 1); makedir(filename);
-		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB", argv[4], L, d - 1); makedir(filename);
-
-		for (i = 0; i < L; i++)
-		{
-			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/A%i.dat", argv[4], L, d - 1, i); WriteData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]), false);
-			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/A%i.dat", argv[4], L, d - 1, i); WriteData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]), false);
-		}
-	}
 
 	// clean up
 	MKL_free(D_XB);
