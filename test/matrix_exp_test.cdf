@@ -23,10 +23,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[      1064,         20]
-NotebookDataLength[     17445,        464]
-NotebookOptionsPosition[     17402,        440]
-NotebookOutlinePosition[     17745,        455]
-CellTagsIndexPosition[     17702,        452]
+NotebookDataLength[     17057,        452]
+NotebookOptionsPosition[     17015,        428]
+NotebookOutlinePosition[     17358,        443]
+CellTagsIndexPosition[     17315,        440]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -407,35 +407,23 @@ Cell[BoxData[
      RowBox[{
       RowBox[{
        SubscriptBox["fn", "base"], "<>", "\"\<_exp17A.dat\>\""}], ",", 
-      RowBox[{
+      RowBox[{"Transpose", "[", 
        RowBox[{
-        RowBox[{"{", 
-         RowBox[{
-          RowBox[{"Re", "[", "#", "]"}], ",", 
-          RowBox[{"Im", "[", "#", "]"}]}], "}"}], "&"}], "/@", 
-       RowBox[{"Flatten", "[", 
-        RowBox[{"Transpose", "[", 
-         SubscriptBox["expA", 
-          RowBox[{"1", "/", "7"}]], "]"}], "]"}]}], ",", "\"\<Real64\>\""}], 
-     "]"}], ";"}], "\[IndentingNewLine]", 
+        SubscriptBox["expA", 
+         RowBox[{"1", "/", "7"}]], "+", 
+        RowBox[{"0.", "\[ImaginaryI]"}]}], "]"}], ",", "\"\<Complex128\>\""}],
+      "]"}], ";"}], "\[IndentingNewLine]", 
    RowBox[{
     RowBox[{"Export", "[", 
      RowBox[{
       RowBox[{
        SubscriptBox["fn", "base"], "<>", "\"\<_exp3i7A.dat\>\""}], ",", 
-      RowBox[{
-       RowBox[{
-        RowBox[{"{", 
-         RowBox[{
-          RowBox[{"Re", "[", "#", "]"}], ",", 
-          RowBox[{"Im", "[", "#", "]"}]}], "}"}], "&"}], "/@", 
-       RowBox[{"Flatten", "[", 
-        RowBox[{"Transpose", "[", 
-         SubscriptBox["expA", 
-          RowBox[{
-           RowBox[{"3", "/", "10"}], "+", 
-           RowBox[{"\[ImaginaryI]", "/", "7"}]}]], "]"}], "]"}]}], ",", 
-      "\"\<Real64\>\""}], "]"}], ";"}]}]}]], "Input"]
+      RowBox[{"Transpose", "[", 
+       SubscriptBox["expA", 
+        RowBox[{
+         RowBox[{"3", "/", "10"}], "+", 
+         RowBox[{"\[ImaginaryI]", "/", "7"}]}]], "]"}], ",", 
+      "\"\<Complex128\>\""}], "]"}], ";"}]}]}]], "Input"]
 }, Open  ]]
 },
 WindowSize->{1654, 920},
@@ -477,7 +465,7 @@ Cell[8284, 228, 171, 5, 31, "Input"],
 Cell[8458, 235, 7054, 142, 138, "Output"]
 }, Open  ]],
 Cell[15527, 380, 491, 15, 52, "Input"],
-Cell[16021, 397, 1365, 40, 72, "Input"]
+Cell[16021, 397, 978, 28, 72, "Input"]
 }, Open  ]]
 }
 ]
@@ -485,4 +473,4 @@ Cell[16021, 397, 1365, 40, 72, "Input"]
 
 (* End of internal cache information *)
 
-(* NotebookSignature wxTp@Rg@diamVDwoJcGaGqwc *)
+(* NotebookSignature VxpJQXsquakDGDKc1hsRaie7 *)

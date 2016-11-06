@@ -23,10 +23,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[      1064,         20]
-NotebookDataLength[     37542,       1137]
-NotebookOptionsPosition[     35825,       1056]
-NotebookOutlinePosition[     36168,       1071]
-CellTagsIndexPosition[     36125,       1068]
+NotebookDataLength[     36757,       1113]
+NotebookOptionsPosition[     35039,       1032]
+NotebookOutlinePosition[     35382,       1047]
+CellTagsIndexPosition[     35339,       1044]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -45,6 +45,14 @@ group methods for quantum spin systems\n\tAdvances in Physics 57, 143-224 \
   ButtonData->{
     URL["http://dx.doi.org/10.1080/14789940801912366"], None},
   ButtonNote->"http://dx.doi.org/10.1080/14789940801912366"],
+ "\n\n\tUlrich Schollw\[ODoubleDot]ck\n\tThe density-matrix renormalization \
+group in the age of matrix product states\n\tAnnals of Physics 326, 96-192 \
+(2011) ",
+ ButtonBox["DOI",
+  BaseStyle->"Hyperlink",
+  ButtonData->{
+    URL["http://dx.doi.org/10.1016/j.aop.2010.09.012"], None},
+  ButtonNote->"http://dx.doi.org/10.1016/j.aop.2010.09.012"],
  "\n\n\tThomas Barthel\n\tPrecise evaluation of thermal response functions by \
 optimized density matrix renormalization group schemes\n\tNew Journal of \
 Physics 15, 073010 (2013) ",
@@ -351,21 +359,14 @@ Cell[BoxData[
           SubscriptBox["fn", "base"], "<>", "\"\<_A\>\"", "<>", 
           RowBox[{"ToString", "[", 
            RowBox[{"j", "-", "1"}], "]"}], "<>", "\"\<.dat\>\""}], ",", 
-         RowBox[{
+         RowBox[{"Transpose", "[", 
           RowBox[{
-           RowBox[{"{", 
-            RowBox[{
-             RowBox[{"Re", "[", "#", "]"}], ",", 
-             RowBox[{"Im", "[", "#", "]"}]}], "}"}], "&"}], "/@", 
-          RowBox[{"Flatten", "[", 
-           RowBox[{"Transpose", "[", 
-            RowBox[{
-             RowBox[{
-              SubscriptBox["A", "list"], "\[LeftDoubleBracket]", "j", 
-              "\[RightDoubleBracket]"}], ",", 
-             RowBox[{"Reverse", "[", 
-              RowBox[{"Range", "[", "4", "]"}], "]"}]}], "]"}], "]"}]}], ",", 
-         "\"\<Real64\>\""}], "]"}], ",", 
+           RowBox[{
+            SubscriptBox["A", "list"], "\[LeftDoubleBracket]", "j", 
+            "\[RightDoubleBracket]"}], ",", 
+           RowBox[{"Reverse", "[", 
+            RowBox[{"Range", "[", "4", "]"}], "]"}]}], "]"}], ",", 
+         "\"\<Complex128\>\""}], "]"}], ",", 
        RowBox[{"{", 
         RowBox[{"j", ",", "L"}], "}"}]}], "]"}]}], "]"}], ";"}]}]], "Input"],
 
@@ -393,19 +394,18 @@ Cell[BoxData[
           SubscriptBox["fn", "base"], "<>", "\"\<_h\>\"", "<>", 
           RowBox[{"ToString", "[", 
            RowBox[{"j", "-", "1"}], "]"}], "<>", "\"\<.dat\>\""}], ",", 
-         RowBox[{"Flatten", "[", 
-          RowBox[{"Transpose", "[", 
-           RowBox[{
-            RowBox[{"ArrayReshape", "[", 
+         RowBox[{"Transpose", "[", 
+          RowBox[{
+           RowBox[{"ArrayReshape", "[", 
+            RowBox[{
              RowBox[{
-              RowBox[{
-               SubscriptBox["h", "list"], "\[LeftDoubleBracket]", "j", 
-               "\[RightDoubleBracket]"}], ",", 
-              RowBox[{"{", 
-               RowBox[{"d", ",", "d", ",", "d", ",", "d"}], "}"}]}], "]"}], 
-            ",", 
-            RowBox[{"Reverse", "[", 
-             RowBox[{"Range", "[", "4", "]"}], "]"}]}], "]"}], "]"}], ",", 
+              SubscriptBox["h", "list"], "\[LeftDoubleBracket]", "j", 
+              "\[RightDoubleBracket]"}], ",", 
+             RowBox[{"{", 
+              RowBox[{"d", ",", "d", ",", "d", ",", "d"}], "}"}]}], "]"}], 
+           ",", 
+           RowBox[{"Reverse", "[", 
+            RowBox[{"Range", "[", "4", "]"}], "]"}]}], "]"}], ",", 
          "\"\<Real64\>\""}], "]"}], ",", 
        RowBox[{"{", 
         RowBox[{"j", ",", 
@@ -545,33 +545,27 @@ Cell[BoxData[
        RowBox[{
         SubscriptBox["fn", "base"], "<>", "\"\<_A_strang5i8_m.dat\>\""}], ",", 
        RowBox[{
-        RowBox[{
-         RowBox[{"{", 
+        RowBox[{"Flatten", "[", 
+         RowBox[{"Transpose", "[", 
           RowBox[{
-           RowBox[{"Re", "[", "#", "]"}], ",", 
-           RowBox[{"Im", "[", "#", "]"}]}], "}"}], "&"}], "/@", 
-        RowBox[{
-         RowBox[{"Flatten", "[", 
-          RowBox[{"Transpose", "[", 
-           RowBox[{
-            RowBox[{"ArrayReshape", "[", 
-             RowBox[{
-              RowBox[{"MPOMergeFull", "[", 
-               SubscriptBox["A", 
-                RowBox[{"strang", ",", 
-                 RowBox[{
-                  RowBox[{"1", "/", "5"}], "+", 
-                  RowBox[{"\[ImaginaryI]", "/", "8"}]}]}]], "]"}], ",", 
-              RowBox[{"ConstantArray", "[", 
-               RowBox[{
-                SubscriptBox["d", "val"], ",", 
-                RowBox[{"2", "L"}]}], "]"}]}], "]"}], ",", 
-            RowBox[{"Reverse", "[", 
-             RowBox[{"Range", "[", 
-              RowBox[{"2", "L"}], "]"}], "]"}]}], "]"}], "]"}], 
-         "\[LeftDoubleBracket]", 
-         RowBox[{"1", ";;", "1764"}], "\[RightDoubleBracket]"}]}], ",", 
-       "\"\<Real64\>\""}], "]"}]}], "]"}], ";"}]}]], "Input"],
+           RowBox[{"ArrayReshape", "[", 
+            RowBox[{
+             RowBox[{"MPOMergeFull", "[", 
+              SubscriptBox["A", 
+               RowBox[{"strang", ",", 
+                RowBox[{
+                 RowBox[{"1", "/", "5"}], "+", 
+                 RowBox[{"\[ImaginaryI]", "/", "8"}]}]}]], "]"}], ",", 
+             RowBox[{"ConstantArray", "[", 
+              RowBox[{
+               SubscriptBox["d", "val"], ",", 
+               RowBox[{"2", "L"}]}], "]"}]}], "]"}], ",", 
+           RowBox[{"Reverse", "[", 
+            RowBox[{"Range", "[", 
+             RowBox[{"2", "L"}], "]"}], "]"}]}], "]"}], "]"}], 
+        "\[LeftDoubleBracket]", 
+        RowBox[{"1", ";;", "1764"}], "\[RightDoubleBracket]"}], ",", 
+       "\"\<Complex128\>\""}], "]"}]}], "]"}], ";"}]}]], "Input"],
 
 Cell[CellGroupData[{
 
@@ -703,33 +697,27 @@ Cell[BoxData[
         SubscriptBox["fn", "base"], "<>", "\"\<_A_Lstrang6i7_m.dat\>\""}], 
        ",", 
        RowBox[{
-        RowBox[{
-         RowBox[{"{", 
+        RowBox[{"Flatten", "[", 
+         RowBox[{"Transpose", "[", 
           RowBox[{
-           RowBox[{"Re", "[", "#", "]"}], ",", 
-           RowBox[{"Im", "[", "#", "]"}]}], "}"}], "&"}], "/@", 
-        RowBox[{
-         RowBox[{"Flatten", "[", 
-          RowBox[{"Transpose", "[", 
-           RowBox[{
-            RowBox[{"ArrayReshape", "[", 
-             RowBox[{
-              RowBox[{"MPOMergeFull", "[", 
-               SubscriptBox["A", 
-                RowBox[{"strang", ",", "liouville", ",", 
-                 RowBox[{
-                  RowBox[{"1", "/", "6"}], "+", 
-                  RowBox[{"\[ImaginaryI]", "/", "7"}]}]}]], "]"}], ",", 
-              RowBox[{"ConstantArray", "[", 
-               RowBox[{
-                SubscriptBox["d", "val"], ",", 
-                RowBox[{"2", "L"}]}], "]"}]}], "]"}], ",", 
-            RowBox[{"Reverse", "[", 
-             RowBox[{"Range", "[", 
-              RowBox[{"2", "L"}], "]"}], "]"}]}], "]"}], "]"}], 
-         "\[LeftDoubleBracket]", 
-         RowBox[{"1", ";;", "1764"}], "\[RightDoubleBracket]"}]}], ",", 
-       "\"\<Real64\>\""}], "]"}]}], "]"}], ";"}]}]], "Input"]
+           RowBox[{"ArrayReshape", "[", 
+            RowBox[{
+             RowBox[{"MPOMergeFull", "[", 
+              SubscriptBox["A", 
+               RowBox[{"strang", ",", "liouville", ",", 
+                RowBox[{
+                 RowBox[{"1", "/", "6"}], "+", 
+                 RowBox[{"\[ImaginaryI]", "/", "7"}]}]}]], "]"}], ",", 
+             RowBox[{"ConstantArray", "[", 
+              RowBox[{
+               SubscriptBox["d", "val"], ",", 
+               RowBox[{"2", "L"}]}], "]"}]}], "]"}], ",", 
+           RowBox[{"Reverse", "[", 
+            RowBox[{"Range", "[", 
+             RowBox[{"2", "L"}], "]"}], "]"}]}], "]"}], "]"}], 
+        "\[LeftDoubleBracket]", 
+        RowBox[{"1", ";;", "1764"}], "\[RightDoubleBracket]"}], ",", 
+       "\"\<Complex128\>\""}], "]"}]}], "]"}], ";"}]}]], "Input"]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -866,33 +854,27 @@ Cell[BoxData[
        RowBox[{
         SubscriptBox["fn", "base"], "<>", "\"\<_A_srkn11i9_m.dat\>\""}], ",", 
        RowBox[{
-        RowBox[{
-         RowBox[{"{", 
+        RowBox[{"Flatten", "[", 
+         RowBox[{"Transpose", "[", 
           RowBox[{
-           RowBox[{"Re", "[", "#", "]"}], ",", 
-           RowBox[{"Im", "[", "#", "]"}]}], "}"}], "&"}], "/@", 
-        RowBox[{
-         RowBox[{"Flatten", "[", 
-          RowBox[{"Transpose", "[", 
-           RowBox[{
-            RowBox[{"ArrayReshape", "[", 
-             RowBox[{
-              RowBox[{"MPOMergeFull", "[", 
-               SubscriptBox["A", 
-                RowBox[{"SRKNb6", ",", 
-                 RowBox[{
-                  RowBox[{"1", "/", "11"}], "+", 
-                  RowBox[{"\[ImaginaryI]", "/", "9"}]}]}]], "]"}], ",", 
-              RowBox[{"ConstantArray", "[", 
-               RowBox[{
-                SubscriptBox["d", "val"], ",", 
-                RowBox[{"2", "L"}]}], "]"}]}], "]"}], ",", 
-            RowBox[{"Reverse", "[", 
-             RowBox[{"Range", "[", 
-              RowBox[{"2", "L"}], "]"}], "]"}]}], "]"}], "]"}], 
-         "\[LeftDoubleBracket]", 
-         RowBox[{"1", ";;", "1764"}], "\[RightDoubleBracket]"}]}], ",", 
-       "\"\<Real64\>\""}], "]"}]}], "]"}], ";"}]}]], "Input"],
+           RowBox[{"ArrayReshape", "[", 
+            RowBox[{
+             RowBox[{"MPOMergeFull", "[", 
+              SubscriptBox["A", 
+               RowBox[{"SRKNb6", ",", 
+                RowBox[{
+                 RowBox[{"1", "/", "11"}], "+", 
+                 RowBox[{"\[ImaginaryI]", "/", "9"}]}]}]], "]"}], ",", 
+             RowBox[{"ConstantArray", "[", 
+              RowBox[{
+               SubscriptBox["d", "val"], ",", 
+               RowBox[{"2", "L"}]}], "]"}]}], "]"}], ",", 
+           RowBox[{"Reverse", "[", 
+            RowBox[{"Range", "[", 
+             RowBox[{"2", "L"}], "]"}], "]"}]}], "]"}], "]"}], 
+        "\[LeftDoubleBracket]", 
+        RowBox[{"1", ";;", "1764"}], "\[RightDoubleBracket]"}], ",", 
+       "\"\<Complex128\>\""}], "]"}]}], "]"}], ";"}]}]], "Input"],
 
 Cell[CellGroupData[{
 
@@ -1023,34 +1005,28 @@ Cell[BoxData[
        RowBox[{
         SubscriptBox["fn", "base"], "<>", "\"\<_A_Lsrkn3i5_m.dat\>\""}], ",", 
        RowBox[{
-        RowBox[{
-         RowBox[{"{", 
+        RowBox[{"Flatten", "[", 
+         RowBox[{"Transpose", "[", 
           RowBox[{
-           RowBox[{"Re", "[", "#", "]"}], ",", 
-           RowBox[{"Im", "[", "#", "]"}]}], "}"}], "&"}], "/@", 
-        RowBox[{
-         RowBox[{"Flatten", "[", 
-          RowBox[{"Transpose", "[", 
-           RowBox[{
-            RowBox[{"ArrayReshape", "[", 
-             RowBox[{
-              RowBox[{"MPOMergeFull", "[", 
-               SubscriptBox["A", 
-                RowBox[{"SRKNb6", ",", "liouville", ",", 
+           RowBox[{"ArrayReshape", "[", 
+            RowBox[{
+             RowBox[{"MPOMergeFull", "[", 
+              SubscriptBox["A", 
+               RowBox[{"SRKNb6", ",", "liouville", ",", 
+                RowBox[{
                  RowBox[{
-                  RowBox[{
-                   RowBox[{"-", "1"}], "/", "3"}], "+", 
-                  RowBox[{"\[ImaginaryI]", "/", "5"}]}]}]], "]"}], ",", 
-              RowBox[{"ConstantArray", "[", 
-               RowBox[{
-                SubscriptBox["d", "val"], ",", 
-                RowBox[{"2", "L"}]}], "]"}]}], "]"}], ",", 
-            RowBox[{"Reverse", "[", 
-             RowBox[{"Range", "[", 
-              RowBox[{"2", "L"}], "]"}], "]"}]}], "]"}], "]"}], 
-         "\[LeftDoubleBracket]", 
-         RowBox[{"1", ";;", "1764"}], "\[RightDoubleBracket]"}]}], ",", 
-       "\"\<Real64\>\""}], "]"}]}], "]"}], ";"}]}]], "Input"]
+                  RowBox[{"-", "1"}], "/", "3"}], "+", 
+                 RowBox[{"\[ImaginaryI]", "/", "5"}]}]}]], "]"}], ",", 
+             RowBox[{"ConstantArray", "[", 
+              RowBox[{
+               SubscriptBox["d", "val"], ",", 
+               RowBox[{"2", "L"}]}], "]"}]}], "]"}], ",", 
+           RowBox[{"Reverse", "[", 
+            RowBox[{"Range", "[", 
+             RowBox[{"2", "L"}], "]"}], "]"}]}], "]"}], "]"}], 
+        "\[LeftDoubleBracket]", 
+        RowBox[{"1", ";;", "1764"}], "\[RightDoubleBracket]"}], ",", 
+       "\"\<Complex128\>\""}], "]"}]}], "]"}], ";"}]}]], "Input"]
 }, Open  ]]
 }, Open  ]]
 },
@@ -1072,84 +1048,84 @@ CellTagsIndex->{}
 Notebook[{
 Cell[CellGroupData[{
 Cell[1486, 35, 65, 0, 63, "Section"],
-Cell[1554, 37, 822, 18, 163, "Text"],
-Cell[2379, 57, 123, 3, 31, "Input"],
-Cell[2505, 62, 69, 1, 31, "Input"],
-Cell[2577, 65, 174, 5, 31, "Input"],
+Cell[1554, 37, 1172, 26, 239, "Text"],
+Cell[2729, 65, 123, 3, 31, "Input"],
+Cell[2855, 70, 69, 1, 31, "Input"],
+Cell[2927, 73, 174, 5, 31, "Input"],
 Cell[CellGroupData[{
-Cell[2776, 74, 49, 0, 43, "Subsection"],
-Cell[2828, 76, 233, 7, 52, "Input"],
-Cell[3064, 85, 209, 6, 52, "Input"],
-Cell[3276, 93, 2931, 77, 92, "Input"],
+Cell[3126, 82, 49, 0, 43, "Subsection"],
+Cell[3178, 84, 233, 7, 52, "Input"],
+Cell[3414, 93, 209, 6, 52, "Input"],
+Cell[3626, 101, 2931, 77, 92, "Input"],
 Cell[CellGroupData[{
-Cell[6232, 174, 88, 2, 31, "Input"],
-Cell[6323, 178, 83, 2, 31, "Output"]
+Cell[6582, 182, 88, 2, 31, "Input"],
+Cell[6673, 186, 83, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[6443, 185, 323, 8, 52, "Input"],
-Cell[6769, 195, 93, 2, 31, "Output"],
-Cell[6865, 199, 93, 2, 31, "Output"]
+Cell[6793, 193, 323, 8, 52, "Input"],
+Cell[7119, 203, 93, 2, 31, "Output"],
+Cell[7215, 207, 93, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[6995, 206, 128, 3, 31, "Input"],
-Cell[7126, 211, 77, 2, 31, "Output"]
+Cell[7345, 214, 128, 3, 31, "Input"],
+Cell[7476, 219, 77, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[7240, 218, 1454, 42, 95, "Input"],
-Cell[8697, 262, 83, 2, 31, "Output"]
+Cell[7590, 226, 1454, 42, 95, "Input"],
+Cell[9047, 270, 83, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[8817, 269, 447, 13, 52, "Input"],
-Cell[9267, 284, 940, 25, 71, "Output"]
+Cell[9167, 277, 447, 13, 52, "Input"],
+Cell[9617, 292, 940, 25, 71, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[10244, 314, 314, 10, 52, "Input"],
-Cell[10561, 326, 116, 3, 31, "Output"]
+Cell[10594, 322, 314, 10, 52, "Input"],
+Cell[10911, 334, 116, 3, 31, "Output"]
 }, Open  ]],
-Cell[10692, 332, 1312, 37, 52, "Input"],
-Cell[12007, 371, 1414, 40, 52, "Input"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[13458, 416, 48, 0, 43, "Subsection"],
-Cell[CellGroupData[{
-Cell[13531, 420, 773, 23, 54, "Input"],
-Cell[14307, 445, 533, 14, 31, "Output"]
+Cell[11042, 340, 1058, 30, 52, "Input"],
+Cell[12103, 372, 1361, 39, 52, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[14877, 464, 590, 17, 52, "Input"],
-Cell[15470, 483, 1782, 41, 74, "Output"]
-}, Open  ]],
-Cell[17267, 527, 1746, 46, 52, "Input"],
+Cell[13501, 416, 48, 0, 43, "Subsection"],
 Cell[CellGroupData[{
-Cell[19038, 577, 800, 23, 54, "Input"],
-Cell[19841, 602, 535, 14, 31, "Output"]
+Cell[13574, 420, 773, 23, 54, "Input"],
+Cell[14350, 445, 533, 14, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[20413, 621, 608, 17, 52, "Input"],
-Cell[21024, 640, 1775, 41, 76, "Output"]
+Cell[14920, 464, 590, 17, 52, "Input"],
+Cell[15513, 483, 1782, 41, 74, "Output"]
 }, Open  ]],
-Cell[22814, 684, 1773, 47, 52, "Input"]
+Cell[17310, 527, 1539, 40, 52, "Input"],
+Cell[CellGroupData[{
+Cell[18874, 571, 800, 23, 54, "Input"],
+Cell[19677, 596, 535, 14, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[24624, 736, 48, 0, 43, "Subsection"],
-Cell[CellGroupData[{
-Cell[24697, 740, 774, 23, 54, "Input"],
-Cell[25474, 765, 535, 14, 31, "Output"]
+Cell[20249, 615, 608, 17, 52, "Input"],
+Cell[20860, 634, 1775, 41, 76, "Output"]
+}, Open  ]],
+Cell[22650, 678, 1566, 41, 52, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[26046, 784, 591, 17, 52, "Input"],
-Cell[26640, 803, 1779, 42, 74, "Output"]
-}, Open  ]],
-Cell[28434, 848, 1746, 46, 52, "Input"],
+Cell[24253, 724, 48, 0, 43, "Subsection"],
 Cell[CellGroupData[{
-Cell[30205, 898, 825, 24, 54, "Input"],
-Cell[31033, 924, 535, 14, 31, "Output"]
+Cell[24326, 728, 774, 23, 54, "Input"],
+Cell[25103, 753, 535, 14, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[31605, 943, 632, 18, 52, "Input"],
-Cell[32240, 963, 1744, 39, 74, "Output"]
+Cell[25675, 772, 591, 17, 52, "Input"],
+Cell[26269, 791, 1779, 42, 74, "Output"]
 }, Open  ]],
-Cell[33999, 1005, 1798, 47, 52, "Input"]
+Cell[28063, 836, 1539, 40, 52, "Input"],
+Cell[CellGroupData[{
+Cell[29627, 880, 825, 24, 54, "Input"],
+Cell[30455, 906, 535, 14, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[31027, 925, 632, 18, 52, "Input"],
+Cell[31662, 945, 1744, 39, 74, "Output"]
+}, Open  ]],
+Cell[33421, 987, 1590, 41, 52, "Input"]
 }, Open  ]]
 }, Open  ]]
 }
@@ -1158,4 +1134,4 @@ Cell[33999, 1005, 1798, 47, 52, "Input"]
 
 (* End of internal cache information *)
 
-(* NotebookSignature ov0Jewx2mvhC0Aggwlxev@iS *)
+(* NotebookSignature QvT8UasLOlz6qDgk8u34gD8H *)

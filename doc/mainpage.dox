@@ -6,6 +6,9 @@
 /// 1. F. Verstraete, V. Murg, J. I. Cirac \n
 ///    Matrix product states, projected entangled pair states, and variational renormalization group methods for quantum spin systems \n
 ///    Advances in Physics 57, 143-224 (2008), [DOI](http://dx.doi.org/10.1080/14789940801912366)
-/// 2. Thomas Barthel \n
+/// 2. Ulrich Schollwöck \n
+///    The density-matrix renormalization group in the age of matrix product states \n
+///    Annals of Physics 326, 96-192 (2011) [DOI](http://dx.doi.org/10.1016/j.aop.2010.09.012)
+/// 3. Thomas Barthel \n
 ///    Precise evaluation of thermal response functions by optimized density matrix renormalization group schemes \n
 ///    New Journal of Physics 15, 073010 (2013) [DOI](http://dx.doi.org/10.1088/1367-2630/15/7/073010)

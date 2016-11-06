@@ -1,5 +1,5 @@
 /// \file mps.h
-/// \brief Matrix product state (MPS) 
+/// \brief Matrix product state (MPS)
 
 #ifndef MPS_H
 #define MPS_H
@@ -13,7 +13,7 @@
 ///
 typedef struct
 {
-	tensor_t *A;    //!< tensors associated with sites, with dimensions D_i x d x D_{i+1}; array of length L
+	tensor_t *A;    //!< tensors associated with sites, with dimensions d x D_i x D_{i+1}; array of length L
 	size_t d;       //!< physical dimension of each site
 	int L;          //!< lattice size
 }
@@ -29,22 +29,21 @@ void DeleteMPS(mps_t *restrict mps);
 //
 
 
-double CalculateMPSNorm(const mps_t *restrict mps);
+void MPSUnitaryLeftProjection(tensor_t *restrict A, tensor_t *restrict Anext);
 
-
-void CalculateMPSContraction(const mps_t *restrict mps, tensor_t *restrict cntrL, tensor_t *restrict cntrR);
-
-
-MKL_Complex16 MPSAverageOneSiteOp(const mps_t *restrict mps, const tensor_t *restrict cntrL, const tensor_t *restrict cntrR, const tensor_t *restrict op);
-
-MKL_Complex16 MPSAverageTwoSiteOp(const mps_t *restrict mps, const tensor_t *restrict cntrL, const tensor_t *restrict cntrR, const tensor_t *restrict op1, const tensor_t *restrict op2);
+void MPSUnitaryRightProjection(tensor_t *restrict A, tensor_t *restrict Aprev);
 
 
 //________________________________________________________________________________________________________________________
 //
 
 
-double MinimizeMPSEnergy(const int num_op_tensors, const tensor_t *restrict h, const double prec, mps_t *restrict mps);
+void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R);
+
+void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *restrict W, tensor_t *restrict R);
+
+
+double CalculateMPSNorm(const mps_t *restrict mps);
 
 
 

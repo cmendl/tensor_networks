@@ -16,120 +16,194 @@ int MPSTest()
 
 	printf("Testing MPS operations...\n");
 
+	const int L = 6;
+	const size_t d = 4;
+
 	// allocate MPS state
 	mps_t mps;
-	const size_t D[] = { 1, 5, 5, 5, 5, 5, 5, 1 };
-	AllocateMPS(7, 2, D, &mps);
+	const size_t D[] = { 1, 2, 9, 6, 5, 3, 1 };
+	AllocateMPS(L, d, D, &mps);
 
-	// load MPS matrices from disk
+	// load MPS tensors from disk
 	for (i = 0; i < mps.L; i++)
 	{
 		char filename[1024];
 		sprintf(filename, "../test/mps_test_A%i.dat", i);
-		tensor_t t;	// temporary tensor
-		const size_t dim[3] = { mps.A[i].dim[0], mps.A[i].dim[2], mps.A[i].dim[1] };
-		AllocateTensor(3, dim, &t);
-		int status = ReadData(filename, t.data, sizeof(MKL_Complex16), NumTensorElements(&t));
+		int status = ReadData(filename, mps.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&mps.A[i]));
 		if (status < 0) { return status; }
-
-		// interchange second and third dimension
-		// TODO: inplace transpose
-		const int perm[3] = { 0, 2, 1 };
-		tensor_t A;
-		TransposeTensor(perm, &t, &A);
-		DeleteTensor(&t);
-
-		assert(A.ndim == 3 && mps.A[i].ndim == 3);
-		assert(A.dim[0] == mps.A[i].dim[0]);
-		assert(A.dim[1] == mps.A[i].dim[1]);
-		assert(A.dim[2] == mps.A[i].dim[2]);
-		memcpy(mps.A[i].data, A.data, NumTensorElements(&A)*sizeof(MKL_Complex16));
-		DeleteTensor(&A);
 	}
-
-	// left and right partial contractions
-	tensor_t *cntrL = MKL_calloc(mps.L, sizeof(tensor_t), MEM_DATA_ALIGN);
-	tensor_t *cntrR = MKL_calloc(mps.L, sizeof(tensor_t), MEM_DATA_ALIGN);
-	CalculateMPSContraction(&mps, cntrL, cntrR);
 
 	// norm
 	{
-		// reference value
-		const double n_ref = 0.9872785797299465;
-
 		const double n = CalculateMPSNorm(&mps);
+
+		// reference value
+		const double n_ref = 0.8110767739639566;
 
 		// maximum error
 		err = fmax(err, fabs(n - n_ref));
+	}
 
-		// alternative computation using partial contractions
-		for (i = 0; i < mps.L - 1; i++)
+	// unitary left projection at site 1
+	{
+		tensor_t B1, B2;
+		CopyTensor(&mps.A[1], &B1);
+		CopyTensor(&mps.A[2], &B2);
+
+		MPSUnitaryLeftProjection(&B1, &B2);
+
+		// load reference data from disk
+		tensor_t B1_ref;
 		{
-			tensor_t t;
-			MultiplyTensor(&cntrL[i], &cntrR[i + 1], &t);
-			const double nc = TensorTrace(&t).real;
-
-			// maximum error
-			err = fmax(err, fabs(nc - n_ref));
-
-			DeleteTensor(&t);
+			const size_t dim[3] = { d, 2, 8 };
+			AllocateTensor(3, dim, &B1_ref);
+			int status = ReadData("../test/mps_test_B1.dat", B1_ref.data, sizeof(MKL_Complex16), NumTensorElements(&B1_ref));
+			if (status < 0) { return status; }
 		}
+		tensor_t B2_ref;
+		{
+			const size_t dim[3] = { d, 8, 6 };
+			AllocateTensor(3, dim, &B2_ref);
+			int status = ReadData("../test/mps_test_B2.dat", B2_ref.data, sizeof(MKL_Complex16), NumTensorElements(&B2_ref));
+			if (status < 0) { return status; }
+		}
+
+		// check dimensions
+		if (B1.ndim != 3 || B1.dim[0] != B1_ref.dim[0] || B1.dim[1] != B1_ref.dim[1] || B1.dim[2] != B1_ref.dim[2])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&B1_ref), (double *)B1.data, (double *)B1_ref.data));
+		}
+
+		// check dimensions
+		if (B2.ndim != 3 || B2.dim[0] != B2_ref.dim[0] || B2.dim[1] != B2_ref.dim[1] || B2.dim[2] != B2_ref.dim[2])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&B2_ref), (double *)B2.data, (double *)B2_ref.data));
+		}
+
+		DeleteTensor(&B2_ref);
+		DeleteTensor(&B1_ref);
+		DeleteTensor(&B2);
+		DeleteTensor(&B1);
 	}
 
-	// one-site operator average
+	// unitary left projection at site 2
 	{
-		tensor_t op;
-		const size_t dim[2] = { 2, 2 };
-		AllocateTensor(2, dim, &op);
-		int status = ReadData("../test/mps_test_op.dat", op.data, sizeof(MKL_Complex16), NumTensorElements(&op));
-		if (status < 0) { return status; }
+		tensor_t C2, C3;
+		CopyTensor(&mps.A[2], &C2);
+		CopyTensor(&mps.A[3], &C3);
 
-		const MKL_Complex16 avr = MPSAverageOneSiteOp(&mps, cntrL, cntrR, &op);
+		MPSUnitaryLeftProjection(&C2, &C3);
 
-		// reference value
-		const MKL_Complex16 avr_ref = { 3.5064467501058125, 6.2666073957732165 };
+		// load reference data from disk
+		tensor_t C2_ref;
+		{
+			const size_t dim[3] = { d, 9, 6 };
+			AllocateTensor(3, dim, &C2_ref);
+			int status = ReadData("../test/mps_test_C2.dat", C2_ref.data, sizeof(MKL_Complex16), NumTensorElements(&C2_ref));
+			if (status < 0) { return status; }
+		}
+		tensor_t C3_ref;
+		{
+			const size_t dim[3] = { d, 6, 5 };
+			AllocateTensor(3, dim, &C3_ref);
+			int status = ReadData("../test/mps_test_C3.dat", C3_ref.data, sizeof(MKL_Complex16), NumTensorElements(&C3_ref));
+			if (status < 0) { return status; }
+		}
 
-		// maximum error
-		err = fmax(err, ComplexAbs(ComplexSubtract(avr, avr_ref)));
+		// check dimensions
+		if (C2.ndim != 3 || C2.dim[0] != C2_ref.dim[0] || C2.dim[1] != C2_ref.dim[1] || C2.dim[2] != C2_ref.dim[2])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&C2_ref), (double *)C2.data, (double *)C2_ref.data));
+		}
 
-		// clean up
-		DeleteTensor(&op);
+		// check dimensions
+		if (C3.ndim != 3 || C3.dim[0] != C3_ref.dim[0] || C3.dim[1] != C3_ref.dim[1] || C3.dim[2] != C3_ref.dim[2])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&C3_ref), (double *)C3.data, (double *)C3_ref.data));
+		}
+
+		DeleteTensor(&C3_ref);
+		DeleteTensor(&C2_ref);
+		DeleteTensor(&C3);
+		DeleteTensor(&C2);
 	}
 
-	// two-site operator average
+	// unitary right projection at site 4
 	{
-		tensor_t op1, op2;
-		const size_t dim[2] = { 2, 2 };
-		AllocateTensor(2, dim, &op1);
-		AllocateTensor(2, dim, &op2);
-		int status;
-		status = ReadData("../test/mps_test_op1.dat", op1.data, sizeof(MKL_Complex16), NumTensorElements(&op1)); if (status < 0) { return status; }
-		status = ReadData("../test/mps_test_op2.dat", op2.data, sizeof(MKL_Complex16), NumTensorElements(&op2)); if (status < 0) { return status; }
+		tensor_t D3, D4;
+		CopyTensor(&mps.A[3], &D3);
+		CopyTensor(&mps.A[4], &D4);
 
-		const MKL_Complex16 avr = MPSAverageTwoSiteOp(&mps, cntrL, cntrR, &op1, &op2);
+		MPSUnitaryRightProjection(&D4, &D3);
 
-		// reference value
-		const MKL_Complex16 avr_ref = { 1.4404951113888615, -0.6011221276170966 };
+		// load reference data from disk
+		tensor_t D3_ref;
+		{
+			const size_t dim[3] = { d, 6, 5 };
+			AllocateTensor(3, dim, &D3_ref);
+			int status = ReadData("../test/mps_test_D3.dat", D3_ref.data, sizeof(MKL_Complex16), NumTensorElements(&D3_ref));
+			if (status < 0) { return status; }
+		}
+		tensor_t D4_ref;
+		{
+			const size_t dim[3] = { d, 5, 3 };
+			AllocateTensor(3, dim, &D4_ref);
+			int status = ReadData("../test/mps_test_D4.dat", D4_ref.data, sizeof(MKL_Complex16), NumTensorElements(&D4_ref));
+			if (status < 0) { return status; }
+		}
 
-		// maximum error
-		err = fmax(err, ComplexAbs(ComplexSubtract(avr, avr_ref)));
+		// check dimensions
+		if (D3.ndim != 3 || D3.dim[0] != D3_ref.dim[0] || D3.dim[1] != D3_ref.dim[1] || D3.dim[2] != D3_ref.dim[2])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&D3_ref), (double *)D3.data, (double *)D3_ref.data));
+		}
 
-		// clean up
-		DeleteTensor(&op2);
-		DeleteTensor(&op1);
+		// check dimensions
+		if (D4.ndim != 3 || D4.dim[0] != D4_ref.dim[0] || D4.dim[1] != D4_ref.dim[1] || D4.dim[2] != D4_ref.dim[2])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&D4_ref), (double *)D4.data, (double *)D4_ref.data));
+		}
+
+		DeleteTensor(&D4_ref);
+		DeleteTensor(&D3_ref);
+		DeleteTensor(&D4);
+		DeleteTensor(&D3);
 	}
 
 	printf("Largest error: %g\n", err);
 
 	// clean up
-	for (i = 0; i < mps.L; i++)
-	{
-		DeleteTensor(&cntrL[i]);
-		DeleteTensor(&cntrR[i]);
-	}
-	MKL_free(cntrR);
-	MKL_free(cntrL);
 	DeleteMPS(&mps);
 
-	return (err < 2e-15 ? 0 : 1);
+	return (err < 2e-14 ? 0 : 1);
 }

@@ -14,6 +14,21 @@ EconomicalSVD[m_,dmax_:\[Infinity]]:=Module[{u,w,v,i},
 	{u[[;;,1;;i]],Diagonal[w][[1;;i]],v[[;;,1;;i]]}]
 
 
+(* Basic MPS tensor operations *)
+
+(* Merge two neighboring MPS tensors *)
+MPSMergeTensors[A0_,A1_]:=Module[{A},
+	A=A0.Transpose[A1,{2,1,3}];
+	(* pair original physical dimensions of A0 and A1 *)
+	A=Transpose[A,{1,3,2,4}];
+	(* combine original physical dimensions of A0 and A1 *)
+	Flatten[A,{{1,2},{3},{4}}]]
+
+(* Merge all tensors of a MPS to obtain the vector representation on the full Hilbert space
+   (only use for small number of lattice sites!) *)
+MPSMergeFull[A_List]:=Flatten[Fold[MPSMergeTensors,First[A],Rest[A]]]
+
+
 (* Basic MPO tensor operations *)
 
 MPOSingleSiteTopUpdate[A_List,j_,op_]:=Module[{B=A},B[[j]]=op.A[[j]];B]
