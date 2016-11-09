@@ -61,5 +61,5 @@ int LanczosTest()
 	MKL_free(v_start);
 	MKL_free(A);
 
-	return (err < 2e-15 ? 0 : 1);
+	return (err < 2e-14 ? 0 : 1);
 }
