@@ -1,5 +1,5 @@
 /// \file mps.c
-/// \brief Matrix product state (MPS) 
+/// \brief Matrix product state (MPS)
 
 #include "mps.h"
 #include "dupio.h"

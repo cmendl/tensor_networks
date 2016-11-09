@@ -20,7 +20,7 @@ int OperationTest()
 	// allocate matrix product state and load MPS tensors from disk
 	mps_t psi;
 	{
-		const size_t D[] = { 1, 7, 6, 4, 5, 3, 1 };
+		const size_t D[] = { 1, 7, 6, 4, 5, 8, 1 };
 		AllocateMPS(L, d, D, &psi);
 
 		for (i = 0; i < L; i++)
@@ -53,10 +53,39 @@ int OperationTest()
 		const MKL_Complex16 avr = OperatorAverage(&psi, &op);
 
 		// reference value
-		const MKL_Complex16 avr_ref = { 0.16294770722378885, -0.14339146083155196 };
+		const MKL_Complex16 avr_ref = { 0.13951174201351324, 0.418058504881752 };
 
 		// largest entrywise error
 		err = fmax(err, ComplexAbs(ComplexSubtract(avr, avr_ref)));
+	}
+
+	// apply local Hamiltonian operator
+	{
+		tensor_t BL, BR;
+		const size_t dimL[3] = { 5, 7, 6 };
+		const size_t dimR[3] = { 8, 4, 9 };
+		AllocateTensor(3, dimL, &BL);
+		AllocateTensor(3, dimR, &BR);
+		status = ReadData("../test/operation_test_BL.dat", BL.data, sizeof(MKL_Complex16), NumTensorElements(&BL)); if (status < 0) { return status; }
+		status = ReadData("../test/operation_test_BR.dat", BR.data, sizeof(MKL_Complex16), NumTensorElements(&BR)); if (status < 0) { return status; }
+
+		tensor_t HM;
+		ApplyLocalHamiltonian(&BL, &BR, &op.A[4], &psi.A[4], &HM);
+
+		// compare with reference
+		tensor_t HM_ref;
+		{
+			const size_t dim[3] =  { d, 6, 9 };
+			AllocateTensor(3, dim, &HM_ref);
+			status = ReadData("../test/operation_test_HM.dat", HM_ref.data, sizeof(MKL_Complex16), NumTensorElements(&HM_ref));
+			if (status < 0) { return status; }
+		}
+		// largest entrywise error
+		err = fmax(err, UniformDistance(2*NumTensorElements(&HM), (double *)HM.data, (double *)HM_ref.data));
+
+		DeleteTensor(&HM_ref);
+		DeleteTensor(&BR);
+		DeleteTensor(&BL);
 	}
 
 	printf("Largest error: %g\n", err);

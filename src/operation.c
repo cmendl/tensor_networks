@@ -1,3 +1,6 @@
+/// \file operation.c
+/// \brief Operations between matrix product states and operators
+
 #include "operation.h"
 
 
@@ -39,4 +42,73 @@ MKL_Complex16 OperatorAverage(const mps_t *restrict psi, const mpo_t *restrict o
 	DeleteTensor(&t);
 
 	return avr;
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Apply site-local Hamiltonian operator required for variational energy minimization
+///
+/// To-be contracted tensor network:
+///
+///  ______                           ______
+///        \                         /
+///       2|---                   ---|2
+///        |                         |
+///        |                         |
+///        |                         |
+///        |          __|__          |
+///        |         /  0  \         |
+///   L   1|---   ---|2 W 3|---   ---|1   R
+///        |         \__1__/         |
+///        |            |            |
+///        |                         |
+///        |          __|__          |
+///        |         /  0  \         |
+///       0|---   ---|1 M 2|---   ---|0
+///  ______/         \_____/         \______
+///
+///
+void ApplyLocalHamiltonian(const tensor_t *restrict L, const tensor_t *restrict R, const tensor_t *restrict W, const tensor_t *restrict M, tensor_t *restrict HM)
+{
+	assert(L->ndim == 3);
+	assert(R->ndim == 3);
+	assert(W->ndim == 4);
+	assert(M->ndim == 3);
+
+	tensor_t r, s, t;
+
+	// multiply 'M' with 'R' tensor
+	{
+		MultiplyTensor(M, R, 1, &t);
+	}
+
+	// multiply with 'W' tensor
+	{
+		// interchange levels 1 <-> 2 in W and t
+		const int perm12[4] = { 0, 2, 1, 3 };
+		TransposeTensor(perm12, W, &s);
+		TransposeTensor(perm12, &t, &r);
+		DeleteTensor(&t);
+		// perform multiplication and store result in 't'
+		MultiplyTensor(&s, &r, 2, &t);
+		DeleteTensor(&r);
+		DeleteTensor(&s);
+	}
+
+	// multiply 't' and 'L' tensors
+	{
+		// interchange levels 1 <-> 3 in t
+		const int perm13[4] = { 0, 3, 2, 1 };
+		TransposeTensor(perm13, &t, &s);
+		DeleteTensor(&t);
+		// perform multiplication and store result in 't'
+		MultiplyTensor(&s, L, 2, &t);
+		DeleteTensor(&s);
+		// interchange levels 1 <-> 2 in t
+		assert(t.ndim == 3);
+		const int perm12[3] = { 0, 2, 1 };
+		TransposeTensor(perm12, &t, HM);
+		DeleteTensor(&t);
+	}
 }
