@@ -69,7 +69,7 @@ void LanczosIteration(const size_t n, mat_vect_prod_t Afunc, const void *restric
 	// postprocessing to obtain approximate eigenvalues and -vectors
 
 	double *U = (double *)MKL_malloc(maxiter*maxiter * sizeof(double), MEM_DATA_ALIGN);
-	lapack_int info = LAPACKE_dsteqr(LAPACK_COL_MAJOR, 'I', maxiter, alpha, beta + 1, U, n);
+	lapack_int info = LAPACKE_dsteqr(LAPACK_COL_MAJOR, 'I', maxiter, alpha, beta + 1, U, maxiter);
 	if (info != 0) {
 		duprintf("Call of LAPACK function 'dsteqr()' in 'LanczosIteration()' failed, return value: %i\n", info);
 		exit(-1);
