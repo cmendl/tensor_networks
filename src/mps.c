@@ -62,7 +62,7 @@ void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R)
 
 	// multiply by 'A' tensor
 	{
-		MultiplyTensor(A, R, &t);
+		MultiplyTensor(A, R, 1, &t);
 		// initial values stored in 'R' no longer required
 		DeleteTensor(R);
 	}
@@ -77,13 +77,8 @@ void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R)
 		const int perm01[3] = { 1, 0, 2 };
 		TransposeTensor(perm01, &t, &s);
 		DeleteTensor(&t);
-		// merge the last two levels of 's' and the first two levels of 'Astar'
-		const size_t s_dim[2] = { s.dim[0], s.dim[1] * s.dim[2] };
-		const size_t a_dim[2] = { Astar.dim[0] * Astar.dim[1], Astar.dim[2] };
-		ReshapeTensor(2, s_dim, &s);
-		ReshapeTensor(2, a_dim, &Astar);
 		// perform multiplication
-		MultiplyTensor(&s, &Astar, R);
+		MultiplyTensor(&s, &Astar, 2, R);
 		// tensors 'Astar' and 's' no longer required
 		DeleteTensor(&Astar);
 		DeleteTensor(&s);
@@ -105,7 +100,7 @@ void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *re
 
 	// multiply with 'A' tensor
 	{
-		MultiplyTensor(A, R, &t);
+		MultiplyTensor(A, R, 1, &t);
 		// initial values stored in 'R' no longer required
 		DeleteTensor(R);
 	}
@@ -117,14 +112,8 @@ void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *re
 		TransposeTensor(perm12, W, &s);
 		TransposeTensor(perm12, &t, &r);
 		DeleteTensor(&t);
-		// merge first two levels of 'r' and last two levels of 's'
-		assert(r.ndim == 4);
-		const size_t r_dim[3] = { r.dim[0] * r.dim[1],  r.dim[2],  r.dim[3] };
-		const size_t s_dim[3] = { s.dim[0],  s.dim[1],  s.dim[2] * s.dim[3] };
-		ReshapeTensor(3, r_dim, &r);
-		ReshapeTensor(3, s_dim, &s);
 		// perform multiplication and store result in 't'
-		MultiplyTensor(&s, &r, &t);
+		MultiplyTensor(&s, &r, 2, &t);
 		DeleteTensor(&r);
 		DeleteTensor(&s);
 	}
@@ -139,14 +128,8 @@ void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *re
 		const int perm02[4] = { 2, 1, 0, 3 };
 		TransposeTensor(perm02, &t, &r);
 		DeleteTensor(&t);
-		// merge the last two levels of 'r' and the first two levels of 'Astar'
-		assert(r.ndim == 4);
-		const size_t r_dim[3] = { r.dim[0],  r.dim[1],  r.dim[2] * r.dim[3] };
-		const size_t a_dim[2] = { Astar.dim[0] * Astar.dim[1], Astar.dim[2] };
-		ReshapeTensor(3, r_dim, &r);
-		ReshapeTensor(2, a_dim, &Astar);
 		// perform multiplication
-		MultiplyTensor(&r, &Astar, R);
+		MultiplyTensor(&r, &Astar, 2, R);
 		// tensors 'Astar' and 'r' no longer required
 		DeleteTensor(&Astar);
 		DeleteTensor(&r);
@@ -243,7 +226,7 @@ void MPSUnitaryLeftProjection(tensor_t *restrict A, tensor_t *restrict Anext)
 		DeleteTensor(Anext);
 		// perform multiplication
 		tensor_t s;
-		MultiplyTensor(&vt, &t, &s);
+		MultiplyTensor(&vt, &t, 1, &s);
 		DeleteTensor(&t);
 		// restore dimension ordering
 		TransposeTensor(perm01, &s, Anext);

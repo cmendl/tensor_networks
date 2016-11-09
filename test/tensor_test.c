@@ -44,8 +44,8 @@ int TensorTest()
 
 	// create tensor 't'
 	tensor_t t;
-	const size_t dim[3] = { 2, 3, 4 };
-	AllocateTensor(3, dim,  &t);
+	const size_t dim[4] = { 2, 3, 4, 5 };
+	AllocateTensor(4, dim,  &t);
 
 	// read values from disk
 	status = ReadData("../test/tensor_test_t1.dat", t.data, sizeof(MKL_Complex16), NumTensorElements(&t));
@@ -53,15 +53,15 @@ int TensorTest()
 
 	// test generalized transpose
 	{
-		const int perm[3] = { 1, 2, 0 };
+		const int perm[4] = { 1, 3, 2, 0 };
 
 		tensor_t r;
 		TransposeTensor(perm, &t, &r);
 
 		// reference tensor for checking
-		const size_t refdim[3] = { 4, 2, 3 };
+		const size_t refdim[4] = { 5, 2, 4, 3 };
 		tensor_t r_ref;
-		AllocateTensor(3, refdim, &r_ref);
+		AllocateTensor(4, refdim, &r_ref);
 		status = ReadData("../test/tensor_test_t1T.dat", r_ref.data, sizeof(MKL_Complex16), NumTensorElements(&r_ref));
 		if (status < 0) { return status; }
 
@@ -77,17 +77,17 @@ int TensorTest()
 	{
 		// create another tensor 's'
 		tensor_t s;
-		const size_t sdim[3] = { 4, 5, 3 };
-		AllocateTensor(3, sdim, &s);
+		const size_t sdim[4] = { 4, 5, 7, 6 };
+		AllocateTensor(4, sdim, &s);
 		status = ReadData("../test/tensor_test_t2.dat", s.data, sizeof(MKL_Complex16), NumTensorElements(&s));
 		if (status < 0) { return status; }
 
 		// multiply tensors and store result in 'r'
 		tensor_t r;
-		MultiplyTensor(&t, &s, &r);
+		MultiplyTensor(&t, &s, 2, &r);
 
 		// reference tensor for checking
-		const size_t refdim[4] = { 2, 3, 5, 3 };
+		const size_t refdim[4] = { 2, 3, 7, 6 };
 		tensor_t r_ref;
 		AllocateTensor(4, refdim, &r_ref);
 		status = ReadData("../test/tensor_test_t12prod.dat", r_ref.data, sizeof(MKL_Complex16), NumTensorElements(&r_ref));
@@ -106,19 +106,19 @@ int TensorTest()
 	{
 		// create another tensor 's'
 		tensor_t s;
-		const size_t sdim[1] = { 4 };
+		const size_t sdim[1] = { 5 };
 		AllocateTensor(1, sdim, &s);
 		status = ReadData("../test/tensor_test_t3.dat", s.data, sizeof(MKL_Complex16), NumTensorElements(&s));
 		if (status < 0) { return status; }
 
 		// multiply tensors and store result in 'r'
 		tensor_t r;
-		MultiplyTensor(&t, &s, &r);
+		MultiplyTensor(&t, &s, 1, &r);
 
 		// reference tensor for checking
-		const size_t refdim[2] = { 2, 3 };
+		const size_t refdim[3] = { 2, 3, 4 };
 		tensor_t r_ref;
-		AllocateTensor(2, refdim, &r_ref);
+		AllocateTensor(3, refdim, &r_ref);
 		status = ReadData("../test/tensor_test_t13prod.dat", r_ref.data, sizeof(MKL_Complex16), NumTensorElements(&r_ref));
 		if (status < 0) { return status; }
 
@@ -142,12 +142,12 @@ int TensorTest()
 
 		// multiply tensors and store result in 'r'
 		tensor_t r;
-		MultiplyTensor(&s, &t, &r);
+		MultiplyTensor(&s, &t, 1, &r);
 
 		// reference tensor for checking
-		const size_t refdim[2] = { 3, 4 };
+		const size_t refdim[3] = { 3, 4, 5 };
 		tensor_t r_ref;
-		AllocateTensor(2, refdim, &r_ref);
+		AllocateTensor(3, refdim, &r_ref);
 		status = ReadData("../test/tensor_test_t41prod.dat", r_ref.data, sizeof(MKL_Complex16), NumTensorElements(&r_ref));
 		if (status < 0) { return status; }
 
@@ -177,13 +177,13 @@ int TensorTest()
 
 		// multiply tensors and store result in 'r'
 		tensor_t r;
-		MultiplyTensor(&t1, &s, &r);
+		MultiplyTensor(&t1, &s, 1, &r);
 
 		// reference tensor for checking
 		tensor_t r_ref;
 		AllocateTensor(0, NULL, &r_ref);
-		r_ref.data[0].real = -2.9489743859546906;
-		r_ref.data[0].imag =  1.6345915563191087;
+		r_ref.data[0].real = -5.730605734864588;
+		r_ref.data[0].imag =  2.495227138171611;
 
 		// largest error
 		err = fmax(err, TensorDifference(&r, &r_ref));
@@ -199,8 +199,8 @@ int TensorTest()
 	{
 		// create another tensor 's'
 		tensor_t s;
-		const size_t sdim[3] = { 6, 5, 7 };
-		AllocateTensor(3, sdim, &s);
+		const size_t sdim[4] = { 6, 5, 7, 2 };
+		AllocateTensor(4, sdim, &s);
 		status = ReadData("../test/tensor_test_t6.dat", s.data, sizeof(MKL_Complex16), NumTensorElements(&s));
 		if (status < 0) { return status; }
 
@@ -209,8 +209,8 @@ int TensorTest()
 
 		// load reference values from disk
 		tensor_t r_ref;
-		const size_t refdim[3] = { 12, 15, 28 };
-		AllocateTensor(3, refdim, &r_ref);
+		const size_t refdim[4] = { 12, 15, 28, 10 };
+		AllocateTensor(4, refdim, &r_ref);
 		status = ReadData("../test/tensor_test_t16prod.dat", r_ref.data, sizeof(MKL_Complex16), NumTensorElements(&r_ref));
 		if (status < 0) { return status; }
 
@@ -249,5 +249,5 @@ int TensorTest()
 	// clean up
 	DeleteTensor(&t);
 
-	return (err < 1e-15 ? 0 : 1);
+	return (err < 1e-14 ? 0 : 1);
 }

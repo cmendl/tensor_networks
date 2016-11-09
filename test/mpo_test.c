@@ -246,7 +246,7 @@ int MPOTest()
 				tensor_t t;
 				const int perm[4] = { 1, 2, 0, 3 };
 				TransposeTensor(perm, &C1op, &t);
-				MultiplyTensor(&C0op, &t, &C);
+				MultiplyTensor(&C0op, &t, 1, &C);
 				DeleteTensor(&t);
 			}
 

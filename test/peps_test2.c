@@ -74,7 +74,7 @@ int PEPSTest2()
 		ReshapeTensor(2, dim, &mpo);
 
 		// multiply states
-		MultiplyTensor(&mpo, &u[y-1], &u[y]);
+		MultiplyTensor(&mpo, &u[y-1], 1, &u[y]);
 
 		// clean up
 		DeleteTensor(&mpo);
@@ -82,7 +82,7 @@ int PEPSTest2()
 
 	// final scalar product
 	tensor_t scalar_prod;
-	MultiplyTensor(&u[L-2], &mps_bottom, &scalar_prod);
+	MultiplyTensor(&u[L-2], &mps_bottom, 1, &scalar_prod);
 	assert(scalar_prod.ndim == 0);
 
 	printf("scalar_prod.data[0]: (%g, %g)\n", scalar_prod.data[0].real, scalar_prod.data[0].imag);

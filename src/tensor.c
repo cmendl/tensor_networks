@@ -90,13 +90,18 @@ void AllocateTensor(const int ndim, const size_t *restrict dim, tensor_t *restri
 ///
 void DeleteTensor(tensor_t *restrict t)
 {
-	#ifdef _DEBUG
-	MKL_free(t->dnames);
-	#endif
+	if (t->ndim > 0)
+	{
+		#ifdef _DEBUG
+		MKL_free(t->dnames);
+		#endif
+
+		MKL_free(t->dim);
+	}
+	t->ndim = 0;
 
 	MKL_free(t->data);
-	MKL_free(t->dim);
-	t->ndim = 0;
+	t->data = NULL;
 }
 
 
@@ -363,39 +368,43 @@ void ScalarMultiplyAddTensor(const MKL_Complex16 alpha, const tensor_t *restrict
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Multiply last dimension in 's' by first dimension in 't', and store result in 'r'
+/// \brief Multiply last 'ndim_mult' dimensions in 's' by first 'ndim_mult' dimension in 't', and store result in 'r'
 ///
 /// Memory will be allocated for 'r'.
 ///
-void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, tensor_t *restrict r)
+void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, const int ndim_mult, tensor_t *restrict r)
 {
 	int i;
 
-	assert(s->ndim >= 1 && t->ndim >= 1);
-	assert(s->dim[s->ndim-1] == t->dim[0]);
+	assert(ndim_mult >= 1);
+	assert(s->ndim >= ndim_mult && t->ndim >= ndim_mult);
+	for (i = 0; i < ndim_mult; i++)
+	{
+		assert(s->dim[s->ndim - ndim_mult + i] == t->dim[i]);
+	}
 
 	// dimensions of new tensor 'r'
-	size_t *rdim = (size_t *)MKL_malloc((s->ndim + t->ndim - 2) * sizeof(size_t), MEM_DATA_ALIGN);
-	for (i = 0; i < s->ndim - 1; i++)
+	size_t *rdim = (size_t *)MKL_malloc((s->ndim + t->ndim - 2*ndim_mult) * sizeof(size_t), MEM_DATA_ALIGN);
+	for (i = 0; i < s->ndim - ndim_mult; i++)
 	{
 		rdim[i] = s->dim[i];
 	}
-	for (i = 1; i < t->ndim; i++)
+	for (i = ndim_mult; i < t->ndim; i++)
 	{
-		rdim[s->ndim + i - 2] = t->dim[i];
+		rdim[s->ndim + i - 2*ndim_mult] = t->dim[i];
 	}
 	// create new tensor 'r'
-	AllocateTensor(s->ndim + t->ndim - 2, rdim, r);
+	AllocateTensor(s->ndim + t->ndim - 2*ndim_mult, rdim, r);
 	MKL_free(rdim);
 	// copy dimension names
 	#ifdef _DEBUG
-	for (i = 0; i < s->ndim - 1; i++)
+	for (i = 0; i < s->ndim - ndim_mult; i++)
 	{
 		memcpy(r->dnames[i].cstr, s->dnames[i].cstr, sizeof(string_t));
 	}
-	for (i = 1; i < t->ndim; i++)
+	for (i = ndim_mult; i < t->ndim; i++)
 	{
-		memcpy(r->dnames[s->ndim + i - 2].cstr, t->dnames[i].cstr, sizeof(string_t));
+		memcpy(r->dnames[s->ndim + i - 2*ndim_mult].cstr, t->dnames[i].cstr, sizeof(string_t));
 	}
 	#endif
 
@@ -403,25 +412,28 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, tens
 	const size_t nelemT = NumTensorElements(t);
 
 	// leading dimension of 's' as a matrix
-	const size_t lds = nelemS / s->dim[s->ndim - 1];
+	const size_t lds = nelemS / IntProduct(&s->dim[s->ndim - ndim_mult], ndim_mult);
 
+	// leading dimension of 't' as a matrix
+	const size_t ldt = IntProduct(t->dim, ndim_mult);
 	// trailing dimension of 't' as a matrix
-	const size_t tdt = nelemT / t->dim[0];
+	const size_t tdt = nelemT / ldt;
 
 	if (lds == 1)
 	{
 		if (tdt == 1)
 		{
 			// inner product of two vectors
+			assert(nelemS == nelemT);
 			assert(NumTensorElements(r) == 1);
-			cblas_zdotu_sub((MKL_INT)t->dim[0], s->data, 1, t->data, 1, &r->data[0]);
+			cblas_zdotu_sub((MKL_INT)nelemS, s->data, 1, t->data, 1, &r->data[0]);
 		}
 		else	// tdt > 1
 		{
 			// multiply vector 's' from left, i.e., (t^T * s)^T
 			const MKL_Complex16 one  = { 1, 0 };
 			const MKL_Complex16 zero = { 0, 0 };
-			cblas_zgemv(CblasColMajor, CblasTrans, (MKL_INT)t->dim[0], (MKL_INT)tdt, &one, t->data, (MKL_INT)t->dim[0], s->data, 1, &zero, r->data, 1);
+			cblas_zgemv(CblasColMajor, CblasTrans, (MKL_INT)ldt, (MKL_INT)tdt, &one, t->data, (MKL_INT)ldt, s->data, 1, &zero, r->data, 1);
 		}
 	}
 	else	// lds > 1
@@ -431,14 +443,14 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, tens
 			// matrix-vector multiplication
 			const MKL_Complex16 one  = { 1, 0 };
 			const MKL_Complex16 zero = { 0, 0 };
-			cblas_zgemv(CblasColMajor, CblasNoTrans, (MKL_INT)lds, (MKL_INT)t->dim[0], &one, s->data, (MKL_INT)lds, t->data, 1, &zero, r->data, 1);
+			cblas_zgemv(CblasColMajor, CblasNoTrans, (MKL_INT)lds, (MKL_INT)ldt, &one, s->data, (MKL_INT)lds, t->data, 1, &zero, r->data, 1);
 		}
 		else	// tdt > 1
 		{
 			// matrix-matrix multiplication
 			const MKL_Complex16 one  = { 1, 0 };
 			const MKL_Complex16 zero = { 0, 0 };
-			cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, (MKL_INT)lds, (MKL_INT)tdt, (MKL_INT)t->dim[0], &one, s->data, (MKL_INT)lds, t->data, (MKL_INT)t->dim[0], &zero, r->data, (MKL_INT)lds);
+			cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, (MKL_INT)lds, (MKL_INT)tdt, (MKL_INT)ldt, &one, s->data, (MKL_INT)lds, t->data, (MKL_INT)ldt, &zero, r->data, (MKL_INT)lds);
 		}
 	}
 }

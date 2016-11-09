@@ -185,7 +185,7 @@ void MPOMergeTensors(const tensor_t *restrict A0, const tensor_t *restrict A1, t
 	// combine A0 and A1 by contracting the shared bond
 	const int perm4[4] = { 1, 2, 0, 3 };
 	TransposeTensor(perm4, A1, A);
-	MultiplyTensor(A0, A, &t);
+	MultiplyTensor(A0, A, 1, &t);
 	DeleteTensor(A);
 
 	// pair original physical dimensions of A0 and A1
@@ -315,7 +315,6 @@ MKL_Complex16 MPOTrace(const mpo_t *restrict X)
 ///
 void MPOTraceProductTensorReduce(const tensor_t *restrict A, const tensor_t *restrict B, tensor_t *restrict R)
 {
-	size_t dim[2];
 	tensor_t s, t;
 
 	assert(A->ndim == 4);
@@ -323,7 +322,7 @@ void MPOTraceProductTensorReduce(const tensor_t *restrict A, const tensor_t *res
 	assert(R->ndim == 2);
 
 	// multiply 'B' with 'R' tensor
-	MultiplyTensor(B, R, &t);
+	MultiplyTensor(B, R, 1, &t);
 	DeleteTensor(R);
 
 	// flip first physical with first virtual bond dimension in 'BR'
@@ -334,17 +333,8 @@ void MPOTraceProductTensorReduce(const tensor_t *restrict A, const tensor_t *res
 	const int permA[4] = { 0, 1, 3, 2 };
 	TransposeTensor(permA, A, &t);
 
-	// merge trailing dimensions in 'BR' tensor into one dimension
-	dim[0] = s.dim[0];
-	dim[1] = s.dim[1]*s.dim[2]*s.dim[3];
-	ReshapeTensor(2, dim, &s);
-	// merge leading dimensions in 'A' tensor into one dimension
-	dim[0] = t.dim[0]*t.dim[1]*t.dim[2];
-	dim[1] = t.dim[3];
-	ReshapeTensor(2, dim, &t);
-
 	// multiply 'BR' with 'A' tensor and store result back in 'R'
-	MultiplyTensor(&s, &t, R);
+	MultiplyTensor(&s, &t, 3, R);
 	DeleteTensor(&s);
 	DeleteTensor(&t);
 }
@@ -422,7 +412,6 @@ double MPOFrobeniusNorm(const mpo_t *X)
 ///
 void MPOTraceQuadProductTensorReduce(const tensor_t *restrict A, const tensor_t *restrict B, const tensor_t *restrict C, const tensor_t *restrict D, tensor_t *restrict R)
 {
-	size_t dim[6];
 	tensor_t s, t;
 
 	assert(A->ndim == 4);
@@ -434,7 +423,7 @@ void MPOTraceQuadProductTensorReduce(const tensor_t *restrict A, const tensor_t 
 	// product with 'A'
 	{
 		// multiply 'A' with 'R' tensor
-		MultiplyTensor(A, R, &t);
+		MultiplyTensor(A, R, 1, &t);
 		DeleteTensor(R);
 	}
 
@@ -447,21 +436,8 @@ void MPOTraceQuadProductTensorReduce(const tensor_t *restrict A, const tensor_t 
 		const int permB[4] = { 2, 0, 1, 3 };
 		TransposeTensor(permB, B, &t);
 
-		// merge leading 2 dimensions of 'AR' tensor into one dimension
-		dim[0] = s.dim[0]*s.dim[1];
-		dim[1] = s.dim[2];
-		dim[2] = s.dim[3];
-		dim[3] = s.dim[4];
-		dim[4] = s.dim[5];
-		ReshapeTensor(5, dim, &s);
-		// merge trailing 2 dimensions of 'B' tensor into one dimension
-		dim[0] = t.dim[0];
-		dim[1] = t.dim[1];
-		dim[2] = t.dim[2]*t.dim[3];
-		ReshapeTensor(3, dim, &t);
-
 		// multiply 'B' with 'AR' tensor and store result back in 'R'
-		MultiplyTensor(&t, &s, R);
+		MultiplyTensor(&t, &s, 2, R);
 		DeleteTensor(&s);
 		DeleteTensor(&t);
 	}
@@ -475,21 +451,8 @@ void MPOTraceQuadProductTensorReduce(const tensor_t *restrict A, const tensor_t 
 		const int permC[4] = { 2, 0, 1, 3 };
 		TransposeTensor(permC, C, &t);
 
-		// merge leading 2 dimensions of 'ABR' tensor into one dimension
-		dim[0] = s.dim[0]*s.dim[1];
-		dim[1] = s.dim[2];
-		dim[2] = s.dim[3];
-		dim[3] = s.dim[4];
-		dim[4] = s.dim[5];
-		ReshapeTensor(5, dim, &s);
-		// merge trailing 2 dimensions of 'C' tensor into one dimension
-		dim[0] = t.dim[0];
-		dim[1] = t.dim[1];
-		dim[2] = t.dim[2]*t.dim[3];
-		ReshapeTensor(3, dim, &t);
-
 		// multiply 'C' with 'ABR' tensor and store result back in 'R'
-		MultiplyTensor(&t, &s, R);
+		MultiplyTensor(&t, &s, 2, R);
 		DeleteTensor(&s);
 		DeleteTensor(&t);
 	}
@@ -503,19 +466,8 @@ void MPOTraceQuadProductTensorReduce(const tensor_t *restrict A, const tensor_t 
 		const int permD[4] = { 0, 1, 3, 2 };
 		TransposeTensor(permD, D, &t);
 
-		// merge trailing 3 dimensions of 'ABCR' tensor into one dimension
-		dim[0] = s.dim[0];
-		dim[1] = s.dim[1];
-		dim[2] = s.dim[2];
-		dim[3] = s.dim[3]*s.dim[4]*s.dim[5];
-		ReshapeTensor(4, dim, &s);
-		// merge leading 3 dimensions of 'D' tensor into one dimension
-		dim[0] = t.dim[0]*t.dim[1]*t.dim[2];
-		dim[1] = t.dim[3];
-		ReshapeTensor(2, dim, &t);
-
 		// multiply 'ABCR' with 'D' tensor and store result back in 'R'
-		MultiplyTensor(&s, &t, R);
+		MultiplyTensor(&s, &t, 3, R);
 		DeleteTensor(&s);
 		DeleteTensor(&t);
 	}
@@ -566,7 +518,7 @@ void ApplySingleSiteTopOperator(tensor_t *restrict A, const tensor_t *restrict o
 	tensor_t t;
 	MoveTensorData(A, &t);
 	// result of multiplication again stored in 'A'
-	MultiplyTensor(opT, &t, A);
+	MultiplyTensor(opT, &t, 1, A);
 	DeleteTensor(&t);
 }
 
@@ -587,7 +539,7 @@ void ApplySingleSiteBottomOperator(tensor_t *restrict A, const tensor_t *restric
 	DeleteTensor(A);
 
 	// apply operator
-	MultiplyTensor(&s, opB, &t);
+	MultiplyTensor(&s, opB, 1, &t);
 	DeleteTensor(&s);
 
 	// restore ordering of dimensions
@@ -619,7 +571,7 @@ trunc_info_t ApplyTwoSiteOperator(tensor_t *restrict A0, tensor_t *restrict A1, 
 	{
 		const int perm[4] = { 1, 2, 0, 3 };
 		TransposeTensor(perm, A1, &t);
-		MultiplyTensor(A0, &t, &s);
+		MultiplyTensor(A0, &t, 1, &s);
 		DeleteTensor(&t);
 		// input tensors will be re-populated later
 		DeleteTensor(A0);
@@ -641,9 +593,9 @@ trunc_info_t ApplyTwoSiteOperator(tensor_t *restrict A0, tensor_t *restrict A1, 
 		assert(t.ndim == 6);
 		const size_t dim0[4] = { t.dim[0]*t.dim[1], t.dim[2], t.dim[3], t.dim[4]*t.dim[5] };
 		ReshapeTensor(4, dim0, &t);
-		MultiplyTensor(opT, &t, &s);
+		MultiplyTensor(opT, &t, 1, &s);
 		DeleteTensor(&t);
-		MultiplyTensor(&s, opB, &t);
+		MultiplyTensor(&s, opB, 1, &t);
 		DeleteTensor(&s);
 		const size_t dim1[6] = { dim[0], dim[3], dim[2], dim[5], dim[1], dim[4] };
 		ReshapeTensor(6, dim1, &t);

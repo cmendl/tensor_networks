@@ -92,7 +92,7 @@ void ConstructETensor(const tensor_t *restrict A, tensor_t *restrict E)
 
 	// construct E tensor with dimension D^8 (except for border sites)
 	tensor_t tE;
-	MultiplyTensor(&ctA, A, &tE);
+	MultiplyTensor(&ctA, A, 1, &tE);
 
 	// rearrange levels to form pairs (l,l'), ..., (d,d')
 	assert(tE.ndim <= 8);
@@ -164,7 +164,7 @@ void ConstructPEPS2DMatrixProductStateOp(const peps2D_t *psi, const int y, tenso
 			TransposeTensor(perm, &E[x], &tE);
 
 			// perform multiplication
-			MultiplyTensor(&Eprod[x-1], &tE, &Eprod[x]);
+			MultiplyTensor(&Eprod[x-1], &tE, 1, &Eprod[x]);
 
 			// clean up
 			DeleteTensor(&tE);
@@ -172,7 +172,7 @@ void ConstructPEPS2DMatrixProductStateOp(const peps2D_t *psi, const int y, tenso
 		// last E_j does not have "right" level
 		{
 			// perform multiplication
-			MultiplyTensor(&Eprod[psi->L-2], &E[psi->L-1], &Eprod[psi->L-1]);
+			MultiplyTensor(&Eprod[psi->L-2], &E[psi->L-1], 1, &Eprod[psi->L-1]);
 		}
 
 		// last product is the MPS
@@ -199,7 +199,7 @@ void ConstructPEPS2DMatrixProductStateOp(const peps2D_t *psi, const int y, tenso
 			TransposeTensor(perm, &E[x], &tE);
 
 			// perform multiplication
-			MultiplyTensor(&Eprod[x-1], &tE, &Eprod[x]);
+			MultiplyTensor(&Eprod[x-1], &tE, 1, &Eprod[x]);
 
 			// clean up
 			DeleteTensor(&tE);
@@ -207,7 +207,7 @@ void ConstructPEPS2DMatrixProductStateOp(const peps2D_t *psi, const int y, tenso
 		// last E_j does not have "right" level
 		{
 			// perform multiplication
-			MultiplyTensor(&Eprod[psi->L-2], &E[psi->L-1], &Eprod[psi->L-1]);
+			MultiplyTensor(&Eprod[psi->L-2], &E[psi->L-1], 1, &Eprod[psi->L-1]);
 		}
 
 		// rearrange levels to ordering (u_1, ..., u_L, d_1, ..., d_L)
