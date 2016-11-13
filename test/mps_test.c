@@ -200,6 +200,127 @@ int MPSTest()
 		DeleteTensor(&D3);
 	}
 
+	// left and right contraction step
+	{
+		tensor_t BL, BR;
+		{
+			const size_t dimL[2] = { D[3], D[3] };
+			const size_t dimR[2] = { D[4], D[4] };
+			AllocateTensor(2, dimL, &BL);
+			AllocateTensor(2, dimR, &BR);
+			int status;
+			status = ReadData("../test/mps_test_BLcontr0.dat", BL.data, sizeof(MKL_Complex16), NumTensorElements(&BL)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BRcontr0.dat", BR.data, sizeof(MKL_Complex16), NumTensorElements(&BR)); if (status < 0) { return status; }
+		}
+
+		ContractionStepLeft (&mps.A[3], &BL);
+		ContractionStepRight(&mps.A[3], &BR);
+
+		// compare with reference
+		tensor_t BL_ref, BR_ref;
+		{
+			const size_t dimL[2] = { D[4], D[4] };
+			const size_t dimR[2] = { D[3], D[3] };
+			AllocateTensor(2, dimL, &BL_ref);
+			AllocateTensor(2, dimR, &BR_ref);
+			int status;
+			status = ReadData("../test/mps_test_BLcontr1.dat", BL_ref.data, sizeof(MKL_Complex16), NumTensorElements(&BL_ref)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BRcontr1.dat", BR_ref.data, sizeof(MKL_Complex16), NumTensorElements(&BR_ref)); if (status < 0) { return status; }
+		}
+
+		// check dimensions
+		if (BL.ndim != 2 || BL.dim[0] != BL_ref.dim[0] || BL.dim[1] != BL_ref.dim[1])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&BL_ref), (double *)BL.data, (double *)BL_ref.data));
+		}
+
+		// check dimensions
+		if (BR.ndim != 2 || BR.dim[0] != BR_ref.dim[0] || BR.dim[1] != BR_ref.dim[1])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&BR_ref), (double *)BR.data, (double *)BR_ref.data));
+		}
+
+		DeleteTensor(&BR_ref);
+		DeleteTensor(&BL_ref);
+		DeleteTensor(&BR);
+		DeleteTensor(&BL);
+	}
+
+	// left and right contraction step with a matrix product operator sandwiched in between
+	{
+		tensor_t W;
+		{
+			const size_t dim[4] = { d, d, 7, 13 };
+			AllocateTensor(4, dim, &W);
+			int status = ReadData("../test/mps_test_W.dat", W.data, sizeof(MKL_Complex16), NumTensorElements(&W));
+			if (status < 0) { return status; }
+		}
+
+		tensor_t BL, BR;
+		{
+			const size_t dimL[3] = { D[3],  7, D[3] };
+			const size_t dimR[3] = { D[4], 13, D[4] };
+			AllocateTensor(3, dimL, &BL);
+			AllocateTensor(3, dimR, &BR);
+			int status;
+			status = ReadData("../test/mps_test_BLopcontr0.dat", BL.data, sizeof(MKL_Complex16), NumTensorElements(&BL)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BRopcontr0.dat", BR.data, sizeof(MKL_Complex16), NumTensorElements(&BR)); if (status < 0) { return status; }
+		}
+
+		ContractionOperatorStepLeft (&mps.A[3], &W, &BL);
+		ContractionOperatorStepRight(&mps.A[3], &W, &BR);
+
+		// compare with reference
+		tensor_t BL_ref, BR_ref;
+		{
+			const size_t dimL[3] = { D[4], 13, D[4] };
+			const size_t dimR[3] = { D[3],  7, D[3] };
+			AllocateTensor(3, dimL, &BL_ref);
+			AllocateTensor(3, dimR, &BR_ref);
+			int status;
+			status = ReadData("../test/mps_test_BLopcontr1.dat", BL_ref.data, sizeof(MKL_Complex16), NumTensorElements(&BL_ref)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BRopcontr1.dat", BR_ref.data, sizeof(MKL_Complex16), NumTensorElements(&BR_ref)); if (status < 0) { return status; }
+		}
+
+		// check dimensions
+		if (BL.ndim != 3 || BL.dim[0] != BL_ref.dim[0] || BL.dim[1] != BL_ref.dim[1] || BL.dim[2] != BL_ref.dim[2])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&BL_ref), (double *)BL.data, (double *)BL_ref.data));
+		}
+
+		// check dimensions
+		if (BR.ndim != 3 || BR.dim[0] != BR_ref.dim[0] || BR.dim[1] != BR_ref.dim[1] || BR.dim[2] != BR_ref.dim[2])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&BR_ref), (double *)BR.data, (double *)BR_ref.data));
+		}
+
+		DeleteTensor(&BR_ref);
+		DeleteTensor(&BL_ref);
+		DeleteTensor(&BR);
+		DeleteTensor(&BL);
+		DeleteTensor(&W);
+	}
+
 	printf("Largest error: %g\n", err);
 
 	// clean up

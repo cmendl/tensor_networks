@@ -84,6 +84,7 @@ int OperationTest()
 		err = fmax(err, UniformDistance(2*NumTensorElements(&HM), (double *)HM.data, (double *)HM_ref.data));
 
 		DeleteTensor(&HM_ref);
+		DeleteTensor(&HM);
 		DeleteTensor(&BR);
 		DeleteTensor(&BL);
 	}

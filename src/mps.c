@@ -51,6 +51,102 @@ void DeleteMPS(mps_t *restrict mps)
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Contraction step from left to right
+///
+void ContractionStepLeft(const tensor_t *restrict A, tensor_t *restrict L)
+{
+	assert(A->ndim == 3);
+	assert(L->ndim == 2);
+
+	tensor_t t;
+
+	// multiply by conjugated 'A' tensor
+	{
+		// interchange the first two levels of 'A' and complex-conjugate the entries
+		tensor_t Astar;
+		const int perm01[3] = { 1, 0, 2 };
+		ConjugateTransposeTensor(perm01, A, &Astar);
+		// perform multiplication
+		MultiplyTensor(L, &Astar, 1, &t);
+		// initial values stored in 'L' and 'Astar' no longer required
+		DeleteTensor(L);
+		DeleteTensor(&Astar);
+	}
+
+	// multiply by 'A' tensor
+	{
+		// interchange the first and last level of 'A'
+		tensor_t Atp;
+		const int perm02[3] = { 2, 1, 0 };
+		TransposeTensor(perm02, A, &Atp);
+		// perform multiplication
+		MultiplyTensor(&Atp, &t, 2, L);
+		DeleteTensor(&Atp);
+		DeleteTensor(&t);
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Contraction step from left to right, with a matrix product operator sandwiched in between
+///
+void ContractionOperatorStepLeft(const tensor_t *restrict A, const tensor_t *restrict W, tensor_t *restrict L)
+{
+	assert(A->ndim == 3);
+	assert(W->ndim == 4);
+	assert(L->ndim == 3);
+
+	tensor_t r, s, t;
+
+	// multiply with conjugated 'A' tensor
+	{
+		// interchange the first two levels of 'A' and complex-conjugate the entries
+		tensor_t Astar;
+		const int perm01[3] = { 1, 0, 2 };
+		ConjugateTransposeTensor(perm01, A, &Astar);
+		// perform multiplication
+		MultiplyTensor(L, &Astar, 1, &t);
+		// initial values stored in 'L' and 'Astar' no longer required
+		DeleteTensor(L);
+		DeleteTensor(&Astar);
+	}
+
+	// multiply with 'W' tensor
+	{
+		// interchange levels in 'W'
+		const int perm012[4] = { 1, 2, 0, 3 };
+		TransposeTensor(perm012, W, &s);
+		// interchange levels in 't'
+		const int perm123[4] = { 0, 2, 3, 1 };
+		TransposeTensor(perm123, &t, &r);
+		DeleteTensor(&t);
+		// perform multiplication and store result in 't'
+		MultiplyTensor(&r, &s, 2, &t);
+		DeleteTensor(&r);
+		DeleteTensor(&s);
+	}
+
+	// multiply with 'A' tensor
+	{
+		// interchange levels in 't'
+		const int perm123[4] = { 0, 3, 1, 2 };
+		TransposeTensor(perm123, &t, &r);
+		DeleteTensor(&t);
+		// interchange levels in 'A'
+		const int perm02[3] = { 2, 1, 0 };
+		TransposeTensor(perm02, A, &t);
+		// perform multiplication
+		MultiplyTensor(&t, &r, 2, L);
+		// tensors 't' and 'r' no longer required
+		DeleteTensor(&t);
+		DeleteTensor(&r);
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Contraction step from right to left
 ///
 void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R)
@@ -69,7 +165,7 @@ void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R)
 
 	// multiply by conjugated and transposed 'A' tensor
 	{
-		// interchange the last two level of 'A' and complex-conjugate the entries
+		// interchange the last two levels of 'A' and complex-conjugate the entries
 		tensor_t Astar;
 		const int perm12[3] = { 0, 2, 1 };
 		ConjugateTransposeTensor(perm12, A, &Astar);

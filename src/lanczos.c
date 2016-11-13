@@ -11,7 +11,7 @@
 ///
 /// \brief Perform a Lanczos iteration to approximate the lowest eigenvalue and corresponding eigenvector
 ///
-void LanczosIteration(const size_t n, mat_vect_prod_t Afunc, const void *restrict Adata, MKL_Complex16 *restrict v_start, const int maxiter, double *restrict lambda_min, MKL_Complex16 *restrict v_min)
+void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adata, MKL_Complex16 *restrict v_start, const int maxiter, double *restrict lambda_min, MKL_Complex16 *restrict v_min)
 {
 	double *alpha = (double *)MKL_calloc(maxiter, sizeof(double), MEM_DATA_ALIGN);
 	double *beta  = (double *)MKL_calloc(maxiter, sizeof(double), MEM_DATA_ALIGN);

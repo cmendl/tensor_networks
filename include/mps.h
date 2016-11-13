@@ -38,9 +38,18 @@ void MPSUnitaryRightProjection(tensor_t *restrict A, tensor_t *restrict Aprev);
 //
 
 
+void ContractionStepLeft(const tensor_t *restrict A, tensor_t *restrict L);
+
+void ContractionOperatorStepLeft(const tensor_t *restrict A, const tensor_t *restrict W, tensor_t *restrict L);
+
+
 void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R);
 
 void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *restrict W, tensor_t *restrict R);
+
+
+//________________________________________________________________________________________________________________________
+//
 
 
 double CalculateMPSNorm(const mps_t *restrict mps);
