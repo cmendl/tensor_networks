@@ -53,7 +53,7 @@ void DeleteMPS(mps_t *restrict mps)
 ///
 /// \brief Contraction step from left to right
 ///
-void ContractionStepLeft(const tensor_t *restrict A, tensor_t *restrict L)
+void ContractionStepLeft(const tensor_t *restrict A, const tensor_t *restrict L, tensor_t *restrict Lnext)
 {
 	assert(A->ndim == 3);
 	assert(L->ndim == 2);
@@ -68,8 +68,7 @@ void ContractionStepLeft(const tensor_t *restrict A, tensor_t *restrict L)
 		ConjugateTransposeTensor(perm01, A, &Astar);
 		// perform multiplication
 		MultiplyTensor(L, &Astar, 1, &t);
-		// initial values stored in 'L' and 'Astar' no longer required
-		DeleteTensor(L);
+		// initial values stored in 'Astar' no longer required
 		DeleteTensor(&Astar);
 	}
 
@@ -80,7 +79,7 @@ void ContractionStepLeft(const tensor_t *restrict A, tensor_t *restrict L)
 		const int perm02[3] = { 2, 1, 0 };
 		TransposeTensor(perm02, A, &Atp);
 		// perform multiplication
-		MultiplyTensor(&Atp, &t, 2, L);
+		MultiplyTensor(&Atp, &t, 2, Lnext);
 		DeleteTensor(&Atp);
 		DeleteTensor(&t);
 	}
@@ -91,7 +90,7 @@ void ContractionStepLeft(const tensor_t *restrict A, tensor_t *restrict L)
 ///
 /// \brief Contraction step from left to right, with a matrix product operator sandwiched in between
 ///
-void ContractionOperatorStepLeft(const tensor_t *restrict A, const tensor_t *restrict W, tensor_t *restrict L)
+void ContractionOperatorStepLeft(const tensor_t *restrict A, const tensor_t *restrict W, const tensor_t *restrict L, tensor_t *restrict Lnext)
 {
 	assert(A->ndim == 3);
 	assert(W->ndim == 4);
@@ -107,8 +106,7 @@ void ContractionOperatorStepLeft(const tensor_t *restrict A, const tensor_t *res
 		ConjugateTransposeTensor(perm01, A, &Astar);
 		// perform multiplication
 		MultiplyTensor(L, &Astar, 1, &t);
-		// initial values stored in 'L' and 'Astar' no longer required
-		DeleteTensor(L);
+		// initial values stored in 'Astar' no longer required
 		DeleteTensor(&Astar);
 	}
 
@@ -137,7 +135,7 @@ void ContractionOperatorStepLeft(const tensor_t *restrict A, const tensor_t *res
 		const int perm02[3] = { 2, 1, 0 };
 		TransposeTensor(perm02, A, &t);
 		// perform multiplication
-		MultiplyTensor(&t, &r, 2, L);
+		MultiplyTensor(&t, &r, 2, Lnext);
 		// tensors 't' and 'r' no longer required
 		DeleteTensor(&t);
 		DeleteTensor(&r);
@@ -149,7 +147,7 @@ void ContractionOperatorStepLeft(const tensor_t *restrict A, const tensor_t *res
 ///
 /// \brief Contraction step from right to left
 ///
-void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R)
+void ContractionStepRight(const tensor_t *restrict A, const tensor_t *restrict R, tensor_t *restrict Rnext)
 {
 	assert(A->ndim == 3);
 	assert(R->ndim == 2);
@@ -159,8 +157,6 @@ void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R)
 	// multiply by 'A' tensor
 	{
 		MultiplyTensor(A, R, 1, &t);
-		// initial values stored in 'R' no longer required
-		DeleteTensor(R);
 	}
 
 	// multiply by conjugated and transposed 'A' tensor
@@ -174,7 +170,7 @@ void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R)
 		TransposeTensor(perm01, &t, &s);
 		DeleteTensor(&t);
 		// perform multiplication
-		MultiplyTensor(&s, &Astar, 2, R);
+		MultiplyTensor(&s, &Astar, 2, Rnext);
 		// tensors 'Astar' and 's' no longer required
 		DeleteTensor(&Astar);
 		DeleteTensor(&s);
@@ -186,7 +182,7 @@ void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R)
 ///
 /// \brief Contraction step from right to left, with a matrix product operator sandwiched in between
 ///
-void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *restrict W, tensor_t *restrict R)
+void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *restrict W, const tensor_t *restrict R, tensor_t *restrict Rnext)
 {
 	assert(A->ndim == 3);
 	assert(W->ndim == 4);
@@ -197,8 +193,6 @@ void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *re
 	// multiply with 'A' tensor
 	{
 		MultiplyTensor(A, R, 1, &t);
-		// initial values stored in 'R' no longer required
-		DeleteTensor(R);
 	}
 
 	// multiply with 'W' tensor
@@ -225,7 +219,7 @@ void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *re
 		TransposeTensor(perm02, &t, &r);
 		DeleteTensor(&t);
 		// perform multiplication
-		MultiplyTensor(&r, &Astar, 2, R);
+		MultiplyTensor(&r, &Astar, 2, Rnext);
 		// tensors 'Astar' and 'r' no longer required
 		DeleteTensor(&Astar);
 		DeleteTensor(&r);
@@ -252,7 +246,10 @@ double CalculateMPSNorm(const mps_t *restrict mps)
 	int i;
 	for (i = L-1; i >= 0; i--)
 	{
-		ContractionStepRight(&mps->A[i], &t);
+		tensor_t tnext;
+		ContractionStepRight(&mps->A[i], &t, &tnext);
+		DeleteTensor(&t);
+		MoveTensorData(&tnext, &t);
 	}
 
 	// 't' should now be a 1x1 matrix

@@ -38,14 +38,14 @@ void MPSUnitaryRightProjection(tensor_t *restrict A, tensor_t *restrict Aprev);
 //
 
 
-void ContractionStepLeft(const tensor_t *restrict A, tensor_t *restrict L);
+void ContractionStepLeft(const tensor_t *restrict A, const tensor_t *restrict L, tensor_t *restrict Lnext);
 
-void ContractionOperatorStepLeft(const tensor_t *restrict A, const tensor_t *restrict W, tensor_t *restrict L);
+void ContractionOperatorStepLeft(const tensor_t *restrict A, const tensor_t *restrict W, const tensor_t *restrict L, tensor_t *restrict Lnext);
 
 
-void ContractionStepRight(const tensor_t *restrict A, tensor_t *restrict R);
+void ContractionStepRight(const tensor_t *restrict A, const tensor_t *restrict R, tensor_t *restrict Rnext);
 
-void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *restrict W, tensor_t *restrict R);
+void ContractionOperatorStepRight(const tensor_t *restrict A, const tensor_t *restrict W, const tensor_t *restrict R, tensor_t *restrict Rnext);
 
 
 //________________________________________________________________________________________________________________________

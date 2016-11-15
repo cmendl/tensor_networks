@@ -30,7 +30,10 @@ MKL_Complex16 OperatorAverage(const mps_t *restrict psi, const mpo_t *restrict o
 	int i;
 	for (i = L-1; i >= 0; i--)
 	{
-		ContractionOperatorStepRight(&psi->A[i], &op->A[i], &t);
+		tensor_t tnext;
+		ContractionOperatorStepRight(&psi->A[i], &op->A[i], &t, &tnext);
+		DeleteTensor(&t);
+		MoveTensorData(&tnext, &t);
 	}
 
 	// 't' should now be a 1x1x1 tensor
@@ -42,6 +45,64 @@ MKL_Complex16 OperatorAverage(const mps_t *restrict psi, const mpo_t *restrict o
 	DeleteTensor(&t);
 
 	return avr;
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Compute all partial contractions from the left; L must point to an array of (uninitialized) tensors of length L at input
+///
+void ComputeLeftOperatorBlocks(const mps_t *restrict psi, const mpo_t *restrict op, tensor_t *restrict BL)
+{
+	const int L = psi->L;
+	assert(L == op->L);
+
+	// initialize leftmost block by identity matrix
+	assert(psi->A[0].ndim == 3);
+	assert( op->A[0].ndim == 4);
+	assert( op->A[0].dim[2] == 1);
+	const size_t t_dim[3] = { psi->A[0].dim[1], 1, psi->A[0].dim[1] };
+	AllocateTensor(3, t_dim, &BL[0]);
+	size_t j;
+	for (j = 0; j < psi->A[0].dim[1]; j++)
+	{
+		BL[0].data[j + j*psi->A[0].dim[1]].real = 1;
+	}
+
+	int i;
+	for (i = 0; i < L-1; i++)
+	{
+		ContractionOperatorStepLeft(&psi->A[i], &op->A[i], &BL[i], &BL[i+1]);
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Compute all partial contractions from the right; R must point to an array of (uninitialized) tensors of length L at input
+///
+void ComputeRightOperatorBlocks(const mps_t *restrict psi, const mpo_t *restrict op, tensor_t *restrict BR)
+{
+	const int L = psi->L;
+	assert(L == op->L);
+
+	// initialize rightmost block by identity matrix
+	assert(psi->A[L-1].ndim == 3);
+	assert( op->A[L-1].ndim == 4);
+	assert( op->A[L-1].dim[3] == 1);
+	const size_t t_dim[3] = { psi->A[L-1].dim[2], 1, psi->A[L-1].dim[2] };
+	AllocateTensor(3, t_dim, &BR[L-1]);
+	size_t j;
+	for (j = 0; j < psi->A[L-1].dim[2]; j++)
+	{
+		BR[L-1].data[j + j*psi->A[L-1].dim[2]].real = 1;
+	}
+
+	int i;
+	for (i = L-1; i > 0; i--)
+	{
+		ContractionOperatorStepRight(&psi->A[i], &op->A[i], &BR[i], &BR[i-1]);
+	}
 }
 
 

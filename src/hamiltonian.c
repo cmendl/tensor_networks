@@ -287,6 +287,81 @@ static void CopyRealToComplexMatrix(const size_t m, const size_t n, const double
 	}
 }
 
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Contruct matrix product operator representation of Heisenberg Hamiltonian (special case Jx == Jy)
+///
+void ConstructHeisenbergMPO(const int L, const double J, const double Jz, const double hext, mpo_t *H)
+{
+	int i;
+
+	assert(L >= 2);
+
+	// allocate matrix product operator
+	{
+		// virtual bond dimensions
+		size_t *D = (size_t *)MKL_malloc((L + 1)*sizeof(size_t), MEM_DATA_ALIGN);
+		D[0] = 1;
+		for (i = 1; i < L; i++) {
+			D[i] = 5;
+		}
+		D[L] = 1;
+
+		const size_t dim[2] = { 2, 2 };
+		AllocateMPO(L, dim, D, H);
+		MKL_free(D);
+	}
+
+	// identity and basic spin operators (column major ordering)
+	double  id[4] = { 1,   0,   0,   1   };
+	double Sup[4] = { 0,   0,   1,   0   };
+	double Sdn[4] = { 0,   1,   0,   0   };
+	double  Sz[4] = { 0.5, 0,   0,  -0.5 };
+	double negh_Sz[4];  memcpy(negh_Sz, Sz,  4*sizeof(double)); cblas_dscal(4, -hext, negh_Sz, 1);  //    -h Sz
+	double J05_Sup[4];  memcpy(J05_Sup, Sup, 4*sizeof(double)); cblas_dscal(4, 0.5*J, J05_Sup, 1);  // 0.5*J Sup
+	double J05_Sdn[4];  memcpy(J05_Sdn, Sdn, 4*sizeof(double)); cblas_dscal(4, 0.5*J, J05_Sdn, 1);  // 0.5*J Sdn
+	double   Jz_Sz[4];  memcpy(  Jz_Sz,  Sz, 4*sizeof(double)); cblas_dscal(4,    Jz,   Jz_Sz, 1);  //    Jz Sz
+
+	// construct first 'W' tensor
+	{
+		CopyRealToComplexMatrix(2, 2, negh_Sz, 2, &H->A[0].data[   0], 2);
+		CopyRealToComplexMatrix(2, 2, J05_Sdn, 2, &H->A[0].data[   4], 2);
+		CopyRealToComplexMatrix(2, 2, J05_Sup, 2, &H->A[0].data[ 2*4], 2);
+		CopyRealToComplexMatrix(2, 2, Jz_Sz,   2, &H->A[0].data[ 3*4], 2);
+		CopyRealToComplexMatrix(2, 2, id,      2, &H->A[0].data[ 4*4], 2);
+	}
+
+	// construct intermediate 'W' tensors
+	for (i = 1; i < L - 1; i++)
+	{
+		// first column block
+		CopyRealToComplexMatrix(2, 2, id,      2, &H->A[i].data[   0], 2);  // (0,0) block
+		CopyRealToComplexMatrix(2, 2, Sup,     2, &H->A[i].data[   4], 2);  // (1,0) block
+		CopyRealToComplexMatrix(2, 2, Sdn,     2, &H->A[i].data[ 2*4], 2);  // (2,0) block
+		CopyRealToComplexMatrix(2, 2, Sz,      2, &H->A[i].data[ 3*4], 2);  // (3,0) block
+		CopyRealToComplexMatrix(2, 2, negh_Sz, 2, &H->A[i].data[ 4*4], 2);  // (4,0) block
+
+		// last row block
+		CopyRealToComplexMatrix(2, 2, J05_Sdn, 2, &H->A[i].data[ 9*4], 2);  // (4,1) block
+		CopyRealToComplexMatrix(2, 2, J05_Sup, 2, &H->A[i].data[14*4], 2);  // (4,2) block
+		CopyRealToComplexMatrix(2, 2, Jz_Sz,   2, &H->A[i].data[19*4], 2);  // (4,3) block
+		CopyRealToComplexMatrix(2, 2, id,      2, &H->A[i].data[24*4], 2);  // (4,4) block
+
+		// remaining blocks are zero
+	}
+
+	// construct last 'W' tensor
+	{
+		CopyRealToComplexMatrix(2, 2, id,      2, &H->A[L-1].data[  0], 2);
+		CopyRealToComplexMatrix(2, 2, Sup,     2, &H->A[L-1].data[  4], 2);
+		CopyRealToComplexMatrix(2, 2, Sdn,     2, &H->A[L-1].data[2*4], 2);
+		CopyRealToComplexMatrix(2, 2, Sz,      2, &H->A[L-1].data[3*4], 2);
+		CopyRealToComplexMatrix(2, 2, negh_Sz, 2, &H->A[L-1].data[4*4], 2);
+	}
+}
+
+
 //________________________________________________________________________________________________________________________
 ///
 /// \brief Contruct matrix product operator representation of Bose-Hubbard Hamiltonian
@@ -350,15 +425,15 @@ void ConstructBoseHubbardMPO(const int L, const size_t M, const double t, const 
 	for (i = 1; i < L - 1; i++)
 	{
 		// first column block
-		CopyRealToComplexMatrix(d, d, id,  d, &H->A[i].data[    0], d);	// (0,0) block
-		CopyRealToComplexMatrix(d, d, b,   d, &H->A[i].data[   d2], d);	// (1,0) block
-		CopyRealToComplexMatrix(d, d, bd,  d, &H->A[i].data[ 2*d2], d);	// (2,0) block
-		CopyRealToComplexMatrix(d, d, hs,  d, &H->A[i].data[ 3*d2], d);	// (3,0) block
+		CopyRealToComplexMatrix(d, d, id,  d, &H->A[i].data[    0], d); // (0,0) block
+		CopyRealToComplexMatrix(d, d, b,   d, &H->A[i].data[   d2], d); // (1,0) block
+		CopyRealToComplexMatrix(d, d, bd,  d, &H->A[i].data[ 2*d2], d); // (2,0) block
+		CopyRealToComplexMatrix(d, d, hs,  d, &H->A[i].data[ 3*d2], d); // (3,0) block
 
 		// last row block
-		CopyRealToComplexMatrix(d, d, tbd, d, &H->A[i].data[ 7*d2], d);	// (3,1) block
-		CopyRealToComplexMatrix(d, d, tb,  d, &H->A[i].data[11*d2], d);	// (3,2) block
-		CopyRealToComplexMatrix(d, d, id,  d, &H->A[i].data[15*d2], d);	// (3,3) block
+		CopyRealToComplexMatrix(d, d, tbd, d, &H->A[i].data[ 7*d2], d); // (3,1) block
+		CopyRealToComplexMatrix(d, d, tb,  d, &H->A[i].data[11*d2], d); // (3,2) block
+		CopyRealToComplexMatrix(d, d, id,  d, &H->A[i].data[15*d2], d); // (3,3) block
 
 		// remaining blocks are zero
 	}

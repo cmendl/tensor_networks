@@ -19,6 +19,8 @@ void DeleteLocalHamiltonianOperators(const int L, double **h);
 //
 
 
+void ConstructHeisenbergMPO(const int L, const double J, const double Jz, const double hext, mpo_t *H);
+
 void ConstructBoseHubbardMPO(const int L, const size_t M, const double t, const double U, const double mu, mpo_t *H);
 
 

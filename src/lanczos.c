@@ -2,9 +2,11 @@
 /// \brief Implementation of the Lanczos algorithm
 
 #include "lanczos.h"
+#include "util.h"
 #include "dupio.h"
 #include <mkl.h>
 #include <memory.h>
+#include <assert.h>
 
 
 //________________________________________________________________________________________________________________________
@@ -23,6 +25,12 @@ void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adat
 	// set first "v" vector to zero and second "v" vector to starting vector
 	memset(V, 0, n*sizeof(MKL_Complex16));
 	memcpy(&V[n], v_start, n*sizeof(MKL_Complex16));
+	// normalize starting vector
+	{
+		double nrm = Norm(2*n, (double *)&V[n]);
+		assert(nrm > 0);
+		cblas_dscal(2*n, 1/nrm, (double *)&V[n], 1);
+	}
 
 	int j;
 	for (j = 0; j < maxiter - 1; j++)
@@ -47,6 +55,7 @@ void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adat
 		beta[j+1] = cblas_dznrm2(n, w, 1);
 
 		// v_{j+1} = w / beta[j+1]
+		assert(beta[j+1] > 0);
 		const double inv_beta = 1 / beta[j+1];
 		for (i = 0; i < n; i++)
 		{
