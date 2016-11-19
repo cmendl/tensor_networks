@@ -1,3 +1,6 @@
+/// \file minimization.h
+/// \brief Energy minimization and ground state computation
+
 #ifndef MINIMIZATION_H
 #define MINIMIZATION_H
 

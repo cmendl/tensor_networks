@@ -1,4 +1,4 @@
-SRCFILES = mps.o mpo.o operation.o lanczos.o hamiltonian.o minimization.o dynamics.o peps.o tensor.o util.o sim_params.o dupio.o
+SRCFILES = mps.o mpo.o operation.o bond_info.o lanczos.o hamiltonian.o minimization.o dynamics.o peps.o tensor.o util.o sim_params.o dupio.o
 TSTFILES = matrix_exp_test.o mps_test.o mpo_test.o operation_test.o lanczos_test.o hamiltonian_heisenberg_test.o hamiltonian_bose_hubbard_test.o minimization_test.o dynamics_test.o peps_test.o peps_test2.o tensor_test.o
 
 # use Intel compiler

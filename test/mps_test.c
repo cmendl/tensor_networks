@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 
 
@@ -325,6 +326,89 @@ int MPSTest()
 		DeleteTensor(&BR);
 		DeleteTensor(&BL);
 		DeleteTensor(&W);
+	}
+
+	// splitting of a two-site MPS tensor
+	{
+		tensor_t E2;
+		{
+			const size_t dim[4] = { 3, 4, 11, 7 };
+			AllocateTensor(4, dim, &E2);
+			int status = ReadData("../test/mps_test_E2.dat", E2.data, sizeof(MKL_Complex16), NumTensorElements(&E2));
+			if (status < 0) { return status; }
+		}
+
+		// split E2 into two tensors
+		tensor_t E0, E1;
+		trunc_info_t ti = SplitMPSTensor(&E2, SVD_DISTR_RIGHT, 0.0, INT32_MAX, &E0, &E1);
+
+		// merge the two tensors again and compare with original tensor
+		tensor_t E2mrg;
+		MergeMPSTensorPair(&E0, &E1, &E2mrg);
+
+		// check dimensions; E2 has two physical dimensions, which are combined into one physical dimension in E2mrg
+		if (E2mrg.ndim != 3 || E2mrg.dim[0] != E2.dim[0]*E2.dim[1] || E2mrg.dim[1] != E2.dim[2] || E2mrg.dim[2] != E2.dim[3])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&E2), (double *)E2mrg.data, (double *)E2.data));
+		}
+		DeleteTensor(&E2mrg);
+		DeleteTensor(&E1);
+		DeleteTensor(&E0);
+
+		// norm and von Neumann entropy of singular values
+		{
+			const double nsigma_ref  = 6.208706214000858;
+			const double entropy_ref = 2.9174835032576425;
+
+			err = fmax(err, fabs(ti.nsigma  -  nsigma_ref));
+			err = fmax(err, fabs(ti.entropy - entropy_ref));
+		}
+
+		// split E2 into two tensors again, but now using a capped bond dimension
+		ti = SplitMPSTensor(&E2, SVD_DISTR_RIGHT, 0.0, 17, &E0, &E1);
+
+		// merge the two tensors
+		MergeMPSTensorPair(&E0, &E1, &E2mrg);
+
+		// compare with reference
+		tensor_t E2mrg_ref;
+		{
+			const size_t dim[3] = { E2.dim[0]*E2.dim[1], E2.dim[2], E2.dim[3] };
+			AllocateTensor(3, dim, &E2mrg_ref);
+			int status;
+			status = ReadData("../test/mps_test_E2mrg.dat", E2mrg_ref.data, sizeof(MKL_Complex16), NumTensorElements(&E2mrg_ref));
+			if (status < 0) { return status; }
+		}
+
+		// check dimensions
+		if (E2mrg.ndim != 3 || E2mrg.dim[0] != E2mrg_ref.dim[0] || E2mrg.dim[1] != E2mrg_ref.dim[1] || E2mrg.dim[2] != E2mrg_ref.dim[2])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&E2mrg_ref), (double *)E2mrg.data, (double *)E2mrg_ref.data));
+		}
+		DeleteTensor(&E2mrg);
+		DeleteTensor(&E1);
+		DeleteTensor(&E0);
+
+		// norm and von Neumann entropy of singular values
+		{
+			const double nsigma_ref  = 5.9775790063705285;
+			const double entropy_ref = 2.695728869388412;
+
+			err = fmax(err, fabs(ti.nsigma  -  nsigma_ref));
+			err = fmax(err, fabs(ti.entropy - entropy_ref));
+		}
+
+		DeleteTensor(&E2);
 	}
 
 	printf("Largest error: %g\n", err);

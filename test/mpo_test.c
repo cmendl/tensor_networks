@@ -64,7 +64,7 @@ int MPOTest()
 	// merging of all tensors
 	{
 		tensor_t Am;
-		MPOMergeFull(&X, &Am);
+		MergeMPOFull(&X, &Am);
 
 		// first few entries of reference tensor
 		const int n = 1764;

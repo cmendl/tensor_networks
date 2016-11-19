@@ -65,7 +65,7 @@ int DynamicsTest()
 
 		// merge tensors to compare with reference
 		tensor_t Am;
-		MPOMergeFull(&Y, &Am);
+		MergeMPOFull(&Y, &Am);
 
 		// first few entries of reference tensor
 		const int n = 1764;
@@ -114,7 +114,7 @@ int DynamicsTest()
 
 		// merge tensors to compare with reference
 		tensor_t Am;
-		MPOMergeFull(&Y, &Am);
+		MergeMPOFull(&Y, &Am);
 
 		// first few entries of reference tensor
 		const int n = 1764;
@@ -161,7 +161,7 @@ int DynamicsTest()
 
 		// merge tensors to compare with reference
 		tensor_t Am;
-		MPOMergeFull(&Y, &Am);
+		MergeMPOFull(&Y, &Am);
 
 		// first few entries of reference tensor
 		const int n = 1764;
@@ -206,7 +206,7 @@ int DynamicsTest()
 
 		// merge tensors to compare with reference
 		tensor_t Am;
-		MPOMergeFull(&Y, &Am);
+		MergeMPOFull(&Y, &Am);
 
 		// first few entries of reference tensor
 		const int n = 1764;

@@ -175,7 +175,7 @@ void ConjugateTransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoH)
 ///
 /// \brief Merge two neighboring MPO tensors
 ///
-void MPOMergeTensors(const tensor_t *restrict A0, const tensor_t *restrict A1, tensor_t *restrict A)
+void MergeMPOTensorPair(const tensor_t *restrict A0, const tensor_t *restrict A1, tensor_t *restrict A)
 {
 	assert(A0->ndim == 4);
 	assert(A1->ndim == 4);
@@ -204,7 +204,7 @@ void MPOMergeTensors(const tensor_t *restrict A0, const tensor_t *restrict A1, t
 ///
 /// \brief Merge all tensors of a MPO to obtain the matrix representation on the full Hilbert space
 ///
-void MPOMergeFull(const mpo_t *restrict mpo, tensor_t *restrict A)
+void MergeMPOFull(const mpo_t *restrict mpo, tensor_t *restrict A)
 {
 	assert(mpo->L > 0);
 
@@ -230,12 +230,12 @@ void MPOMergeFull(const mpo_t *restrict mpo, tensor_t *restrict A)
 
 		// special case i == 1
 		{
-			MPOMergeTensors(&mpo->A[0], &mpo->A[1], s);
+			MergeMPOTensorPair(&mpo->A[0], &mpo->A[1], s);
 		}
 		int i;
 		for (i = 2; i < mpo->L; i++)
 		{
-			MPOMergeTensors(s, &mpo->A[i], t);
+			MergeMPOTensorPair(s, &mpo->A[i], t);
 			DeleteTensor(s);
 			// swap 's' and 't' pointers
 			tensor_t *r = s;
@@ -557,7 +557,7 @@ void ApplySingleSiteBottomOperator(tensor_t *restrict A, const tensor_t *restric
 ///
 trunc_info_t ApplyTwoSiteOperator(tensor_t *restrict A0, tensor_t *restrict A1, const tensor_t *restrict opT, const tensor_t *restrict opB, const svd_distr_t svd_distr, const double tol, const size_t maxD)
 {
-	assert(tol  > 0);
+	assert(tol >= 0);
 	assert(maxD > 0);
 	assert(A0->ndim == 4);
 	assert(A1->ndim == 4);
@@ -669,8 +669,22 @@ trunc_info_t ApplyTwoSiteOperator(tensor_t *restrict A0, tensor_t *restrict A1, 
 		// new truncated bond dimension
 		k = i;
 
-		// record norm of retained singular values
-		ti.nsigma = Norm(k, sigma);
+		// record norm and von Neumann entropy of retained singular values
+		{
+			ti.nsigma = Norm(k, sigma);
+
+			// normalized singular values
+			double *sigma_nrm = MKL_malloc(k * sizeof(double), MEM_DATA_ALIGN);
+			size_t j;
+			for (j = 0; j < k; j++)
+			{
+				sigma_nrm[j] = sigma[j] / ti.nsigma;
+			}
+
+			ti.entropy = VonNeumannEntropy(k, sigma_nrm);
+
+			MKL_free(sigma_nrm);
+		}
 
 		// adjust dimension corresponding to truncated bond and distribute singular values
 		A0->dim[1] = k;
@@ -709,21 +723,18 @@ trunc_info_t ApplyTwoSiteOperator(tensor_t *restrict A0, tensor_t *restrict A1, 
 			// invalid option
 			assert(false);
 		}
-		// undo transposition
-		TransposeTensor(perm2, &t, &s);
-		DeleteTensor(&t);
 		MKL_free(superb);
 		MKL_free(sigma);
 
 		// restore original dimensions (except that shared bond dimension might have changed)
 		const size_t dim0[4] = { dim[0], dim[1], dim[2], k };
 		ReshapeTensor(4, dim0, A0);
-		const size_t dim1[4] = { k, dim[3], dim[4], dim[5] };
-		ReshapeTensor(4, dim1, &s);
+		const size_t dim1[4] = { dim[3], dim[4], dim[5], k };
+		ReshapeTensor(4, dim1, &t);
 		// reorder virtual bond dimension
-		const int perm4[4] = { 2, 0, 1, 3 };
-		TransposeTensor(perm4, &s, A1);
-		DeleteTensor(&s);
+		const int perm4[4] = { 0, 1, 3, 2 };
+		TransposeTensor(perm4, &t, A1);
+		DeleteTensor(&t);
 	}
 
 	return ti;
@@ -782,7 +793,7 @@ trunc_info_t ApplyTwoSiteBottomOperator(tensor_t *restrict A0, tensor_t *restric
 ///
 /// \brief Orthonormalize neighboring tensors and truncate bond dimensions using tolerance 'tol'
 ///
-trunc_info_t OrthonormalizeTensorPair(tensor_t *restrict A0, tensor_t *restrict A1, const svd_distr_t svd_distr, const double tol, const size_t maxD)
+trunc_info_t OrthonormalizeMPOTensorPair(tensor_t *restrict A0, tensor_t *restrict A1, const svd_distr_t svd_distr, const double tol, const size_t maxD)
 {
 	assert(A0->ndim == 4);
 	assert(A1->ndim == 4);
@@ -807,13 +818,13 @@ trunc_info_t OrthonormalizeMPO(const double tol, const size_t maxD, mpo_t *restr
 	// sweep from left to right
 	for (i = 0; i < mpo->L - 1; i++)
 	{
-		ti = OrthonormalizeTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_RIGHT, tol, maxD);
+		ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_RIGHT, tol, maxD);
 	}
 
 	// sweep from right to left
 	for (i = mpo->L - 2; i >= 0; i--)
 	{
-		ti = OrthonormalizeTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_LEFT, tol, maxD);
+		ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_LEFT, tol, maxD);
 	}
 
 	// truncation information from last tensor pair orthonormalization

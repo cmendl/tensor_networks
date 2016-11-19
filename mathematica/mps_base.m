@@ -28,6 +28,18 @@ MPSMergeTensors[A0_,A1_]:=Module[{A},
    (only use for small number of lattice sites!) *)
 MPSMergeFull[A_List]:=Flatten[Fold[MPSMergeTensors,First[A],Rest[A]]]
 
+(* split a two-site tensor with dimension d1\[Times]d2\[Times]D1\[Times]D2 into two MPS tensors *)
+MPSSplitTensor[A_,dmax_:\[Infinity]]:=Module[{T,dim,A0,A1,S},
+	T=Transpose[A,{1,3,2,4}];
+	dim=Dimensions[T];
+	T=ArrayReshape[T,{Times@@dim[[1;;2]],Times@@dim[[3;;4]]}];
+	{A0,S,A1}=EconomicalSVD[T,dmax];
+	A1=ConjugateTranspose[A1];
+	A0=ArrayReshape[A0,{dim[[1]],dim[[2]],Length[S]}];
+	A1=ArrayReshape[A1,{Length[S],dim[[3]],dim[[4]]}];
+	A1=Transpose[A1,{2,1,3}];
+	{A0,A1,S}]
+
 
 (* Basic MPO tensor operations *)
 
@@ -47,11 +59,11 @@ MPOMergeTensors[A0_,A1_]:=Module[{A},
 MPOMergeFull[A_List]:=ArrayFlatten[Fold[MPOMergeTensors,First[A],Rest[A]]]
 
 (* split a two-site (d1,d2)\[Times](d3,d4) operator into two MPO tensors *)
-MPOSplitOperator[op_]:=Module[{op2,dim,A0,A1,S},
+MPOSplitOperator[op_,dmax_:\[Infinity]]:=Module[{op2,dim,A0,A1,S},
 	op2=Transpose[op,{1,3,2,4}];
 	dim=Dimensions[op2];
 	op2=ArrayReshape[op2,{Times@@dim[[1;;2]],Times@@dim[[3;;4]]}];
-	{A0,S,A1}=EconomicalSVD[op2];
+	{A0,S,A1}=EconomicalSVD[op2,dmax];
 	A1=ConjugateTranspose[A1];
 	A0=ArrayReshape[A0,{dim[[1]],dim[[2]],1,Length[S]}];
 	A1=ArrayReshape[A1,{Length[S],1,dim[[3]],dim[[4]]}];

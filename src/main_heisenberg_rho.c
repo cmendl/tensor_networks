@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 
 	// merge MPO to compare with reference
 	tensor_t rho_beta_full;
-	MPOMergeFull(&rho_beta, &rho_beta_full);
+	MergeMPOFull(&rho_beta, &rho_beta_full);
 
 	// save results to disk
 	sprintf(filename, "%s/heisenberg_L%i_chi.dat", argv[4], L);         WriteData(filename, &chi, sizeof(MKL_Complex16), 1, false);

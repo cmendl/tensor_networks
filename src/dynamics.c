@@ -71,7 +71,7 @@ static inline void EvenOddUpdate(const tensor_t *restrict opT, const tensor_t *r
 				ti = ApplyTwoSiteOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], &opB[i], SVD_DISTR_RIGHT, tol, maxD);
 			}
 			else {
-				ti = OrthonormalizeTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_RIGHT, tol, maxD);
+				ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_RIGHT, tol, maxD);
 			}
 			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
 		}
@@ -86,7 +86,7 @@ static inline void EvenOddUpdate(const tensor_t *restrict opT, const tensor_t *r
 				ti = ApplyTwoSiteOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], &opB[i], SVD_DISTR_LEFT, tol, maxD);
 			}
 			else {
-				ti = OrthonormalizeTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_LEFT, tol, maxD);
+				ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_LEFT, tol, maxD);
 			}
 			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
 		}
@@ -116,7 +116,7 @@ static inline void EvenOddTopUpdate(const tensor_t *restrict opT, const int pari
 				ti = ApplyTwoSiteTopOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], SVD_DISTR_RIGHT, tol, maxD);
 			}
 			else {
-				ti = OrthonormalizeTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_RIGHT, tol, maxD);
+				ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_RIGHT, tol, maxD);
 			}
 			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
 		}
@@ -131,7 +131,7 @@ static inline void EvenOddTopUpdate(const tensor_t *restrict opT, const int pari
 				ti = ApplyTwoSiteTopOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], SVD_DISTR_LEFT, tol, maxD);
 			}
 			else {
-				ti = OrthonormalizeTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_LEFT, tol, maxD);
+				ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_LEFT, tol, maxD);
 			}
 			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
 		}

@@ -1,3 +1,6 @@
+/// \file complex.h
+/// \brief Utility functions for complex numbers
+
 #ifndef COMPLEX_H
 #define COMPLEX_H
 
