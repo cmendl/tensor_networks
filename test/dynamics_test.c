@@ -21,10 +21,10 @@ int DynamicsTest()
 	const size_t maxD = INT32_MAX;      // maximum virtual bond dimension (effectively set to infinity)
 
 	// load two-site Hamiltonian operators from disk
-	double **h = MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
 	for (i = 0; i < L - 1; i++)
 	{
-		h[i] = MKL_malloc(d*d*d*d*sizeof(double), MEM_DATA_ALIGN);
+		h[i] = (double *)MKL_malloc(d*d*d*d*sizeof(double), MEM_DATA_ALIGN);
 
 		char filename[1024];
 		sprintf(filename, "../test/dynamics_test_h%i.dat", i);
@@ -69,7 +69,7 @@ int DynamicsTest()
 
 		// first few entries of reference tensor
 		const int n = 1764;
-		MKL_Complex16 *Am_ref = MKL_malloc(n*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *Am_ref = (MKL_Complex16 *)MKL_malloc(n*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 		status = ReadData("../test/dynamics_test_A_strang5i8_m.dat", Am_ref, sizeof(MKL_Complex16), n);
 		if (status < 0) { return status; }
 
@@ -118,7 +118,7 @@ int DynamicsTest()
 
 		// first few entries of reference tensor
 		const int n = 1764;
-		MKL_Complex16 *Am_ref = MKL_malloc(n*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *Am_ref = (MKL_Complex16 *)MKL_malloc(n*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 		status = ReadData("../test/dynamics_test_A_Lstrang6i7_m.dat", Am_ref, sizeof(MKL_Complex16), n);
 		if (status < 0) { return status; }
 

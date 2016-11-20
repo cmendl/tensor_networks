@@ -15,12 +15,12 @@ int MatrixExpTest()
 	printf("Testing matrix exponential...\n");
 
 	// load 'A' matrix from disk
-	double *A = MKL_malloc(n*n * sizeof(double), MEM_DATA_ALIGN);
+	double *A = (double *)MKL_malloc(n*n * sizeof(double), MEM_DATA_ALIGN);
 	status = ReadData("../test/matrix_exp_test_A.dat", A, sizeof(double), n*n);
 	if (status < 0) { return status; }
 
 	// allocate memory for matrix exponential
-	MKL_Complex16 *expA = MKL_malloc(n*n * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *expA = (MKL_Complex16 *)MKL_malloc(n*n * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 
 	// real time step
 	{
@@ -30,7 +30,7 @@ int MatrixExpTest()
 		if (status != 0) { return status; }
 
 		// load reference data from disk
-		MKL_Complex16 *expA_ref = MKL_malloc(n*n * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *expA_ref = (MKL_Complex16 *)MKL_malloc(n*n * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 		status = ReadData("../test/matrix_exp_test_exp17A.dat", expA_ref, sizeof(MKL_Complex16), n*n);
 		if (status < 0) { return status; }
 
@@ -49,7 +49,7 @@ int MatrixExpTest()
 		if (status != 0) { return status; }
 
 		// load reference data from disk
-		MKL_Complex16 *expA_ref = MKL_malloc(n*n * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *expA_ref = (MKL_Complex16 *)MKL_malloc(n*n * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 		status = ReadData("../test/matrix_exp_test_exp3i7A.dat", expA_ref, sizeof(MKL_Complex16), n*n);
 		if (status < 0) { return status; }
 

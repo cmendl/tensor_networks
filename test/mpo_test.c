@@ -68,7 +68,7 @@ int MPOTest()
 
 		// first few entries of reference tensor
 		const int n = 1764;
-		MKL_Complex16 *Am_ref = MKL_malloc(n*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *Am_ref = (MKL_Complex16 *)MKL_malloc(n*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 		status = ReadData("../test/mpo_test_A_merged.dat", Am_ref, sizeof(MKL_Complex16), n);
 		if (status < 0) { return status; }
 

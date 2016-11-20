@@ -395,6 +395,7 @@ int MPSTest()
 			// largest entrywise error
 			err = fmax(err, UniformDistance(2*NumTensorElements(&E2mrg_ref), (double *)E2mrg.data, (double *)E2mrg_ref.data));
 		}
+		DeleteTensor(&E2mrg_ref);
 		DeleteTensor(&E2mrg);
 		DeleteTensor(&E1);
 		DeleteTensor(&E0);

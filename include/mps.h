@@ -26,6 +26,9 @@ void AllocateMPS(const int L, const size_t d, const size_t *D, mps_t *restrict m
 void DeleteMPS(mps_t *restrict mps);
 
 
+void CopyMPS(const mps_t *restrict src, mps_t *restrict dst);
+
+
 //________________________________________________________________________________________________________________________
 //
 

@@ -51,6 +51,25 @@ void DeleteMPS(mps_t *restrict mps)
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Copy a matrix product state, allocating memory for the copy
+///
+void CopyMPS(const mps_t *restrict src, mps_t *restrict dst)
+{
+	dst->L = src->L;
+	dst->d = src->d;
+
+	dst->A = (tensor_t *)MKL_calloc(src->L, sizeof(tensor_t), MEM_DATA_ALIGN);
+
+	int i;
+	for (i = 0; i < src->L; i++)
+	{
+		CopyTensor(&src->A[i], &dst->A[i]);
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Contraction step from left to right
 ///
 void ContractionStepLeft(const tensor_t *restrict A, const tensor_t *restrict L, tensor_t *restrict Lnext)

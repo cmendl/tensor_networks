@@ -10,7 +10,14 @@
 
 void MinimizeLocalEnergy(const tensor_t *restrict L, const tensor_t *restrict R, const tensor_t *restrict W, const tensor_t *restrict M_start, double *restrict en_min, tensor_t *restrict M_opt);
 
-void CalculateGroundState(const mpo_t *restrict H, const int maxiter, const double tol, double *restrict en_min, mps_t *restrict psi);
+
+//________________________________________________________________________________________________________________________
+//
+
+
+void CalculateGroundStateLocalSinglesite(const mpo_t *restrict H, const int maxiter, double *restrict en_min, mps_t *restrict psi);
+
+void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter, const double tol, const size_t maxD, double *restrict entropy, double *restrict en_min, mps_t *restrict psi);
 
 
 

@@ -23,14 +23,14 @@ int HamiltonianBoseHubbardTest()
 	const double mu = 1.3;
 
 	// construct two-site Bose-Hubbard Hamiltonian operators
-	double **h = MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
 	ConstructLocalBoseHubbardOperators(L, d - 1, t, U, mu, h);
 
 	// compare with reference
 	for (i = 0; i < L - 1; i++)
 	{
 		// load reference two-site Hamiltonian operators from disk
-		double *h_ref_i = MKL_malloc(d*d*d*d*sizeof(double), MEM_DATA_ALIGN);
+		double *h_ref_i = (double *)MKL_malloc(d*d*d*d*sizeof(double), MEM_DATA_ALIGN);
 		char filename[1024];
 		sprintf(filename, "../test/hamiltonian_bose_hubbard_test_h%i.dat", i);
 		status = ReadData(filename, h_ref_i, sizeof(double), d*d*d*d);
@@ -52,7 +52,7 @@ int HamiltonianBoseHubbardTest()
 		const size_t num = NumTensorElements(&mpoH.A[i]);
 
 		// load reference 'W' tensor from disk
-		MKL_Complex16 *W_ref_i = MKL_malloc(num * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *W_ref_i = (MKL_Complex16 *)MKL_malloc(num * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 		char filename[1024];
 		sprintf(filename, "../test/hamiltonian_bose_hubbard_test_W%i.dat", i);
 		status = ReadData(filename, W_ref_i, sizeof(MKL_Complex16), num);

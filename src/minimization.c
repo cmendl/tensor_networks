@@ -78,17 +78,20 @@ void MinimizeLocalEnergy(const tensor_t *restrict L, const tensor_t *restrict R,
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Approximate the ground state MPS by left and right sweeps
+/// \brief Approximate the ground state MPS by left and right sweeps and local single-site optimizations;
+/// virtual bond dimensions of starting state 'psi' can only decrease
 ///
 /// Reference:
 ///     Ulrich Schollwock
 ///     The density-matrix renormalization group in the age of matrix product states
 ///     Annals of Physics 326, 96-192 (2011)
 ///
-void CalculateGroundState(const mpo_t *restrict H, const int maxiter, const double tol, double *restrict en_min, mps_t *restrict psi)
+void CalculateGroundStateLocalSinglesite(const mpo_t *restrict H, const int maxiter, double *restrict en_min, mps_t *restrict psi)
 {
-	assert(H->d[0] == H->d[1]);
 	const int L = H->L;
+
+	assert(psi->d == H->d[0]);
+	assert(psi->d == H->d[1]);
 
 	int i;
 
@@ -181,6 +184,160 @@ void CalculateGroundState(const mpo_t *restrict H, const int maxiter, const doub
 	}
 
 	// clean up
+	for (i = 0; i < L; i++)
+	{
+		DeleteTensor(&BR[i]);
+		DeleteTensor(&BL[i]);
+	}
+	MKL_free(BR);
+	MKL_free(BL);
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Approximate the ground state MPS by left and right sweeps and optimizing local two-site MPS tensors;
+/// computationally more expensive than single-site optimizations but probably less prone to be stuck in local minima
+///
+/// Reference:
+///     Ulrich Schollwock
+///     The density-matrix renormalization group in the age of matrix product states
+///     Annals of Physics 326, 96-192 (2011)
+///
+void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter, const double tol, const size_t maxD, double *restrict entropy, double *restrict en_min, mps_t *restrict psi)
+{
+	const int L = H->L;
+
+	const size_t d = psi->d;
+	assert(d == H->d[0]);
+	assert(d == H->d[1]);
+
+	int i;
+
+	// merge neighboring Hamiltonian MPO tensors
+	tensor_t *W2 = (tensor_t *)MKL_malloc((L-1)*sizeof(tensor_t), MEM_DATA_ALIGN);
+	for (i = 0; i < L - 1; i++)
+	{
+		MergeMPOTensorPair(&H->A[i], &H->A[i+1], &W2[i]);
+	}
+
+	// right-normalize input matrix product state
+	for (i = L - 1; i > 0; i--)
+	{
+		MPSUnitaryRightProjection(&psi->A[i], &psi->A[i-1]);
+	}
+	// leftmost tensor
+	{
+		// dummy tensor at site "-1"
+		tensor_t t;
+		const size_t dim[3] = { 1, 1, 1 };
+		AllocateTensor(3, dim, &t);
+		t.data[0].real = 1;
+
+		MPSUnitaryRightProjection(&psi->A[0], &t);
+
+		DeleteTensor(&t);
+	}
+
+	tensor_t *BL = (tensor_t *)MKL_malloc(L * sizeof(tensor_t), MEM_DATA_ALIGN);
+	tensor_t *BR = (tensor_t *)MKL_malloc(L * sizeof(tensor_t), MEM_DATA_ALIGN);
+
+	ComputeRightOperatorBlocks(psi, H, BR);
+
+	// initialize left blocks by 1x1x1 identity (only leftmost block actually used)
+	for (i = 0; i < L; i++)
+	{
+		const size_t dim[3] = { 1, 1, 1 };
+		AllocateTensor(3, dim, &BL[i]);
+		BL[i].data[0].real = 1;
+	}
+
+	// TODO: number of iterations should be determined by tolerance and some convergence measure
+	int n;
+	for (n = 0; n < maxiter; n++)
+	{
+		double en;
+
+		// sweep from left to right
+		for (i = 0; i < L - 1; i++)
+		{
+			// merge neighboring MPS tensors
+			tensor_t A_cur;
+			MergeMPSTensorPair(&psi->A[i], &psi->A[i+1], &A_cur);
+			assert(A_cur.dim[0] == d*d);
+			DeleteTensor(&psi->A[i]);
+			DeleteTensor(&psi->A[i+1]);
+
+			// minimize local two-site energy using merged tensor as starting point
+			tensor_t A_opt;
+			MinimizeLocalEnergy(&BL[i], &BR[i+1], &W2[i], &A_cur, &en, &A_opt);
+			DeleteTensor(&A_cur);
+
+			// split optimized two-site MPS tensor into two tensors
+			assert(A_opt.ndim == 3);
+			assert(A_opt.dim[0] == d*d);
+			const size_t dim4[4] = { d, d, A_opt.dim[1], A_opt.dim[2] };
+			ReshapeTensor(4, dim4, &A_opt);
+			SplitMPSTensor(&A_opt, SVD_DISTR_RIGHT, tol, maxD, &psi->A[i], &psi->A[i+1]);
+			DeleteTensor(&A_opt);
+
+			// update the left blocks
+			DeleteTensor(&BL[i+1]);
+			ContractionOperatorStepLeft(&psi->A[i], &H->A[i], &BL[i], &BL[i+1]);
+		}
+
+		// sweep from right to left
+		for (i = L - 1; i > 0; i--)
+		{
+			// merge neighboring MPS tensors
+			tensor_t A_cur;
+			MergeMPSTensorPair(&psi->A[i-1], &psi->A[i], &A_cur);
+			assert(A_cur.dim[0] == d*d);
+			DeleteTensor(&psi->A[i-1]);
+			DeleteTensor(&psi->A[i]);
+
+			// minimize local two-site energy using merged tensor as starting point
+			tensor_t A_opt;
+			MinimizeLocalEnergy(&BL[i-1], &BR[i], &W2[i-1], &A_cur, &en, &A_opt);
+			DeleteTensor(&A_cur);
+
+			// split optimized two-site MPS tensor into two tensors
+			assert(A_opt.ndim == 3);
+			assert(A_opt.dim[0] == d*d);
+			const size_t dim4[4] = { d, d, A_opt.dim[1], A_opt.dim[2] };
+			ReshapeTensor(4, dim4, &A_opt);
+			trunc_info_t ti = SplitMPSTensor(&A_opt, SVD_DISTR_LEFT, tol, maxD, &psi->A[i-1], &psi->A[i]);
+			entropy[i - 1] = ti.entropy;
+			DeleteTensor(&A_opt);
+
+			// update the right blocks
+			DeleteTensor(&BR[i-1]);
+			ContractionOperatorStepRight(&psi->A[i], &H->A[i], &BR[i], &BR[i-1]);
+		}
+
+		// right-normalize leftmost tensor to ensure that 'psi' is normalized
+		{
+			// dummy tensor at site "-1"
+			tensor_t t;
+			const size_t dim[3] = { 1, 1, 1 };
+			AllocateTensor(3, dim, &t);
+			t.data[0].real = 1;
+
+			MPSUnitaryRightProjection(&psi->A[0], &t);
+
+			DeleteTensor(&t);
+		}
+
+		// record energy after each sweep
+		en_min[n] = en;
+	}
+
+	// clean up
+	for (i = 0; i < L - 1; i++)
+	{
+		DeleteTensor(&W2[i]);
+	}
+	MKL_free(W2);
 	for (i = 0; i < L; i++)
 	{
 		DeleteTensor(&BR[i]);

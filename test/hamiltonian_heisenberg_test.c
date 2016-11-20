@@ -24,14 +24,14 @@ int HamiltonianHeisenbergTest()
 	const double hext =  2.0/7;
 
 	// construct two-site Heisenberg Hamiltonian operators
-	double **h = MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
 	ConstructLocalHeisenbergOperators(L, Jx, Jy, Jz, hext, h);
 
 	// compare with reference
 	for (i = 0; i < L - 1; i++)
 	{
 		// load reference two-site Hamiltonian operators from disk
-		double *h_ref_i = MKL_malloc(4*4*sizeof(double), MEM_DATA_ALIGN);
+		double *h_ref_i = (double *)MKL_malloc(4*4*sizeof(double), MEM_DATA_ALIGN);
 		char filename[1024];
 		sprintf(filename, "../test/hamiltonian_heisenberg_test_h%i.dat", i);
 		status = ReadData(filename, h_ref_i, sizeof(double), 4*4);
@@ -53,7 +53,7 @@ int HamiltonianHeisenbergTest()
 		const size_t num = NumTensorElements(&mpoH.A[i]);
 
 		// load reference 'W' tensor from disk
-		MKL_Complex16 *W_ref_i = MKL_malloc(num * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *W_ref_i = (MKL_Complex16 *)MKL_malloc(num * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 		char filename[1024];
 		sprintf(filename, "../test/hamiltonian_heisenberg_test_W%i.dat", i);
 		status = ReadData(filename, W_ref_i, sizeof(MKL_Complex16), num);
