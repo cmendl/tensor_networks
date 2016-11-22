@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[     57899,       1485]
-NotebookOptionsPosition[     55330,       1397]
-NotebookOutlinePosition[     55673,       1412]
-CellTagsIndexPosition[     55630,       1409]
+NotebookDataLength[     57182,       1472]
+NotebookOptionsPosition[     54583,       1382]
+NotebookOutlinePosition[     54926,       1397]
+CellTagsIndexPosition[     54883,       1394]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -22,30 +22,14 @@ Notebook[{
 Cell[CellGroupData[{
 Cell["Bose-Hubbard model simulation", "Section"],
 
-Cell[TextData[{
- "References:\n\tF. Verstraete, V. Murg, J. I. Cirac\n\tMatrix product \
-states, projected entangled pair states, and variational renormalization \
-group methods for quantum spin systems\n\tAdvances in Physics 57, 143-224 \
-(2008) ",
- ButtonBox["DOI",
-  BaseStyle->"Hyperlink",
-  ButtonData->{
-    URL["http://dx.doi.org/10.1080/14789940801912366"], None},
-  ButtonNote->"http://dx.doi.org/10.1080/14789940801912366"],
- "\n\n\tThomas Barthel\n\tPrecise evaluation of thermal response functions by \
-optimized density matrix renormalization group schemes\n\tNew Journal of \
-Physics 15, 073010 (2013) ",
- ButtonBox["DOI",
-  BaseStyle->"Hyperlink",
-  ButtonData->{
-    URL["http://dx.doi.org/10.1088/1367-2630/15/7/073010"], None},
-  ButtonNote->"http://dx.doi.org/10.1088/1367-2630/15/7/073010"]
-}], "Text"],
-
 Cell[BoxData[
  RowBox[{
   RowBox[{"SetDirectory", "[", 
    RowBox[{"NotebookDirectory", "[", "]"}], "]"}], ";"}]], "Input"],
+
+Cell[CellGroupData[{
+
+Cell["General definitions", "Subsection"],
 
 Cell[BoxData[
  RowBox[{
@@ -173,7 +157,8 @@ Cell[BoxData[
             RowBox[{"M", "+", "1"}], ")"}], 
            RowBox[{"L", "-", "j"}]], "]"}]}], "]"}], ",", 
        RowBox[{"{", 
-        RowBox[{"j", ",", "1", ",", "L"}], "}"}]}], "]"}]}]}]}]}]], "Input"],
+        RowBox[{"j", ",", "1", ",", "L"}], "}"}]}], "]"}]}]}]}]}]], "Input"]
+}, Open  ]],
 
 Cell[CellGroupData[{
 
@@ -1413,77 +1398,79 @@ CellTagsIndex->{}
 Notebook[{
 Cell[CellGroupData[{
 Cell[580, 22, 48, 0, 63, "Section"],
-Cell[631, 24, 822, 18, 163, "Text"],
-Cell[1456, 44, 123, 3, 31, "Input"],
-Cell[1582, 49, 297, 9, 31, "Input"],
-Cell[1882, 60, 524, 15, 52, "Input"],
-Cell[2409, 77, 185, 5, 31, "Input"],
-Cell[2597, 84, 3410, 91, 167, "Input"],
+Cell[631, 24, 123, 3, 31, "Input"],
 Cell[CellGroupData[{
-Cell[6032, 179, 43, 0, 43, "Subsection"],
-Cell[6078, 181, 228, 7, 52, "Input"],
-Cell[6309, 190, 214, 7, 52, "Input"],
-Cell[6526, 199, 236, 7, 67, "Input"],
-Cell[6765, 208, 233, 7, 52, "Input"],
-Cell[7001, 217, 285, 9, 52, "Input"],
-Cell[7289, 228, 244, 8, 52, "Input"]
+Cell[779, 31, 41, 0, 43, "Subsection"],
+Cell[823, 33, 297, 9, 31, "Input"],
+Cell[1123, 44, 524, 15, 52, "Input"],
+Cell[1650, 61, 185, 5, 31, "Input"],
+Cell[1838, 68, 3410, 91, 167, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[7570, 241, 57, 0, 43, "Subsection"],
-Cell[7630, 243, 543, 15, 33, "Input"],
-Cell[8176, 260, 439, 11, 31, "Input"],
-Cell[8618, 273, 144, 4, 31, "Input"],
-Cell[CellGroupData[{
-Cell[8787, 281, 388, 11, 52, "Input"],
-Cell[9178, 294, 1035, 27, 52, "Output"],
-Cell[10216, 323, 73, 2, 31, "Output"]
+Cell[5285, 164, 43, 0, 43, "Subsection"],
+Cell[5331, 166, 228, 7, 52, "Input"],
+Cell[5562, 175, 214, 7, 52, "Input"],
+Cell[5779, 184, 236, 7, 67, "Input"],
+Cell[6018, 193, 233, 7, 52, "Input"],
+Cell[6254, 202, 285, 9, 52, "Input"],
+Cell[6542, 213, 244, 8, 52, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[10326, 330, 287, 8, 52, "Input"],
-Cell[10616, 340, 30, 0, 31, "Output"]
+Cell[6823, 226, 57, 0, 43, "Subsection"],
+Cell[6883, 228, 543, 15, 33, "Input"],
+Cell[7429, 245, 439, 11, 31, "Input"],
+Cell[7871, 258, 144, 4, 31, "Input"],
+Cell[CellGroupData[{
+Cell[8040, 266, 388, 11, 52, "Input"],
+Cell[8431, 279, 1035, 27, 52, "Output"],
+Cell[9469, 308, 73, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[10683, 345, 499, 16, 52, "Input"],
-Cell[11185, 363, 204, 5, 31, "Output"],
-Cell[11392, 370, 204, 5, 31, "Output"]
+Cell[9579, 315, 287, 8, 52, "Input"],
+Cell[9869, 325, 30, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[11633, 380, 294, 9, 52, "Input"],
-Cell[11930, 391, 30, 0, 31, "Output"]
-}, Open  ]],
-Cell[11975, 394, 421, 13, 52, "Input"],
-Cell[12399, 409, 102, 2, 31, "Input"],
-Cell[12504, 413, 2113, 61, 135, "Input"],
-Cell[CellGroupData[{
-Cell[14642, 478, 344, 10, 52, "Input"],
-Cell[14989, 490, 30, 0, 31, "Output"]
+Cell[9936, 330, 499, 16, 52, "Input"],
+Cell[10438, 348, 204, 5, 31, "Output"],
+Cell[10645, 355, 204, 5, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[15056, 495, 655, 20, 92, "Input"],
-Cell[15714, 517, 50, 0, 31, "Output"],
-Cell[15767, 519, 49, 0, 31, "Output"],
-Cell[15819, 521, 49, 0, 31, "Output"]
+Cell[10886, 365, 294, 9, 52, "Input"],
+Cell[11183, 376, 30, 0, 31, "Output"]
 }, Open  ]],
-Cell[15883, 524, 836, 19, 52, "Input"],
-Cell[16722, 545, 329, 10, 31, "Input"],
+Cell[11228, 379, 421, 13, 52, "Input"],
+Cell[11652, 394, 102, 2, 31, "Input"],
+Cell[11757, 398, 2113, 61, 135, "Input"],
 Cell[CellGroupData[{
-Cell[17076, 559, 863, 22, 52, "Input"],
-Cell[17942, 583, 17248, 360, 440, "Output"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[35227, 948, 1094, 25, 52, "Input"],
-Cell[36324, 975, 14787, 295, 440, "Output"]
+Cell[13895, 463, 344, 10, 52, "Input"],
+Cell[14242, 475, 30, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[51148, 1275, 1542, 41, 52, "Input"],
-Cell[52693, 1318, 1699, 40, 287, "Output"]
+Cell[14309, 480, 655, 20, 92, "Input"],
+Cell[14967, 502, 50, 0, 31, "Output"],
+Cell[15020, 504, 49, 0, 31, "Output"],
+Cell[15072, 506, 49, 0, 31, "Output"]
+}, Open  ]],
+Cell[15136, 509, 836, 19, 52, "Input"],
+Cell[15975, 530, 329, 10, 31, "Input"],
+Cell[CellGroupData[{
+Cell[16329, 544, 863, 22, 52, "Input"],
+Cell[17195, 568, 17248, 360, 440, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[34480, 933, 1094, 25, 52, "Input"],
+Cell[35577, 960, 14787, 295, 440, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[50401, 1260, 1542, 41, 52, "Input"],
+Cell[51946, 1303, 1699, 40, 287, "Output"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[54441, 1364, 49, 0, 43, "Subsection"],
+Cell[53694, 1349, 49, 0, 43, "Subsection"],
 Cell[CellGroupData[{
-Cell[54515, 1368, 742, 22, 54, "Input"],
-Cell[55260, 1392, 30, 0, 31, "Output"]
+Cell[53768, 1353, 742, 22, 54, "Input"],
+Cell[54513, 1377, 30, 0, 31, "Output"]
 }, Open  ]]
 }, Open  ]]
 }, Open  ]]

@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[    106899,       2359]
-NotebookOptionsPosition[    105465,       2309]
-NotebookOutlinePosition[    105808,       2324]
-CellTagsIndexPosition[    105765,       2321]
+NotebookDataLength[    105746,       2329]
+NotebookOptionsPosition[    104356,       2280]
+NotebookOutlinePosition[    104699,       2295]
+CellTagsIndexPosition[    104656,       2292]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -21,26 +21,6 @@ Notebook[{
 
 Cell[CellGroupData[{
 Cell["Bose-Hubbard model simulation", "Section"],
-
-Cell[TextData[{
- "References:\n\tF. Verstraete, V. Murg, J. I. Cirac\n\tMatrix product \
-states, projected entangled pair states, and variational renormalization \
-group methods for quantum spin systems\n\tAdvances in Physics 57, 143-224 \
-(2008) ",
- ButtonBox["DOI",
-  BaseStyle->"Hyperlink",
-  ButtonData->{
-    URL["http://dx.doi.org/10.1080/14789940801912366"], None},
-  ButtonNote->"http://dx.doi.org/10.1080/14789940801912366"],
- "\n\n\tThomas Barthel\n\tPrecise evaluation of thermal response functions by \
-optimized density matrix renormalization group schemes\n\tNew Journal of \
-Physics 15, 073010 (2013) ",
- ButtonBox["DOI",
-  BaseStyle->"Hyperlink",
-  ButtonData->{
-    URL["http://dx.doi.org/10.1088/1367-2630/15/7/073010"], None},
-  ButtonNote->"http://dx.doi.org/10.1088/1367-2630/15/7/073010"]
-}], "Text"],
 
 Cell[BoxData[
  RowBox[{
@@ -129,25 +109,16 @@ Cell[BoxData[
   RowBox[{
    RowBox[{
     SubscriptBox["\[Chi]", "list"], "=", 
-    RowBox[{
+    RowBox[{"Import", "[", 
      RowBox[{
-      RowBox[{
-       RowBox[{"First", "[", "#", "]"}], "+", 
-       RowBox[{"\[ImaginaryI]", " ", 
-        RowBox[{"Last", "[", "#", "]"}]}]}], "&"}], "/@", 
-     RowBox[{"Partition", "[", 
-      RowBox[{
-       RowBox[{"Import", "[", 
-        RowBox[{
-         RowBox[{"\"\<../output/bose_hubbard/L\>\"", "<>", 
-          RowBox[{"ToString", "[", 
-           SubscriptBox["L", "val"], "]"}], "<>", "\"\</bose_hubbard_L\>\"", "<>", 
-          RowBox[{"ToString", "[", 
-           SubscriptBox["L", "val"], "]"}], "<>", "\"\<_M\>\"", "<>", 
-          RowBox[{"ToString", "[", 
-           SubscriptBox["M", "val"], "]"}], "<>", "\"\<_chi.dat\>\""}], ",", 
-         "\"\<Real64\>\""}], "]"}], ",", "2"}], "]"}]}]}], 
-   "\[IndentingNewLine]", 
+      RowBox[{"\"\<../output/bose_hubbard/L\>\"", "<>", 
+       RowBox[{"ToString", "[", 
+        SubscriptBox["L", "val"], "]"}], "<>", "\"\</bose_hubbard_L\>\"", "<>", 
+       RowBox[{"ToString", "[", 
+        SubscriptBox["L", "val"], "]"}], "<>", "\"\<_M\>\"", "<>", 
+       RowBox[{"ToString", "[", 
+        SubscriptBox["M", "val"], "]"}], "<>", "\"\<_chi.dat\>\""}], ",", 
+      "\"\<Complex128\>\""}], "]"}]}], "\[IndentingNewLine]", 
    RowBox[{"Dimensions", "[", "%", "]"}]}]}]], "Input"],
 
 Cell[BoxData[
@@ -2325,40 +2296,39 @@ CellTagsIndex->{}
 Notebook[{
 Cell[CellGroupData[{
 Cell[580, 22, 48, 0, 63, "Section"],
-Cell[631, 24, 822, 18, 163, "Text"],
-Cell[1456, 44, 123, 3, 31, "Input"],
-Cell[1582, 49, 228, 7, 52, "Input"],
-Cell[1813, 58, 214, 7, 52, "Input"],
-Cell[2030, 67, 236, 7, 67, "Input"],
-Cell[2269, 76, 234, 7, 52, "Input"],
-Cell[2506, 85, 285, 9, 52, "Input"],
-Cell[2794, 96, 244, 8, 52, "Input"],
+Cell[631, 24, 123, 3, 31, "Input"],
+Cell[757, 29, 228, 7, 52, "Input"],
+Cell[988, 38, 214, 7, 52, "Input"],
+Cell[1205, 47, 236, 7, 67, "Input"],
+Cell[1444, 56, 234, 7, 52, "Input"],
+Cell[1681, 65, 285, 9, 52, "Input"],
+Cell[1969, 76, 244, 8, 52, "Input"],
 Cell[CellGroupData[{
-Cell[3063, 108, 249, 7, 52, "Input"],
-Cell[3315, 117, 29, 0, 31, "Output"]
+Cell[2238, 88, 249, 7, 52, "Input"],
+Cell[2490, 97, 29, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[3381, 122, 1062, 28, 72, "Input"],
-Cell[4446, 152, 2775, 45, 76, "Output"],
-Cell[7224, 199, 51, 1, 31, "Output"]
+Cell[2556, 102, 778, 19, 72, "Input"],
+Cell[3337, 123, 2775, 45, 76, "Output"],
+Cell[6115, 170, 51, 1, 31, "Output"]
 }, Open  ]],
-Cell[7290, 203, 184, 6, 52, "Input"],
-Cell[7477, 211, 1098, 25, 52, "Input"],
-Cell[8578, 238, 329, 10, 31, "Input"],
+Cell[6181, 174, 184, 6, 52, "Input"],
+Cell[6368, 182, 1098, 25, 52, "Input"],
+Cell[7469, 209, 329, 10, 31, "Input"],
 Cell[CellGroupData[{
-Cell[8932, 252, 1744, 51, 72, "Input"],
-Cell[10679, 305, 18981, 325, 325, "Output"]
+Cell[7823, 223, 1744, 51, 72, "Input"],
+Cell[9570, 276, 18981, 325, 325, "Output"]
 }, Open  ]],
-Cell[29675, 633, 151, 5, 31, "Input"],
+Cell[28566, 604, 151, 5, 31, "Input"],
 Cell[CellGroupData[{
-Cell[29851, 642, 3428, 90, 137, "Input"],
-Cell[33282, 734, 5936, 126, 212, "Output"],
-Cell[39221, 862, 28378, 609, 329, "Output"]
+Cell[28742, 613, 3428, 90, 137, "Input"],
+Cell[32173, 705, 5936, 126, 212, "Output"],
+Cell[38112, 833, 28378, 609, 329, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[67636, 1476, 3428, 90, 137, "Input"],
-Cell[71067, 1568, 5993, 126, 212, "Output"],
-Cell[77063, 1696, 28374, 609, 329, "Output"]
+Cell[66527, 1447, 3428, 90, 137, "Input"],
+Cell[69958, 1539, 5993, 126, 212, "Output"],
+Cell[75954, 1667, 28374, 609, 329, "Output"]
 }, Open  ]]
 }, Open  ]]
 }
