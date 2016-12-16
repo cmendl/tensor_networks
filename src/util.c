@@ -125,6 +125,25 @@ int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, M
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Copy a real to a complex matrix, setting imaginary entries to zero
+///
+void CopyRealToComplexMatrix(const size_t m, const size_t n, const double *restrict A, const size_t lda, MKL_Complex16 *restrict B, const size_t ldb)
+{
+	size_t i, j;
+
+	for (j = 0; j < n; j++)
+	{
+		for (i = 0; i < m; i++)
+		{
+			B[i + j*ldb].real = A[i + j*lda];
+			B[i + j*ldb].imag = 0;
+		}
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Read 'n' items of size 'size' from file 'filename', expecting the file size to be exactly n*size
 ///
 int ReadData(const char *filename, void *data, const size_t size, const size_t n)

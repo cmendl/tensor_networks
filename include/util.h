@@ -61,6 +61,13 @@ int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, M
 //
 
 
+void CopyRealToComplexMatrix(const size_t m, const size_t n, const double *restrict A, const size_t lda, MKL_Complex16 *restrict B, const size_t ldb);
+
+
+//________________________________________________________________________________________________________________________
+//
+
+
 int ReadData(const char *filename, void *data, const size_t size, const size_t n);
 
 int WriteData(const char *filename, const void *data, const size_t size, const size_t n, const bool append);

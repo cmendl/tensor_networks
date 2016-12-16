@@ -271,20 +271,50 @@ void DeleteLocalHamiltonianOperators(const int L, double **h)
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Copy a real to a complex matrix, setting imaginary entries to zero
+/// \brief Construct the local Bose-Hubbard energy operator
 ///
-static void CopyRealToComplexMatrix(const size_t m, const size_t n, const double *restrict A, const size_t lda, MKL_Complex16 *restrict B, const size_t ldb)
+void ConstructLocalBoseHubbardEnergyOperator(const size_t M, const double t, const double U, double *h)
 {
-	size_t i, j;
+	const size_t d = M + 1;
+	const size_t d2 = d*d;
 
-	for (j = 0; j < n; j++)
-	{
-		for (i = 0; i < m; i++)
-		{
-			B[i + j*ldb].real = A[i + j*lda];
-			B[i + j*ldb].imag = 0;
-		}
-	}
+	double *id = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	double *b  = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	double *bd = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	RealIdentityMatrix(d, id);
+	BoseAnnihilationOperator(d, b);
+	BoseCreationOperator(d, bd);
+
+	// construct kinetic term -t (b^dagger b + b b^dagger)
+	double *tkin = MKL_calloc(d2*d2, sizeof(double), MEM_DATA_ALIGN);
+	KroneckerProductRealSquare((MKL_INT)d, bd, b,  tkin);
+	KroneckerProductRealSquare((MKL_INT)d, b,  bd, tkin);
+	cblas_dscal((MKL_INT)(d2*d2), -t, tkin, 1);     // scale by -t
+
+	// construct single-site term U/2 n (n - 1)
+	double *hs = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	BoseInteractionOperator(d, hs);
+	cblas_dscal((MKL_INT)d2, 0.5*U, hs, 1);
+
+	// Kronecker products of hs with identity matrix
+	double *hs_id = MKL_calloc(d2*d2, sizeof(double), MEM_DATA_ALIGN);
+	double *id_hs = MKL_calloc(d2*d2, sizeof(double), MEM_DATA_ALIGN);
+	KroneckerProductRealSquare((MKL_INT)d, hs, id, hs_id);
+	KroneckerProductRealSquare((MKL_INT)d, id, hs, id_hs);
+
+	// assemble local energy operator
+	memcpy(h, tkin, d2*d2 * sizeof(double));
+	cblas_daxpy((MKL_INT)(d2*d2), 0.5, hs_id, 1, h, 1);
+	cblas_daxpy((MKL_INT)(d2*d2), 0.5, id_hs, 1, h, 1);
+
+	// clean up
+	MKL_free(id_hs);
+	MKL_free(hs_id);
+	MKL_free(hs);
+	MKL_free(tkin);
+	MKL_free(bd);
+	MKL_free(b);
+	MKL_free(id);
 }
 
 
