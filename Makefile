@@ -11,7 +11,7 @@ CCOPTS = -Wall -O2 -xHost -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -mkl:
 LIBRARIES = -mkl:parallel -lrt
 
 
-all: proj_heisenberg proj_bose_hubbard proj_bose_hubbard_energy proj_bose_hubbard_rho proj_bose_hubbard_density_static proj_bose_hubbard_energy_static proj_bose_hubbard_time proj_bose_hubbard_imag_time proj_bose_hubbard_otoc proj_bose_hubbard_otoc_quench proj_bose_hubbard_otoc_density proj_bose_hubbard_hole proj_test
+all: proj_heisenberg proj_bose_hubbard proj_bose_hubbard_energy proj_bose_hubbard_rho proj_bose_hubbard_density_static proj_bose_hubbard_energy_static proj_bose_hubbard_time proj_bose_hubbard_energy_time proj_bose_hubbard_imag_time proj_bose_hubbard_otoc proj_bose_hubbard_otoc_quench proj_bose_hubbard_otoc_density proj_bose_hubbard_hole proj_test
 
 proj_heisenberg: ${SRCFILES} main_heisenberg.o
 	${CC} ${CCOPTS} -o bin/sim_heisenberg $? ${LIBRARIES}
@@ -33,6 +33,9 @@ proj_bose_hubbard_energy_static: ${SRCFILES} main_bose_hubbard_energy_static.o
 
 proj_bose_hubbard_time: ${SRCFILES} main_bose_hubbard_time.o
 	${CC} ${CCOPTS} -o bin/sim_bose_hubbard_time $? ${LIBRARIES}
+
+proj_bose_hubbard_energy_time: ${SRCFILES} main_bose_hubbard_energy_time.o
+	${CC} ${CCOPTS} -o bin/sim_bose_hubbard_energy_time $? ${LIBRARIES}
 
 proj_bose_hubbard_imag_time: ${SRCFILES} main_bose_hubbard_imag_time.o
 	${CC} ${CCOPTS} -o bin/sim_bose_hubbard_imag_time $? ${LIBRARIES}
