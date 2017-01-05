@@ -411,6 +411,62 @@ void MergeMPSTensorPair(const tensor_t *restrict A0, const tensor_t *restrict A1
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Merge all tensors of a MPS to obtain the vector representation on the full Hilbert space
+///
+void MergeMPSFull(const mps_t *restrict mps, tensor_t *restrict A)
+{
+	assert(mps->L > 0);
+
+	if (mps->L == 1)
+	{
+		CopyTensor(&mps->A[0], A);
+	}
+	else
+	{
+		tensor_t B;
+		tensor_t *s, *t;
+
+		if (mps->L % 2 == 0)    // L even
+		{
+			s = A;
+			t = &B;
+		}
+		else                    // L odd
+		{
+			s = &B;
+			t = A;
+		}
+
+		// special case i == 1
+		{
+			MergeMPSTensorPair(&mps->A[0], &mps->A[1], s);
+		}
+		int i;
+		for (i = 2; i < mps->L; i++)
+		{
+			MergeMPSTensorPair(s, &mps->A[i], t);
+			DeleteTensor(s);
+			// swap 's' and 't' pointers
+			tensor_t *r = s;
+			s = t;
+			t = r;
+		}
+		// ensure that pointers match, i.e., final result is stored in 'A'
+		assert(s == A);
+	}
+
+	// virtual bond dimensions must be 1
+	assert(A->ndim == 3);
+	assert(A->dim[1] == 1 && A->dim[2] == 1);
+
+	// drop virtual bonds
+	const size_t dim[1] = { A->dim[0] };
+	ReshapeTensor(1, dim, A);
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Split a d1 x d2 x D1 x D2 tensor 'A' (with d1 and d2 the physical dimensions of two neighboring sites) into two
 /// tensors 'A0' and 'A1', with the joining bond dimension determined by the specified tolerance and restricted to maxD
 ///

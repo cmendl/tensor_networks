@@ -44,6 +44,8 @@ void MPSUnitaryRightProjection(tensor_t *restrict A, tensor_t *restrict Aprev);
 
 void MergeMPSTensorPair(const tensor_t *restrict A0, const tensor_t *restrict A1, tensor_t *restrict A);
 
+void MergeMPSFull(const mps_t *restrict mps, tensor_t *restrict A);
+
 
 trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const svd_distr_t svd_distr, const double tol, const size_t maxD, tensor_t *restrict A0, tensor_t *restrict A1);
 
