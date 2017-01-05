@@ -23,10 +23,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[      1064,         20]
-NotebookDataLength[     22724,        540]
-NotebookOptionsPosition[     22604,        513]
-NotebookOutlinePosition[     22947,        528]
-CellTagsIndexPosition[     22904,        525]
+NotebookDataLength[     22693,        539]
+NotebookOptionsPosition[     22573,        512]
+NotebookOutlinePosition[     22916,        527]
+CellTagsIndexPosition[     22873,        524]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -498,10 +498,9 @@ Cell[BoxData[
          RowBox[{"ArrayReshape", "[", 
           RowBox[{
            RowBox[{
-            RowBox[{"-", 
-             RowBox[{
-              SubscriptBox["\[Psi]", "val"], "\[LeftDoubleBracket]", "1", 
-              "\[RightDoubleBracket]"}]}], "+", 
+            RowBox[{
+             SubscriptBox["\[Psi]", "val"], "\[LeftDoubleBracket]", "1", 
+             "\[RightDoubleBracket]"}], "+", 
             RowBox[{"0.", "\[ImaginaryI]"}]}], ",", 
            RowBox[{"ConstantArray", "[", 
             RowBox[{"2", ",", "L"}], "]"}]}], "]"}], ",", 
@@ -552,7 +551,7 @@ Cell[CellGroupData[{
 Cell[21209, 465, 120, 3, 31, "Input"],
 Cell[21332, 470, 185, 7, 45, "Output"]
 }, Open  ]],
-Cell[21532, 480, 1044, 29, 52, "Input"]
+Cell[21532, 480, 1013, 28, 52, "Input"]
 }, Open  ]]
 }, Open  ]]
 }
@@ -561,4 +560,4 @@ Cell[21532, 480, 1044, 29, 52, "Input"]
 
 (* End of internal cache information *)
 
-(* NotebookSignature ju0i@nG8xOt7#Dg1e176FGfL *)
+(* NotebookSignature kxpxX8Mi8gy8fCgehp0@EKKM *)

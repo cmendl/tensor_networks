@@ -146,6 +146,7 @@ int MinimizationTest()
 			MKL_Complex16 z = { 0 };
 			// select largest entry
 			double a_max = 0;
+			size_t j_max = 0;
 			size_t j;
 			for (j = 0; j < psi_full.dim[0]; j++)
 			{
@@ -153,6 +154,7 @@ int MinimizationTest()
 				if (a > a_max)
 				{
 					a_max = a;
+					j_max = j;
 					z = psi_full.data[j];
 				}
 			}
@@ -162,6 +164,11 @@ int MinimizationTest()
 			z.imag = -z.imag;
 			// actually scale by phase factor
 			cblas_zscal(psi_full.dim[0], &z, psi_full.data, 1);
+			// flip (arbitrary) sign to match reference wavefunction
+			if (psi_full.data[j_max].real * psi_ref.data[j_max].real < 0)
+			{
+				cblas_dscal(2*psi_full.dim[0], -1, (double *)psi_full.data, 1);
+			}
 		}
 		if (psi_full.ndim != 1 || psi_full.dim[0] != psi_ref.dim[0])
 		{
