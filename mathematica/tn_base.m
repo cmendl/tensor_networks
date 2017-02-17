@@ -13,6 +13,33 @@ EconomicalSVD[m_,dmax_:\[Infinity]]:=Module[{u,w,v,i},
 	i=Min[Dimensions[w],dmax];
 	{u[[;;,1;;i]],Diagonal[w][[1;;i]],v[[;;,1;;i]]}]
 
+BlockDiagonalMatrix[A__]:=Module[{Al={A}},ArrayFlatten[Table[If[i==j,Al[[i]],0],{i,Length[Al]},{j,Length[Al]}]]]
+
+TruncatedBondIndices[S_,tol_]:=Module[{rw=S^2/Total[S^2]},
+	Flatten[Position[Accumulate[Sort[rw]][[Ordering[Ordering[rw]]]],x_/;x>=tol,1]]]
+
+CompressVirtualBonds[A0_,A1_,{q0_,q1_,q2_},tol_]:=Module[{
+	B0,B1,q0s,q2s,uq,C0={},C1={},S={},qS={},c0,c1,s,i0,i1,i2,indtr},
+	Assert[Norm[Union[q0]-Union[q2]]==0\[And]SubsetQ[Union[q1],Union[q0]]\[And]SubsetQ[Union[q1],Union[q2]]];
+	uq=Union[q0];
+	(* sort according to ingoing and outgoing quantum numbers, so we can simply use BlockDiagonalMatrix[] below *)
+	B0=A0[[Ordering[q0],;;]];
+	B1=A1[[;;,Ordering[q2]]];
+	q0s=Sort[q0];
+	q2s=Sort[q2];
+	Function[qn,
+		i0=Flatten[Position[q0s,qn]];
+		i1=Flatten[Position[q1,qn]];
+		i2=Flatten[Position[q2s,qn]];
+		{c0,s,c1}=FullSimplify[EconomicalSVD[FullSimplify[B0[[i0,i1]].B1[[i1,i2]]]]];
+		c1=ConjugateTranspose[c1];
+		C0=If[C0==={},c0,BlockDiagonalMatrix[C0,c0]];
+		C1=If[C1==={},c1,BlockDiagonalMatrix[C1,c1]];
+		S=Join[S,s];
+		qS=Join[qS,ConstantArray[qn,Length[s]]]]/@uq;
+	indtr=TruncatedBondIndices[S,tol];
+	{C0[[Ordering[Ordering[q0]],indtr]],C1[[indtr,Ordering[Ordering[q2]]]],S[[indtr]],qS[[indtr]]}]
+
 
 (* Basic MPS tensor operations *)
 
@@ -39,6 +66,18 @@ MPSSplitTensor[A_,dmax_:\[Infinity]]:=Module[{T,dim,A0,A1,S},
 	A1=ArrayReshape[A1,{Length[S],dim[[3]],dim[[4]]}];
 	A1=Transpose[A1,{2,1,3}];
 	{A0,A1,S}]
+
+MPSCompressTensors[A0_,A1_,{qd0_,qd1_},{qD0_,qD1_,qD2_},tol_:0]:=Module[{
+	B0=ArrayReshape[A0,{Times@@Dimensions[A0][[1;;2]],Dimensions[A0][[3]]}],
+	B1=ArrayReshape[Transpose[A1,{2,1,3}],{Dimensions[A1][[2]],Dimensions[A1][[1]]Dimensions[A1][[3]]}],
+	q0=Flatten[Outer[#1+#2&,qd0,qD0]],
+	q2=Flatten[Outer[#2-#1&,qd1,qD2]],
+	S,qS},
+	{B0,B1,S,qS}=CompressVirtualBonds[B0,B1,{q0,qD1,q2},tol];
+	B0=ArrayReshape[B0,{Dimensions[A0][[1]],Dimensions[A0][[2]],Length[S]}];
+	B1=ArrayReshape[B1,{Length[S],Dimensions[A1][[1]],Dimensions[A1][[3]]}];
+	B1=Transpose[B1,{2,1,3}];
+	{B0,B1,S,qS}]
 
 
 (* Basic MPO tensor operations *)
