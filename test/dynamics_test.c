@@ -155,9 +155,12 @@ int DynamicsTest()
 		dynamics_data_t dyn;
 		ComputeDynamicsDataSRKNb6(L, dt, d*d, (const double **)h, &dyn);
 
+		// effective tolerance (truncation weight)
+		double *tol_eff = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+
 		mpo_t Y;
 		CopyMPO(&X, &Y);
-		EvolveMPOSRKNb6(&dyn, nsteps, true, tol, maxD, &Y);
+		EvolveMPOSRKNb6(&dyn, nsteps, true, tol, maxD, &Y, tol_eff);
 
 		// merge tensors to compare with reference
 		tensor_t Am;
@@ -188,6 +191,7 @@ int DynamicsTest()
 		MKL_free(Am_ref);
 		DeleteTensor(&Am);
 		DeleteMPO(&Y);
+		MKL_free(tol_eff);
 		DeleteDynamicsData(&dyn);
 	}
 
@@ -200,9 +204,12 @@ int DynamicsTest()
 		dynamics_data_t dyn;
 		ComputeDynamicsDataSRKNb6(L, dt, d*d, (const double **)h, &dyn);
 
+		// effective tolerance (truncation weight)
+		double *tol_eff = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+
 		mpo_t Y;
 		CopyMPO(&X, &Y);
-		EvolveLiouvilleMPOSRKNb6(&dyn, nsteps, true, tol, maxD, &Y);
+		EvolveLiouvilleMPOSRKNb6(&dyn, nsteps, true, tol, maxD, &Y, tol_eff);
 
 		// merge tensors to compare with reference
 		tensor_t Am;
@@ -233,6 +240,7 @@ int DynamicsTest()
 		MKL_free(Am_ref);
 		DeleteTensor(&Am);
 		DeleteMPO(&Y);
+		MKL_free(tol_eff);
 		DeleteDynamicsData(&dyn);
 	}*/
 

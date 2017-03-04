@@ -23,10 +23,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[      1064,         20]
-NotebookDataLength[     23868,        782]
-NotebookOptionsPosition[     22474,        712]
-NotebookOutlinePosition[     22817,        727]
-CellTagsIndexPosition[     22774,        724]
+NotebookDataLength[     22649,        753]
+NotebookOptionsPosition[     21298,        684]
+NotebookOutlinePosition[     21641,        699]
+CellTagsIndexPosition[     21598,        696]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -35,41 +35,13 @@ Notebook[{
 Cell[CellGroupData[{
 Cell["Operations on Matrix Product Operators and States", "Section"],
 
-Cell[TextData[{
- "References:\n\tF. Verstraete, V. Murg, J. I. Cirac\n\tMatrix product \
-states, projected entangled pair states, and variational renormalization \
-group methods for quantum spin systems\n\tAdvances in Physics 57, 143-224 \
-(2008) ",
- ButtonBox["DOI",
-  BaseStyle->"Hyperlink",
-  ButtonData->{
-    URL["http://dx.doi.org/10.1080/14789940801912366"], None},
-  ButtonNote->"http://dx.doi.org/10.1080/14789940801912366"],
- "\n\n\tUlrich Schollw\[ODoubleDot]ck\n\tThe density-matrix renormalization \
-group in the age of matrix product states\n\tAnnals of Physics 326, 96-192 \
-(2011) ",
- ButtonBox["DOI",
-  BaseStyle->"Hyperlink",
-  ButtonData->{
-    URL["http://dx.doi.org/10.1016/j.aop.2010.09.012"], None},
-  ButtonNote->"http://dx.doi.org/10.1016/j.aop.2010.09.012"],
- "\n\n\tThomas Barthel\n\tPrecise evaluation of thermal response functions by \
-optimized density matrix renormalization group schemes\n\tNew Journal of \
-Physics 15, 073010 (2013) ",
- ButtonBox["DOI",
-  BaseStyle->"Hyperlink",
-  ButtonData->{
-    URL["http://dx.doi.org/10.1088/1367-2630/15/7/073010"], None},
-  ButtonNote->"http://dx.doi.org/10.1088/1367-2630/15/7/073010"]
-}], "Text"],
-
 Cell[BoxData[
  RowBox[{
   RowBox[{"SetDirectory", "[", 
    RowBox[{"NotebookDirectory", "[", "]"}], "]"}], ";"}]], "Input"],
 
 Cell[BoxData[
- RowBox[{"<<", "../mathematica/mps_base.m"}]], "Input"],
+ RowBox[{"<<", "../mathematica/tn_base.m"}]], "Input"],
 
 Cell[BoxData[
  RowBox[{
@@ -728,73 +700,72 @@ CellTagsIndex->{}
 Notebook[{
 Cell[CellGroupData[{
 Cell[1486, 35, 68, 0, 63, "Section"],
-Cell[1557, 37, 1172, 26, 239, "Text"],
-Cell[2732, 65, 123, 3, 31, "Input"],
-Cell[2858, 70, 69, 1, 31, "Input"],
-Cell[2930, 73, 174, 5, 31, "Input"],
+Cell[1557, 37, 123, 3, 31, "Input"],
+Cell[1683, 42, 68, 1, 31, "Input"],
+Cell[1754, 45, 174, 5, 31, "Input"],
 Cell[CellGroupData[{
-Cell[3129, 82, 71, 0, 43, "Subsection"],
-Cell[3203, 84, 233, 7, 52, "Input"],
-Cell[3439, 93, 251, 8, 52, "Input"],
-Cell[3693, 103, 1506, 45, 72, "Input"],
+Cell[1953, 54, 71, 0, 43, "Subsection"],
+Cell[2027, 56, 233, 7, 52, "Input"],
+Cell[2263, 65, 251, 8, 52, "Input"],
+Cell[2517, 75, 1506, 45, 72, "Input"],
 Cell[CellGroupData[{
-Cell[5224, 152, 88, 2, 31, "Input"],
-Cell[5315, 156, 73, 2, 31, "Output"]
+Cell[4048, 124, 88, 2, 31, "Input"],
+Cell[4139, 128, 73, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[5425, 163, 392, 11, 72, "Input"],
-Cell[5820, 176, 52, 1, 31, "Output"]
+Cell[4249, 135, 392, 11, 72, "Input"],
+Cell[4644, 148, 52, 1, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[5909, 182, 198, 5, 52, "Input"],
-Cell[6110, 189, 46, 0, 31, "Output"]
+Cell[4733, 154, 198, 5, 52, "Input"],
+Cell[4934, 161, 46, 0, 31, "Output"]
 }, Open  ]],
-Cell[6171, 192, 1532, 45, 80, "Input"],
+Cell[4995, 164, 1532, 45, 80, "Input"],
 Cell[CellGroupData[{
-Cell[7728, 241, 88, 2, 31, "Input"],
-Cell[7819, 245, 83, 2, 31, "Output"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[7939, 252, 281, 7, 72, "Input"],
-Cell[8223, 261, 77, 2, 31, "Output"],
-Cell[8303, 265, 33, 0, 31, "Output"]
+Cell[6552, 213, 88, 2, 31, "Input"],
+Cell[6643, 217, 83, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[8373, 270, 437, 13, 52, "Input"],
-Cell[8813, 285, 1738, 40, 74, "Output"]
+Cell[6763, 224, 281, 7, 72, "Input"],
+Cell[7047, 233, 77, 2, 31, "Output"],
+Cell[7127, 237, 33, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[10588, 330, 400, 13, 52, "Input"],
-Cell[10991, 345, 141, 2, 31, "Output"]
-}, Open  ]],
-Cell[11147, 350, 1058, 30, 52, "Input"],
-Cell[12208, 382, 1058, 30, 52, "Input"]
+Cell[7197, 242, 437, 13, 52, "Input"],
+Cell[7637, 257, 1738, 40, 74, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[13303, 417, 54, 0, 43, "Subsection"],
-Cell[CellGroupData[{
-Cell[13382, 421, 160, 4, 31, "Input"],
-Cell[13545, 427, 83, 2, 31, "Output"]
+Cell[9412, 302, 400, 13, 52, "Input"],
+Cell[9815, 317, 141, 2, 31, "Output"]
+}, Open  ]],
+Cell[9971, 322, 1058, 30, 52, "Input"],
+Cell[11032, 354, 1058, 30, 52, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[13665, 434, 160, 4, 31, "Input"],
-Cell[13828, 440, 93, 2, 31, "Output"]
-}, Open  ]],
-Cell[13936, 445, 1432, 46, 92, "Input"],
+Cell[12127, 389, 54, 0, 43, "Subsection"],
 Cell[CellGroupData[{
-Cell[15393, 495, 1414, 39, 72, "Input"],
-Cell[16810, 536, 116, 3, 31, "Output"]
+Cell[12206, 393, 160, 4, 31, "Input"],
+Cell[12369, 399, 83, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[16963, 544, 738, 21, 72, "Input"],
-Cell[17704, 567, 83, 2, 31, "Output"]
+Cell[12489, 406, 160, 4, 31, "Input"],
+Cell[12652, 412, 93, 2, 31, "Output"]
 }, Open  ]],
-Cell[17802, 572, 1374, 38, 52, "Input"],
+Cell[12760, 417, 1432, 46, 92, "Input"],
 Cell[CellGroupData[{
-Cell[19201, 614, 1835, 51, 92, "Input"],
-Cell[21039, 667, 50, 0, 31, "Output"]
+Cell[14217, 467, 1414, 39, 72, "Input"],
+Cell[15634, 508, 116, 3, 31, "Output"]
 }, Open  ]],
-Cell[21104, 670, 1342, 38, 92, "Input"]
+Cell[CellGroupData[{
+Cell[15787, 516, 738, 21, 72, "Input"],
+Cell[16528, 539, 83, 2, 31, "Output"]
+}, Open  ]],
+Cell[16626, 544, 1374, 38, 52, "Input"],
+Cell[CellGroupData[{
+Cell[18025, 586, 1835, 51, 92, "Input"],
+Cell[19863, 639, 50, 0, 31, "Output"]
+}, Open  ]],
+Cell[19928, 642, 1342, 38, 92, "Input"]
 }, Open  ]]
 }, Open  ]]
 }
@@ -803,4 +774,4 @@ Cell[21104, 670, 1342, 38, 92, "Input"]
 
 (* End of internal cache information *)
 
-(* NotebookSignature SvTew17DdQcTFBgxxwR@iM89 *)
+(* NotebookSignature Yup7xBnDd9jZqDwmjWEwhUyA *)

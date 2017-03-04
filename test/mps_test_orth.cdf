@@ -23,10 +23,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[      1064,         20]
-NotebookDataLength[     17719,        593]
-NotebookOptionsPosition[     16393,        522]
-NotebookOutlinePosition[     16736,        537]
-CellTagsIndexPosition[     16693,        534]
+NotebookDataLength[     17246,        581]
+NotebookOptionsPosition[     15956,        511]
+NotebookOutlinePosition[     16299,        526]
+CellTagsIndexPosition[     16256,        523]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -35,24 +35,13 @@ Notebook[{
 Cell[CellGroupData[{
 Cell["Matrix Product States (MPS)", "Section"],
 
-Cell[TextData[{
- "Reference:\n\tF. Verstraete, V. Murg, J. I. Cirac\n\tMatrix product states, \
-projected entangled pair states, and variational renormalization group \
-methods for quantum spin systems\n\tAdvances in Physics 57, 143-224 ",
- ButtonBox["DOI",
-  BaseStyle->"Hyperlink",
-  ButtonData->{
-    URL["http://dx.doi.org/10.1080/14789940801912366"], None},
-  ButtonNote->"http://dx.doi.org/10.1080/14789940801912366"]
-}], "Text"],
-
 Cell[BoxData[
  RowBox[{
   RowBox[{"SetDirectory", "[", 
    RowBox[{"NotebookDirectory", "[", "]"}], "]"}], ";"}]], "Input"],
 
 Cell[BoxData[
- RowBox[{"<<", "../mathematica/mps_base.m"}]], "Input"],
+ RowBox[{"<<", "../mathematica/tn_base.m"}]], "Input"],
 
 Cell[BoxData[
  RowBox[{
@@ -78,7 +67,7 @@ Cell[BoxData[
   RowBox[{
    RowBox[{"MPSSplitState", "[", 
     RowBox[{"psi_", ",", 
-     RowBox[{"dmax_:", "\[Infinity]"}]}], "]"}], ":=", 
+     RowBox[{"Dmax_:", "\[Infinity]"}]}], "]"}], ":=", 
    RowBox[{"Module", "[", 
     RowBox[{
      RowBox[{"{", 
@@ -89,7 +78,7 @@ Cell[BoxData[
        RowBox[{"{", 
         RowBox[{"A0", ",", "S", ",", "A1"}], "}"}], "=", 
        RowBox[{"EconomicalSVD", "[", 
-        RowBox[{"psi", ",", "dmax"}], "]"}]}], ";", "\n", "\t", 
+        RowBox[{"psi", ",", "Dmax"}], "]"}]}], ";", "\n", "\t", 
       RowBox[{"A1", "=", 
        RowBox[{"ConjugateTranspose", "[", "A1", "]"}]}], ";", "\n", "\t", 
       RowBox[{"A0", "=", 
@@ -298,7 +287,7 @@ Cell[BoxData[
   RowBox[{"(*", " ", 
    RowBox[{"check", " ", 
     RowBox[{"(", 
-     RowBox[{"equivalen", " ", "to", " ", "unitary", " ", "property"}], 
+     RowBox[{"equivalent", " ", "to", " ", "unitary", " ", "property"}], 
      ")"}]}], " ", "*)"}], "\[IndentingNewLine]", 
   RowBox[{"Norm", "[", 
    RowBox[{
@@ -329,7 +318,7 @@ Cell[BoxData[
   RowBox[{"(*", " ", 
    RowBox[{"check", " ", 
     RowBox[{"(", 
-     RowBox[{"equivalen", " ", "to", " ", "unitary", " ", "property"}], 
+     RowBox[{"equivalent", " ", "to", " ", "unitary", " ", "property"}], 
      ")"}]}], " ", "*)"}], "\[IndentingNewLine]", 
   RowBox[{"Norm", "[", 
    RowBox[{
@@ -538,73 +527,72 @@ CellTagsIndex->{}
 Notebook[{
 Cell[CellGroupData[{
 Cell[1486, 35, 46, 0, 63, "Section"],
-Cell[1535, 37, 435, 9, 87, "Text"],
-Cell[1973, 48, 123, 3, 31, "Input"],
-Cell[2099, 53, 69, 1, 31, "Input"],
-Cell[2171, 56, 242, 7, 31, "Input"],
+Cell[1535, 37, 123, 3, 31, "Input"],
+Cell[1661, 42, 68, 1, 31, "Input"],
+Cell[1732, 45, 242, 7, 31, "Input"],
 Cell[CellGroupData[{
-Cell[2438, 67, 48, 0, 43, "Subsection"],
-Cell[2489, 69, 1812, 50, 172, "Input"],
-Cell[4304, 121, 337, 11, 72, "Input"],
+Cell[1999, 56, 48, 0, 43, "Subsection"],
+Cell[2050, 58, 1812, 50, 172, "Input"],
+Cell[3865, 110, 337, 11, 72, "Input"],
 Cell[CellGroupData[{
-Cell[4666, 136, 764, 24, 92, "Input"],
-Cell[5433, 162, 73, 2, 31, "Output"]
+Cell[4227, 125, 764, 24, 92, "Input"],
+Cell[4994, 151, 73, 2, 31, "Output"]
 }, Open  ]],
-Cell[5521, 167, 282, 9, 31, "Input"],
+Cell[5082, 156, 282, 9, 31, "Input"],
 Cell[CellGroupData[{
-Cell[5828, 180, 233, 7, 52, "Input"],
-Cell[6064, 189, 50, 0, 31, "Output"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[6151, 194, 85, 2, 31, "Input"],
-Cell[6239, 198, 83, 2, 31, "Output"]
+Cell[5389, 169, 233, 7, 52, "Input"],
+Cell[5625, 178, 50, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[6359, 205, 85, 2, 31, "Input"],
-Cell[6447, 209, 83, 2, 31, "Output"]
+Cell[5712, 183, 85, 2, 31, "Input"],
+Cell[5800, 187, 83, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[6567, 216, 640, 18, 72, "Input"],
-Cell[7210, 236, 51, 0, 31, "Output"]
+Cell[5920, 194, 85, 2, 31, "Input"],
+Cell[6008, 198, 83, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[7298, 241, 611, 17, 72, "Input"],
-Cell[7912, 260, 51, 0, 31, "Output"]
+Cell[6128, 205, 640, 18, 72, "Input"],
+Cell[6771, 225, 51, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[8000, 265, 783, 23, 52, "Input"],
-Cell[8786, 290, 49, 0, 31, "Output"]
+Cell[6859, 230, 611, 17, 72, "Input"],
+Cell[7473, 249, 51, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[8872, 295, 795, 24, 52, "Input"],
-Cell[9670, 321, 51, 0, 31, "Output"]
+Cell[7561, 254, 783, 23, 52, "Input"],
+Cell[8347, 279, 49, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[9758, 326, 795, 24, 52, "Input"],
-Cell[10556, 352, 51, 0, 31, "Output"]
+Cell[8433, 284, 796, 24, 52, "Input"],
+Cell[9232, 310, 51, 0, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[9320, 315, 796, 24, 52, "Input"],
+Cell[10119, 341, 51, 0, 31, "Output"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[10656, 358, 26, 0, 43, "Subsection"],
+Cell[10219, 347, 26, 0, 43, "Subsection"],
 Cell[CellGroupData[{
-Cell[10707, 362, 523, 17, 52, "Input"],
-Cell[11233, 381, 50, 1, 31, "Output"]
+Cell[10270, 351, 523, 17, 52, "Input"],
+Cell[10796, 370, 50, 1, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[11320, 387, 160, 4, 31, "Input"],
-Cell[11483, 393, 74, 2, 31, "Output"]
+Cell[10883, 376, 160, 4, 31, "Input"],
+Cell[11046, 382, 74, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[11594, 400, 241, 6, 52, "Input"],
-Cell[11838, 408, 3684, 76, 45, "Output"]
+Cell[11157, 389, 241, 6, 52, "Input"],
+Cell[11401, 397, 3684, 76, 45, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[15559, 489, 160, 4, 31, "Input"],
-Cell[15722, 495, 74, 2, 31, "Output"]
+Cell[15122, 478, 160, 4, 31, "Input"],
+Cell[15285, 484, 74, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[15833, 502, 344, 9, 52, "Input"],
-Cell[16180, 513, 173, 4, 31, "Output"]
+Cell[15396, 491, 344, 9, 52, "Input"],
+Cell[15743, 502, 173, 4, 31, "Output"]
 }, Open  ]]
 }, Open  ]]
 }, Open  ]]
@@ -614,4 +602,4 @@ Cell[16180, 513, 173, 4, 31, "Output"]
 
 (* End of internal cache information *)
 
-(* NotebookSignature vup4b0l5R1DHdBwSYbUaFtYW *)
+(* NotebookSignature ix0saM5YWuGWNB1h1Z3zHE7C *)

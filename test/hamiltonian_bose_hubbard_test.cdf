@@ -23,10 +23,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[      1064,         20]
-NotebookDataLength[     51415,       1492]
-NotebookOptionsPosition[     50367,       1435]
-NotebookOutlinePosition[     50710,       1450]
-CellTagsIndexPosition[     50667,       1447]
+NotebookDataLength[     50577,       1471]
+NotebookOptionsPosition[     49569,       1415]
+NotebookOutlinePosition[     49912,       1430]
+CellTagsIndexPosition[     49869,       1427]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -35,33 +35,13 @@ Notebook[{
 Cell[CellGroupData[{
 Cell["Bose-Hubbard Hamiltonian", "Section"],
 
-Cell[TextData[{
- "References:\n\tF. Verstraete, V. Murg, J. I. Cirac\n\tMatrix product \
-states, projected entangled pair states, and variational renormalization \
-group methods for quantum spin systems\n\tAdvances in Physics 57, 143-224 \
-(2008) ",
- ButtonBox["DOI",
-  BaseStyle->"Hyperlink",
-  ButtonData->{
-    URL["http://dx.doi.org/10.1080/14789940801912366"], None},
-  ButtonNote->"http://dx.doi.org/10.1080/14789940801912366"],
- "\n\n\tThomas Barthel\n\tPrecise evaluation of thermal response functions by \
-optimized density matrix renormalization group schemes\n\tNew Journal of \
-Physics 15, 073010 (2013) ",
- ButtonBox["DOI",
-  BaseStyle->"Hyperlink",
-  ButtonData->{
-    URL["http://dx.doi.org/10.1088/1367-2630/15/7/073010"], None},
-  ButtonNote->"http://dx.doi.org/10.1088/1367-2630/15/7/073010"]
-}], "Text"],
-
 Cell[BoxData[
  RowBox[{
   RowBox[{"SetDirectory", "[", 
    RowBox[{"NotebookDirectory", "[", "]"}], "]"}], ";"}]], "Input"],
 
 Cell[BoxData[
- RowBox[{"<<", "../mathematica/mps_base.m"}]], "Input"],
+ RowBox[{"<<", "../mathematica/tn_base.m"}]], "Input"],
 
 Cell[BoxData[
  RowBox[{
@@ -183,7 +163,7 @@ Cell[BoxData[
      "conditions"}]}], " ", "*)"}], "\[IndentingNewLine]", 
   RowBox[{
    RowBox[{
-    RowBox[{"HBose", "[", 
+    RowBox[{"HBoseHubbard", "[", 
      RowBox[{"t_", ",", "U_", ",", "\[Mu]_", ",", "M_", ",", "1"}], "]"}], ":=", 
     RowBox[{
      RowBox[{
@@ -198,7 +178,7 @@ Cell[BoxData[
      RowBox[{"\[Mu]", " ", 
       RowBox[{"NumberOp", "[", "M", "]"}]}]}]}], "\[IndentingNewLine]", 
    RowBox[{
-    RowBox[{"HBose", "[", 
+    RowBox[{"HBoseHubbard", "[", 
      RowBox[{"t_", ",", "U_", ",", "\[Mu]_", ",", "M_", ",", "L_"}], "]"}], ":=", 
     RowBox[{
      RowBox[{
@@ -668,7 +648,7 @@ Cell[BoxData[
           RowBox[{"{", 
            RowBox[{"j", ",", "1", ",", 
             RowBox[{"L", "-", "1"}]}], "}"}]}], "]"}], "-", 
-        RowBox[{"HBose", "[", 
+        RowBox[{"HBoseHubbard", "[", 
          RowBox[{"t", ",", "U", ",", "\[Mu]", ",", "M", ",", "L"}], "]"}]}], 
        "]"}], "]"}], "]"}]}], "]"}]}]], "Input"],
 
@@ -1367,7 +1347,7 @@ Cell[BoxData[
          RowBox[{"Wfinal", "[", 
           RowBox[{"t", ",", "U", ",", "\[Mu]", ",", "M", ",", "L"}], "]"}]}], 
         "]"}], "]"}], "-", 
-      RowBox[{"HBose", "[", 
+      RowBox[{"HBoseHubbard", "[", 
        RowBox[{"t", ",", "U", ",", "\[Mu]", ",", "M", ",", "L"}], "]"}]}], 
      "]"}]}], "]"}]}]], "Input"],
 
@@ -1451,60 +1431,59 @@ CellTagsIndex->{}
 Notebook[{
 Cell[CellGroupData[{
 Cell[1486, 35, 43, 0, 63, "Section"],
-Cell[1532, 37, 822, 18, 163, "Text"],
-Cell[2357, 57, 123, 3, 31, "Input"],
-Cell[2483, 62, 69, 1, 31, "Input"],
-Cell[2555, 65, 174, 5, 31, "Input"],
-Cell[2732, 72, 233, 7, 52, "Input"],
-Cell[2968, 81, 237, 7, 52, "Input"],
-Cell[3208, 90, 516, 17, 92, "Input"],
+Cell[1532, 37, 123, 3, 31, "Input"],
+Cell[1658, 42, 68, 1, 31, "Input"],
+Cell[1729, 45, 174, 5, 31, "Input"],
+Cell[1906, 52, 233, 7, 52, "Input"],
+Cell[2142, 61, 237, 7, 52, "Input"],
+Cell[2382, 70, 516, 17, 92, "Input"],
 Cell[CellGroupData[{
-Cell[3749, 111, 41, 0, 43, "Subsection"],
-Cell[3793, 113, 524, 15, 52, "Input"],
-Cell[4320, 130, 185, 5, 31, "Input"],
+Cell[2923, 91, 41, 0, 43, "Subsection"],
+Cell[2967, 93, 524, 15, 52, "Input"],
+Cell[3494, 110, 185, 5, 31, "Input"],
 Cell[CellGroupData[{
-Cell[4530, 139, 437, 12, 52, "Input"],
-Cell[4970, 153, 116, 3, 31, "Output"]
+Cell[3704, 119, 437, 12, 52, "Input"],
+Cell[4144, 133, 116, 3, 31, "Output"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[5135, 162, 61, 0, 43, "Subsection"],
-Cell[5199, 164, 297, 9, 31, "Input"],
-Cell[5499, 175, 3410, 91, 167, "Input"]
+Cell[4309, 142, 61, 0, 43, "Subsection"],
+Cell[4373, 144, 297, 9, 31, "Input"],
+Cell[4673, 155, 3424, 91, 167, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[8946, 271, 64, 0, 43, "Subsection"],
-Cell[9013, 273, 2601, 74, 123, "Input"],
+Cell[8134, 251, 64, 0, 43, "Subsection"],
+Cell[8201, 253, 2601, 74, 123, "Input"],
 Cell[CellGroupData[{
-Cell[11639, 351, 301, 8, 52, "Input"],
-Cell[11943, 361, 85, 2, 31, "Output"]
+Cell[10827, 331, 301, 8, 52, "Input"],
+Cell[11131, 341, 85, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[12065, 368, 313, 10, 52, "Input"],
-Cell[12381, 380, 116, 3, 31, "Output"]
+Cell[11253, 348, 313, 10, 52, "Input"],
+Cell[11569, 360, 116, 3, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[12534, 388, 370, 10, 52, "Input"],
-Cell[12907, 400, 7638, 226, 260, "Output"]
+Cell[11722, 368, 370, 10, 52, "Input"],
+Cell[12095, 380, 7638, 226, 260, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[20582, 631, 1571, 41, 54, "Input"],
-Cell[22156, 674, 28, 0, 31, "Output"]
+Cell[19770, 611, 1578, 41, 76, "Input"],
+Cell[21351, 654, 28, 0, 31, "Output"]
 }, Open  ]],
-Cell[22199, 677, 1855, 50, 52, "Input"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[24091, 732, 75, 0, 43, "Subsection"],
-Cell[24169, 734, 4266, 120, 174, "Input"],
-Cell[CellGroupData[{
-Cell[28460, 858, 260, 7, 52, "Input"],
-Cell[28723, 867, 18387, 468, 362, "Output"]
+Cell[21394, 657, 1855, 50, 52, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[47147, 1340, 1073, 31, 52, "Input"],
-Cell[48223, 1373, 28, 0, 31, "Output"]
+Cell[23286, 712, 75, 0, 43, "Subsection"],
+Cell[23364, 714, 4266, 120, 174, "Input"],
+Cell[CellGroupData[{
+Cell[27655, 838, 260, 7, 52, "Input"],
+Cell[27918, 847, 18387, 468, 362, "Output"]
 }, Open  ]],
-Cell[48266, 1376, 2073, 55, 52, "Input"]
+Cell[CellGroupData[{
+Cell[46342, 1320, 1080, 31, 52, "Input"],
+Cell[47425, 1353, 28, 0, 31, "Output"]
+}, Open  ]],
+Cell[47468, 1356, 2073, 55, 52, "Input"]
 }, Open  ]]
 }, Open  ]]
 }
@@ -1513,4 +1492,4 @@ Cell[48266, 1376, 2073, 55, 52, "Input"]
 
 (* End of internal cache information *)
 
-(* NotebookSignature Ev0HwyiAZ#R2pCKLYDWqUNqJ *)
+(* NotebookSignature jw0VKZPBCAvHiAK4W1KTljq7 *)

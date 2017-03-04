@@ -53,8 +53,8 @@ int MPOTest()
 	// allocate and load 'C' tensors
 	tensor_t C0, C1;
 	{
-		const size_t dimC0[4] = { 2, 3, 6, 7 };
-		const size_t dimC1[4] = { 4, 5, 7, 8 };
+		const size_t dimC0[4] = { 3, 3, 6, 7 };
+		const size_t dimC1[4] = { 4, 4, 7, 8 };
 		AllocateTensor(4, dimC0, &C0);
 		AllocateTensor(4, dimC1, &C1);
 		status = ReadData("../test/mpo_test_C0.dat", C0.data, sizeof(MKL_Complex16), NumTensorElements(&C0)); if (status < 0) { return status; }
@@ -214,19 +214,18 @@ int MPOTest()
 	{
 		// allocate and load operators
 		tensor_t opT, opB;
-		const size_t dimT[2] = {  8,  8 };
-		const size_t dimB[2] = { 15, 15 };
-		AllocateTensor(2, dimT, &opT);
-		AllocateTensor(2, dimB, &opB);
+		const size_t dim_op[2] = { 12, 12 };
+		AllocateTensor(2, dim_op, &opT);
+		AllocateTensor(2, dim_op, &opB);
 		status = ReadData("../test/mpo_test_opT.dat", opT.data, sizeof(MKL_Complex16), NumTensorElements(&opT)); if (status < 0) { return status; }
 		status = ReadData("../test/mpo_test_opB.dat", opB.data, sizeof(MKL_Complex16), NumTensorElements(&opB)); if (status < 0) { return status; }
 
-		const double tol = 0.05;    // use artificially high tolerance to truncate some singular values
+		const double tol = 0.1;    // use artificially high tolerance to truncate some singular values
 		const size_t maxD = INT32_MAX;
 
 		// load reference tensor from disk
 		tensor_t Cref;
-		const size_t dimCref[6] = { 2, 3, 6, 4, 5, 8 };
+		const size_t dimCref[6] = { 3, 4, 6, 3, 4, 8 };
 		AllocateTensor(6, dimCref, &Cref);
 		status = ReadData("../test/mpo_test_Cref.dat", Cref.data, sizeof(MKL_Complex16), NumTensorElements(&Cref));
 		if (status < 0) { return status; }
