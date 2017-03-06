@@ -23,10 +23,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[      1064,         20]
-NotebookDataLength[     37490,       1170]
-NotebookOptionsPosition[     36929,       1129]
-NotebookOutlinePosition[     37273,       1144]
-CellTagsIndexPosition[     37230,       1141]
+NotebookDataLength[     39146,       1225]
+NotebookOptionsPosition[     38470,       1180]
+NotebookOutlinePosition[     38814,       1195]
+CellTagsIndexPosition[     38771,       1192]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -1064,6 +1064,59 @@ Cell[BoxData[
 Cell[BoxData["0"], "Output"]
 }, Open  ]],
 
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"check", ":", " ", 
+    RowBox[{
+     RowBox[{"entries", " ", "are", " ", "non"}], "-", 
+     RowBox[{
+     "zero", " ", "for", " ", "matching", " ", "quantum", " ", "numbers", " ",
+       "only"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"Block", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{
+      RowBox[{"qd", "=", 
+       RowBox[{"{", 
+        RowBox[{
+         FractionBox["1", "2"], ",", 
+         RowBox[{"-", 
+          FractionBox["1", "2"]}]}], "}"}]}], ",", 
+      RowBox[{"qD", "=", 
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "1"}], ",", "1", ",", "0", ",", "0"}], "}"}]}]}], "}"}],
+     ",", 
+    RowBox[{
+     RowBox[{"MPOBlockStructureError", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"Wfirst", "[", 
+          RowBox[{"J", ",", "Jz", ",", "h"}], "]"}], ",", 
+         RowBox[{"{", "0", "}"}], ",", "qD"}], "}"}], ",", "qd"}], "]"}], "+", 
+     RowBox[{"MPOBlockStructureError", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"W", "[", 
+          RowBox[{"J", ",", "Jz", ",", "h"}], "]"}], ",", "qD", ",", "qD"}], 
+        "}"}], ",", "qd"}], "]"}], "+", 
+     RowBox[{"MPOBlockStructureError", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"Wlast", "[", 
+          RowBox[{"J", ",", "Jz", ",", "h"}], "]"}], ",", "qD", ",", 
+         RowBox[{"{", "0", "}"}]}], "}"}], ",", "qd"}], "]"}]}]}], 
+   "]"}]}]], "Input"],
+
+Cell[BoxData["0"], "Output"]
+}, Open  ]],
+
 Cell[BoxData[
  RowBox[{
   RowBox[{"(*", " ", 
@@ -1100,10 +1153,7 @@ Cell[BoxData[
           RowBox[{"ToString", "[", 
            RowBox[{"j", "-", "1"}], "]"}], "<>", "\"\<.dat\>\""}], ",", 
          RowBox[{
-          RowBox[{
-           RowBox[{"{", 
-            RowBox[{"#", ",", "0"}], "}"}], "&"}], "/@", 
-          RowBox[{"Flatten", "[", 
+          RowBox[{"Normal", "[", 
            RowBox[{"Transpose", "[", 
             RowBox[{
              RowBox[{"If", "[", 
@@ -1120,8 +1170,9 @@ Cell[BoxData[
                   RowBox[{"J", ",", "Jz", ",", "h"}], "]"}]}], "]"}]}], "]"}],
               ",", 
              RowBox[{"Reverse", "[", 
-              RowBox[{"Range", "[", "4", "]"}], "]"}]}], "]"}], "]"}]}], ",", 
-         "\"\<Real64\>\""}], "]"}], ",", 
+              RowBox[{"Range", "[", "4", "]"}], "]"}]}], "]"}], "]"}], "+", 
+          RowBox[{"0.", "\[ImaginaryI]"}]}], ",", "\"\<Complex128\>\""}], 
+        "]"}], ",", 
        RowBox[{"{", 
         RowBox[{"j", ",", "L"}], "}"}]}], "]"}]}], "]"}], ";"}]}]], "Input"]
 }, Open  ]]
@@ -1182,7 +1233,11 @@ Cell[CellGroupData[{
 Cell[33491, 1028, 1206, 33, 52, "Input"],
 Cell[34700, 1063, 28, 0, 31, "Output"]
 }, Open  ]],
-Cell[34743, 1066, 2158, 59, 92, "Input"]
+Cell[CellGroupData[{
+Cell[34765, 1068, 1524, 46, 95, "Input"],
+Cell[36292, 1116, 28, 0, 31, "Output"]
+}, Open  ]],
+Cell[36335, 1119, 2107, 57, 92, "Input"]
 }, Open  ]]
 }, Open  ]]
 }
@@ -1191,4 +1246,4 @@ Cell[34743, 1066, 2158, 59, 92, "Input"]
 
 (* End of internal cache information *)
 
-(* NotebookSignature 4u0HHLV8tiS1NDguAuOtXTOO *)
+(* NotebookSignature 2v0UD5HeYJRL#BKauppRTGBm *)
