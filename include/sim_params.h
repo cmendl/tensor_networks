@@ -29,6 +29,10 @@ typedef struct
 	double Jz;              //!< Jz coupling constant
 	double hext;            //!< external field
 
+	// (additional) Ising Hamiltonian parameters
+	double J;               //!< J coupling constant
+	double gext;            //!< transverse field strength in x-direction
+
 	double beta;            //!< inverse temperature
 	double dbeta;           //!< imaginary-time step for computing exp(-beta H/2)
 

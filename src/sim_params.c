@@ -71,8 +71,14 @@ int ParseParameterFile(const char *filename, sim_params_t *params)
 		else if (strcmp(name, "Jz") == 0) {
 			params->Jz = atof(value);
 		}
+		else if (strcmp(name, "J") == 0) {
+			params->J = atof(value);
+		}
 		else if (strcmp(name, "hext") == 0) {
 			params->hext = atof(value);
+		}
+		else if (strcmp(name, "gext") == 0) {
+			params->gext = atof(value);
 		}
 		else if (strcmp(name, "beta") == 0) {
 			params->beta = atof(value);
