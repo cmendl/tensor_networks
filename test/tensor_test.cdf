@@ -23,10 +23,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[      1064,         20]
-NotebookDataLength[     22062,        767]
-NotebookOptionsPosition[     20075,        672]
-NotebookOutlinePosition[     20418,        687]
-CellTagsIndexPosition[     20375,        684]
+NotebookDataLength[     23387,        818]
+NotebookOptionsPosition[     21176,        715]
+NotebookOutlinePosition[     21519,        730]
+CellTagsIndexPosition[     21476,        727]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -147,6 +147,49 @@ Cell[BoxData[
      RowBox[{"ColumnMajorLayout", "[", 
       SubscriptBox["t", 
        RowBox[{"1", ",", "T"}]], "]"}], ",", "\"\<Complex128\>\""}], "]"}], 
+   ";"}]}]], "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell["Subtensor", "Subsection"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   SubscriptBox["t", 
+    RowBox[{"1", ",", "sub"}]], "=", 
+   RowBox[{
+    SubscriptBox["t", "1"], "\[LeftDoubleBracket]", 
+    RowBox[{
+     RowBox[{"{", "2", "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"1", ",", "3"}], "}"}], ",", ";;", ",", 
+     RowBox[{"{", 
+      RowBox[{"2", ",", "5", ",", "5"}], "}"}]}], "\[RightDoubleBracket]"}]}],
+   ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Dimensions", "[", "%", "]"}]}], "Input"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"1", ",", "2", ",", "4", ",", "3"}], "}"}]], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"save", " ", "to", " ", "disk"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"Export", "[", 
+    RowBox[{
+     RowBox[{
+      SubscriptBox["fn", "base"], "<>", "\"\<_t1sub.dat\>\""}], ",", 
+     RowBox[{"ColumnMajorLayout", "[", 
+      SubscriptBox["t", 
+       RowBox[{"1", ",", "sub"}]], "]"}], ",", "\"\<Complex128\>\""}], "]"}], 
    ";"}]}]], "Input"]
 }, Open  ]],
 
@@ -708,78 +751,86 @@ Cell[4010, 131, 93, 2, 31, "Output"]
 Cell[4118, 136, 427, 13, 52, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[4582, 154, 55, 0, 43, "Subsection"],
+Cell[4582, 154, 31, 0, 43, "Subsection"],
 Cell[CellGroupData[{
-Cell[4662, 158, 624, 19, 72, "Input"],
-Cell[5289, 179, 93, 2, 31, "Output"]
+Cell[4638, 158, 466, 14, 52, "Input"],
+Cell[5107, 174, 93, 2, 31, "Output"]
+}, Open  ]],
+Cell[5215, 179, 431, 13, 52, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[5419, 186, 572, 19, 52, "Input"],
-Cell[5994, 207, 93, 2, 31, "Output"]
+Cell[5683, 197, 55, 0, 43, "Subsection"],
+Cell[CellGroupData[{
+Cell[5763, 201, 624, 19, 72, "Input"],
+Cell[6390, 222, 93, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[6124, 214, 1132, 32, 52, "Input"],
-Cell[7259, 248, 30, 0, 31, "Output"]
-}, Open  ]],
-Cell[7304, 251, 431, 13, 52, "Input"]
+Cell[6520, 229, 572, 19, 52, "Input"],
+Cell[7095, 250, 93, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[7772, 269, 50, 0, 43, "Subsection"],
-Cell[CellGroupData[{
-Cell[7847, 273, 545, 17, 72, "Input"],
-Cell[8395, 292, 50, 1, 31, "Output"]
+Cell[7225, 257, 1132, 32, 52, "Input"],
+Cell[8360, 291, 30, 0, 31, "Output"]
+}, Open  ]],
+Cell[8405, 294, 431, 13, 52, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[8482, 298, 355, 11, 52, "Input"],
-Cell[8840, 311, 1604, 38, 58, "Output"]
+Cell[8873, 312, 50, 0, 43, "Subsection"],
+Cell[CellGroupData[{
+Cell[8948, 316, 545, 17, 72, "Input"],
+Cell[9496, 335, 50, 1, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[10481, 354, 545, 17, 72, "Input"],
-Cell[11029, 373, 50, 1, 31, "Output"]
+Cell[9583, 341, 355, 11, 52, "Input"],
+Cell[9941, 354, 1604, 38, 58, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[11116, 379, 319, 10, 52, "Input"],
-Cell[11438, 391, 3179, 71, 90, "Output"]
-}, Open  ]],
-Cell[14632, 465, 775, 23, 72, "Input"]
+Cell[11582, 397, 545, 17, 72, "Input"],
+Cell[12130, 416, 50, 1, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[15444, 493, 50, 0, 43, "Subsection"],
-Cell[CellGroupData[{
-Cell[15519, 497, 593, 18, 72, "Input"],
-Cell[16115, 517, 52, 1, 31, "Output"]
+Cell[12217, 422, 319, 10, 52, "Input"],
+Cell[12539, 434, 3179, 71, 90, "Output"]
+}, Open  ]],
+Cell[15733, 508, 775, 23, 72, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[16204, 523, 138, 4, 31, "Input"],
-Cell[16345, 529, 137, 3, 31, "Output"]
+Cell[16545, 536, 50, 0, 43, "Subsection"],
+Cell[CellGroupData[{
+Cell[16620, 540, 593, 18, 72, "Input"],
+Cell[17216, 560, 52, 1, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[17305, 566, 138, 4, 31, "Input"],
+Cell[17446, 572, 137, 3, 31, "Output"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[16531, 538, 54, 0, 43, "Subsection"],
+Cell[17632, 581, 54, 0, 43, "Subsection"],
 Cell[CellGroupData[{
-Cell[16610, 542, 624, 19, 72, "Input"],
-Cell[17237, 563, 93, 2, 31, "Output"]
+Cell[17711, 585, 624, 19, 72, "Input"],
+Cell[18338, 606, 93, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[17367, 570, 519, 15, 72, "Input"],
-Cell[17889, 587, 97, 2, 31, "Output"]
+Cell[18468, 613, 519, 15, 72, "Input"],
+Cell[18990, 630, 97, 2, 31, "Output"]
 }, Open  ]],
-Cell[18001, 592, 435, 13, 52, "Input"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[18473, 610, 34, 0, 43, "Subsection"],
-Cell[CellGroupData[{
-Cell[18532, 614, 612, 19, 72, "Input"],
-Cell[19147, 635, 83, 2, 31, "Output"]
+Cell[19102, 635, 435, 13, 52, "Input"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[19267, 642, 77, 2, 31, "Input"],
-Cell[19347, 646, 140, 2, 31, "Output"]
+Cell[19574, 653, 34, 0, 43, "Subsection"],
+Cell[CellGroupData[{
+Cell[19633, 657, 612, 19, 72, "Input"],
+Cell[20248, 678, 83, 2, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[20368, 685, 77, 2, 31, "Input"],
+Cell[20448, 689, 140, 2, 31, "Output"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[19536, 654, 53, 0, 43, "Subsection"],
-Cell[19592, 656, 455, 12, 31, "Input"]
+Cell[20637, 697, 53, 0, 43, "Subsection"],
+Cell[20693, 699, 455, 12, 31, "Input"]
 }, Open  ]]
 }, Open  ]]
 }
@@ -788,4 +839,4 @@ Cell[19592, 656, 455, 12, 31, "Input"]
 
 (* End of internal cache information *)
 
-(* NotebookSignature kupq8Z8mJvqhdA1xmq#sjAEy *)
+(* NotebookSignature 9xpdLx6vgG3chB19SqgB7xFQ *)

@@ -353,6 +353,74 @@ void ConjugateTransposeTensor(const int *restrict perm, const tensor_t *restrict
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Assemble the sub-tensor with dimensions 'sdim' by taking elements indexed by 'idx' along each dimension
+/// from the original tensor 't'; the number of dimensions remains the same as in 't'
+///
+void SubTensor(const tensor_t *restrict t, const size_t *restrict sdim, const size_t *restrict *idx, tensor_t *restrict s)
+{
+	// create new tensor 's'; number of dimensions agrees with 't'
+	AllocateTensor(t->ndim, sdim, s);
+	if (t->ndim == 0)
+	{
+		s->data[0] = t->data[0];
+		return;
+	}
+
+	const size_t nelem = NumTensorElements(s);
+
+	int i;
+
+	size_t *index_t = (size_t *)MKL_calloc(t->ndim, sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *index_s = (size_t *)MKL_calloc(s->ndim, sizeof(size_t), MEM_DATA_ALIGN);
+
+	// map first index of tensor 's' to index of tensor 't', except for first dimension (will be handled in copy loop)
+	for (i = 1; i < t->ndim; i++)
+	{
+		assert(t->dim[i] > 0 && s->dim[i] > 0);
+		index_t[i] = idx[i][0];
+	}
+	// convert back to offset of tensor 't'
+	size_t ot = IndexToOffset(t->ndim, t->dim, index_t);
+
+	size_t os;
+	for (os = 0; os < nelem; os += s->dim[0])
+	{
+		// main copy loop along first dimension
+		// (treating first dimension separately to avoid calling index conversion function for each single element)
+		const size_t n = s->dim[0];
+		__assume_aligned(t->data, MEM_DATA_ALIGN);
+		__assume_aligned(s->data, MEM_DATA_ALIGN);
+		size_t j;
+		#pragma ivdep
+		for (j = 0; j < n; j++)
+		{
+			s->data[os + j] = t->data[ot + idx[0][j]];
+		}
+
+		// advance index of tensor 's' by s->dim[0] elements
+		NextIndex(s->ndim - 1, s->dim + 1, index_s + 1);
+		// map index of tensor 's' to index of tensor 't', except for first dimension (will be handled in copy loop)
+		for (i = 1; i < t->ndim; i++) {
+			index_t[i] = idx[i][index_s[i]];
+		}
+		// convert back to offset of tensor 't'
+		ot = IndexToOffset(t->ndim, t->dim, index_t);
+	}
+
+	#ifdef _DEBUG
+	for (i = 0; i < t->ndim; i++) {
+		memcpy(s->dnames[i].cstr, t->dnames[i].cstr, sizeof(string_t));
+	}
+	#endif
+
+	// clean up
+	MKL_free(index_s);
+	MKL_free(index_t);
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Scalar multiply and add two tensors: t = alpha*s + t; dimensions of s and t must agree
 ///
 void ScalarMultiplyAddTensor(const MKL_Complex16 alpha, const tensor_t *restrict s, tensor_t *restrict t)

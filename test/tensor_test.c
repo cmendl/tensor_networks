@@ -73,7 +73,35 @@ int TensorTest()
 		DeleteTensor(&r);
 	}
 
-	// test general multiplication
+	// subtensor
+	{
+		const size_t sdim[4] = { 1, 2, 4, 3 };
+
+		// indices along each dimension
+		const size_t idx0[1] = { 1 };
+		const size_t idx1[2] = { 0, 2 };
+		const size_t idx2[4] = { 0, 1, 2, 3 };
+		const size_t idx3[3] = { 1, 4, 4 }; // index 4 appears twice
+		const size_t *idx[4] = { idx0, idx1, idx2, idx3 };
+
+		tensor_t s;
+		SubTensor(&t, sdim, idx, &s);
+
+		// reference tensor for checking
+		tensor_t s_ref;
+		AllocateTensor(4, sdim, &s_ref);
+		status = ReadData("../test/tensor_test_t1sub.dat", s_ref.data, sizeof(MKL_Complex16), NumTensorElements(&s_ref));
+		if (status < 0) { return status; }
+
+		// largest error
+		err = fmax(err, TensorDifference(&s, &s_ref));
+
+		// clean up
+		DeleteTensor(&s_ref);
+		DeleteTensor(&s);
+	}
+
+	// general multiplication
 	{
 		// create another tensor 's'
 		tensor_t s;
@@ -102,7 +130,7 @@ int TensorTest()
 		DeleteTensor(&s);
 	}
 
-	// test matrix-vector multiplication
+	// matrix-vector multiplication
 	{
 		// create another tensor 's'
 		tensor_t s;
@@ -131,7 +159,7 @@ int TensorTest()
 		DeleteTensor(&s);
 	}
 
-	// test vector-matrix multiplication
+	// vector-matrix multiplication
 	{
 		// create another tensor 's'
 		tensor_t s;
@@ -160,7 +188,7 @@ int TensorTest()
 		DeleteTensor(&s);
 	}
 
-	// test vector-vector multiplication (i.e., inner product)
+	// vector-vector multiplication (i.e., inner product)
 	{
 		const size_t nelem = NumTensorElements(&t);
 
@@ -195,7 +223,7 @@ int TensorTest()
 		DeleteTensor(&t1);
 	}
 
-	// test Kronecker product
+	// Kronecker product
 	{
 		// create another tensor 's'
 		tensor_t s;
@@ -223,7 +251,7 @@ int TensorTest()
 		DeleteTensor(&s);
 	}
 
-	// test tensor trace
+	// tensor trace
 	{
 		// create another tensor 's'
 		tensor_t s;
