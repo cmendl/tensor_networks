@@ -4,7 +4,7 @@
 #ifndef HAMILTONIAN_H
 #define HAMILTONIAN_H
 
-#include <mpo.h>
+#include "mpo.h"
 
 
 void ConstructLocalHeisenbergOperators(const int L, const double Jx, const double Jy, const double Jz, const double hext, double **h);
