@@ -1,5 +1,5 @@
-SRCFILES = qnumber.o mps.o mpo.o operation.o bond_info.o lanczos.o hamiltonian.o minimization.o dynamics.o peps.o tensor.o util.o sim_params.o dupio.o
-TSTFILES = qnumber_test.o matrix_exp_test.o mps_test.o mpo_test.o operation_test.o lanczos_test.o hamiltonian_heisenberg_test.o hamiltonian_ising_test.o hamiltonian_bose_hubbard_test.o minimization_test.o dynamics_test.o peps_test.o peps_test2.o tensor_test.o
+SRCFILES = qnumber.o mps.o mpo.o operation.o bond_ops.o lanczos.o hamiltonian.o minimization.o dynamics.o peps.o tensor.o util.o sim_params.o dupio.o
+TSTFILES = qnumber_test.o matrix_exp_test.o bond_ops_test.o mps_test.o mpo_test.o operation_test.o lanczos_test.o hamiltonian_heisenberg_test.o hamiltonian_ising_test.o hamiltonian_bose_hubbard_test.o minimization_test.o dynamics_test.o peps_test.o peps_test2.o tensor_test.o
 
 # use Intel compiler
 CC = icc
@@ -71,6 +71,9 @@ qnumber_test.o: test/qnumber_test.c
 	${CC} -c -I../include ${CCOPTS} $<
 
 matrix_exp_test.o: test/matrix_exp_test.c
+	${CC} -c -I../include ${CCOPTS} $<
+
+bond_ops_test.o: test/bond_ops_test.c
 	${CC} -c -I../include ${CCOPTS} $<
 
 mps_test.o: test/mps_test.c

@@ -1,10 +1,11 @@
-/// \file bond_info.h
-/// \brief Auxiliary data structures and functions concerning virtual bonds
+/// \file bond_ops.h
+/// \brief Auxiliary data structures and functions concerning virtual bonds (taking quantum numbers into account)
 
-#ifndef BOND_INFO_H
-#define BOND_INFO_H
+#ifndef BOND_OPS_H
+#define BOND_OPS_H
 
-#include <stdlib.h>
+#include "tensor.h"
+#include "qnumber.h"
 
 
 //________________________________________________________________________________________________________________________
@@ -34,7 +35,23 @@ typedef struct
 trunc_info_t;
 
 
+//________________________________________________________________________________________________________________________
+//
+
+
 double VonNeumannEntropy(const size_t n, const double *restrict lambda);
+
+
+//________________________________________________________________________________________________________________________
+//
+
+
+trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, const double tol, const size_t maxD, size_t *restrict *indtr, size_t *restrict ntr);
+
+
+trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q0, const qnumber_t *restrict q1,
+	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond);
 
 
 
