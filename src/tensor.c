@@ -481,9 +481,11 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 
 	// leading dimension of 's' as a matrix
 	const size_t lds = nelemS / IntProduct(&s->dim[s->ndim - ndim_mult], ndim_mult);
+	assert(lds > 0);
 
 	// leading dimension of 't' as a matrix
 	const size_t ldt = IntProduct(t->dim, ndim_mult);
+	assert(ldt > 0);
 	// trailing dimension of 't' as a matrix
 	const size_t tdt = nelemT / ldt;
 
@@ -496,7 +498,7 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 			assert(NumTensorElements(r) == 1);
 			cblas_zdotu_sub((MKL_INT)nelemS, s->data, 1, t->data, 1, &r->data[0]);
 		}
-		else	// tdt > 1
+		else    // tdt > 1
 		{
 			// multiply vector 's' from left, i.e., (t^T * s)^T
 			const MKL_Complex16 one  = { 1, 0 };
@@ -504,7 +506,7 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 			cblas_zgemv(CblasColMajor, CblasTrans, (MKL_INT)ldt, (MKL_INT)tdt, &one, t->data, (MKL_INT)ldt, s->data, 1, &zero, r->data, 1);
 		}
 	}
-	else	// lds > 1
+	else    // lds > 1
 	{
 		if (tdt == 1)
 		{
@@ -513,7 +515,7 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 			const MKL_Complex16 zero = { 0, 0 };
 			cblas_zgemv(CblasColMajor, CblasNoTrans, (MKL_INT)lds, (MKL_INT)ldt, &one, s->data, (MKL_INT)lds, t->data, 1, &zero, r->data, 1);
 		}
-		else	// tdt > 1
+		else    // tdt > 1
 		{
 			// matrix-matrix multiplication
 			const MKL_Complex16 one  = { 1, 0 };

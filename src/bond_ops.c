@@ -148,6 +148,18 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 	assert((*ntr) <= maxD);
 	MKL_free(accum);
 
+	if ((*ntr) == 0)
+	{
+		// special case: all singular values truncated
+
+		MKL_free(*indtr);
+		(*indtr) = NULL;
+
+		ti.nsigma  = 0;
+		ti.entropy = 0;
+		return ti;
+	}
+
 	// record norm and von Neumann entropy of retained singular values
 	double *retained = (double *)MKL_malloc((*ntr) * sizeof(double), MEM_DATA_ALIGN);
 	for (i = 0; i < (*ntr); i++)
@@ -184,10 +196,22 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 	qnumber_t *qis;
 	size_t nis;
 	IntersectQuantumNumbers(q0, A->dim[0], q1, A->dim[1], &qis, &nis);
+
 	if (nis == 0)
 	{
-		// TODO
-		assert(false);
+		// special case: no common quantum numbers;
+		// use dummy bond dimension 1 with all entries set to zero
+
+		const size_t dimA0[2] = { A->dim[0], 1 };
+		const size_t dimA1[2] = { 1, A->dim[1] };
+		AllocateTensor(2, dimA0, A0);
+		AllocateTensor(2, dimA1, A1);
+
+		(*qbond) = (qnumber_t *)MKL_calloc(1, sizeof(qnumber_t), MEM_DATA_ALIGN);
+
+		trunc_info_t ti = { 0 };
+		ti.tol_eff = tol;
+		return ti;
 	}
 
 	// indices of current quantum number
@@ -305,8 +329,25 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 
 	if (Dtrunc == 0)
 	{
-		// TODO
-		assert(false);
+		// use dummy bond dimension 1 with all entries set to zero
+
+		const size_t dimA0[2] = { A->dim[0], 1 };
+		const size_t dimA1[2] = { 1, A->dim[1] };
+		AllocateTensor(2, dimA0, A0);
+		AllocateTensor(2, dimA1, A1);
+
+		(*qbond) = (qnumber_t *)MKL_calloc(1, sizeof(qnumber_t), MEM_DATA_ALIGN);
+
+		// clean up
+		MKL_free(indtr);
+		MKL_free(qS);
+		MKL_free(S);
+		DeleteTensor(&T1);
+		DeleteTensor(&T0);
+		MKL_free(i1);
+		MKL_free(i0);
+
+		return ti;
 	}
 
 	if (renormalize)
