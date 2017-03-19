@@ -15,10 +15,10 @@
 ///
 typedef struct
 {
-	const tensor_t *L;		//!< left tensor network block
-	const tensor_t *R;		//!< right tensor network block
-	const tensor_t *W;		//!< local Hamiltonian operator
-	size_t Mdim[3];			//!< dimensions of the 'M' tensor, which the Hamiltonian is applied to
+	const tensor_t *L;      //!< left tensor network block
+	const tensor_t *R;      //!< right tensor network block
+	const tensor_t *W;      //!< local Hamiltonian operator
+	size_t Mdim[3];         //!< dimensions of the 'M' tensor, which the Hamiltonian is applied to
 }
 local_hamiltonian_data_t;
 
@@ -212,6 +212,9 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 	assert(d == H->d[0]);
 	assert(d == H->d[1]);
 
+	// effectively disable quantum numbers for now by setting them to zero
+	qnumber_t *qd = (qnumber_t *)MKL_calloc(d, sizeof(qnumber_t), MEM_DATA_ALIGN);
+
 	int i;
 
 	// merge neighboring Hamiltonian MPO tensors
@@ -276,9 +279,14 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 			// split optimized two-site MPS tensor into two tensors
 			assert(A_opt.ndim == 3);
 			assert(A_opt.dim[0] == d*d);
-			const size_t dim4[4] = { d, d, A_opt.dim[1], A_opt.dim[2] };
-			ReshapeTensor(4, dim4, &A_opt);
-			SplitMPSTensor(&A_opt, SVD_DISTR_RIGHT, tol, maxD, &psi->A[i], &psi->A[i+1]);
+			// set virtual bond quantum numbers to zero
+			qnumber_t *qD0 = (qnumber_t *)MKL_calloc(A_opt.dim[1], sizeof(qnumber_t), MEM_DATA_ALIGN);
+			qnumber_t *qD2 = (qnumber_t *)MKL_calloc(A_opt.dim[2], sizeof(qnumber_t), MEM_DATA_ALIGN);
+			qnumber_t *qbond;
+			SplitMPSTensor(&A_opt, qD0, qD2, d, d, qd, qd, SVD_DISTR_RIGHT, tol, maxD, false, &psi->A[i], &psi->A[i+1], &qbond);
+			MKL_free(qbond);
+			MKL_free(qD2);
+			MKL_free(qD0);
 			DeleteTensor(&A_opt);
 
 			// update the left blocks
@@ -304,11 +312,17 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 			// split optimized two-site MPS tensor into two tensors
 			assert(A_opt.ndim == 3);
 			assert(A_opt.dim[0] == d*d);
-			const size_t dim4[4] = { d, d, A_opt.dim[1], A_opt.dim[2] };
-			ReshapeTensor(4, dim4, &A_opt);
-			trunc_info_t ti = SplitMPSTensor(&A_opt, SVD_DISTR_LEFT, tol, maxD, &psi->A[i-1], &psi->A[i]);
-			entropy[i - 1] = ti.entropy;
+			// set virtual bond quantum numbers to zero
+			qnumber_t *qD0 = (qnumber_t *)MKL_calloc(A_opt.dim[1], sizeof(qnumber_t), MEM_DATA_ALIGN);
+			qnumber_t *qD2 = (qnumber_t *)MKL_calloc(A_opt.dim[2], sizeof(qnumber_t), MEM_DATA_ALIGN);
+			qnumber_t *qbond;
+			trunc_info_t ti = SplitMPSTensor(&A_opt, qD0, qD2, d, d, qd, qd, SVD_DISTR_LEFT, tol, maxD, false, &psi->A[i-1], &psi->A[i], &qbond);
+			MKL_free(qbond);
+			MKL_free(qD2);
+			MKL_free(qD0);
 			DeleteTensor(&A_opt);
+
+			entropy[i - 1] = ti.entropy;
 
 			// update the right blocks
 			DeleteTensor(&BR[i-1]);
@@ -345,4 +359,6 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 	}
 	MKL_free(BR);
 	MKL_free(BL);
+
+	MKL_free(qd);
 }

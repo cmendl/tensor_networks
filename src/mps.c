@@ -28,6 +28,14 @@ void AllocateMPS(const int L, const size_t d, const size_t *D, mps_t *restrict m
 		const size_t dim[3] = { d, D[i], D[i+1] };
 		AllocateTensor(3, dim, &mps->A[i]);
 	}
+
+	// initialize quantum numbers with zeros
+	mps->qd = (qnumber_t *)MKL_calloc(d, sizeof(qnumber_t), MEM_DATA_ALIGN);
+	mps->qD = (qnumber_t **)MKL_malloc((L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	for (i = 0; i < L + 1; i++)
+	{
+		mps->qD[i] = (qnumber_t *)MKL_calloc(D[i], sizeof(qnumber_t), MEM_DATA_ALIGN);
+	}
 }
 
 
@@ -38,6 +46,14 @@ void AllocateMPS(const int L, const size_t d, const size_t *D, mps_t *restrict m
 void DeleteMPS(mps_t *restrict mps)
 {
 	int i;
+
+	for (i = 0; i < mps->L + 1; i++)
+	{
+		MKL_free(mps->qD[i]);
+	}
+	MKL_free(mps->qD);
+	MKL_free(mps->qd);
+
 	for (i = 0; i < mps->L; i++)
 	{
 		DeleteTensor(&mps->A[i]);
@@ -64,6 +80,18 @@ void CopyMPS(const mps_t *restrict src, mps_t *restrict dst)
 	for (i = 0; i < src->L; i++)
 	{
 		CopyTensor(&src->A[i], &dst->A[i]);
+	}
+
+	// copy physical quantum numbers
+	dst->qd = (qnumber_t *)MKL_malloc(src->d * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	memcpy(dst->qd, src->qd, src->d * sizeof(qnumber_t));
+	// copy virtual bond quantum numbers
+	dst->qD = (qnumber_t **)MKL_malloc((src->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	for (i = 0; i < src->L + 1; i++)
+	{
+		const size_t D = (i < src->L ? src->A[i].dim[1] : src->A[src->L-1].dim[2]);
+		dst->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		memcpy(dst->qD[i], src->qD[i], D * sizeof(qnumber_t));
 	}
 }
 
@@ -467,150 +495,112 @@ void MergeMPSFull(const mps_t *restrict mps, tensor_t *restrict A)
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Split a d1 x d2 x D1 x D2 tensor 'A' (with d1 and d2 the physical dimensions of two neighboring sites) into two
-/// tensors 'A0' and 'A1', with the joining bond dimension determined by the specified tolerance and restricted to maxD
+/// \brief Split a d x D0 x D1 tensor 'A' into two tensors 'A0' and 'A1',
+/// with the joining bond dimension determined by the specified tolerance and restricted to maxD
 ///
-///             |     |                        |                   |
-///          ___|_____|___                 ____|____           ____|____
-///         /   d1    d2  \               /    d1   \         /    d2   \
+///                |                           |                   |
+///          ______|______                 ____|____           ____|____
+///         /      d      \               /    d0   \         /    d1   \
 ///         |             |               |         |         |         |
-///      ---|D1    A    D2|---   -->   ---|D1 A0  D'|---   ---|D' A1  D2|---
+///      ---|D0    A    D2|---   -->   ---|D0 A0  D1|---   ---|D1 A1  D2|---
 ///         |             |               |         |         |         |
 ///         \_____________/               \_________/         \_________/
 ///
-trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const svd_distr_t svd_distr, const double tol, const size_t maxD, tensor_t *restrict A0, tensor_t *restrict A1)
+trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restrict qA0, const qnumber_t *restrict qA2,
+	const size_t d0, const size_t d1, const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
+	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond)
 {
 	assert(tol >= 0);
 	assert(maxD > 0);
-	assert(A->ndim == 4);
+	assert(A->ndim == 3);
+	assert(A->dim[0] == d0*d1);
 
-	trunc_info_t ti;
-	ti.tol_eff = tol;
+	// reshape 'A' tensor into dimensions d0 x d1 x D0 x D2
+	tensor_t As;
+	{
+		const size_t dim[4] = { d0, d1, A->dim[1], A->dim[2] };
 
-	tensor_t s, t;
+		As.ndim = 4;
+		As.dim = (size_t *)MKL_malloc(4 * sizeof(size_t), MEM_DATA_ALIGN);
+		memcpy(As.dim, dim, 4*sizeof(size_t));
+		assert(NumTensorElements(&As) == NumTensorElements(A));
 
-	// reorder levels of 'A': d1 x d2 x D1 x D2 -> d1 x D1 x d2 x D2
+		#ifdef _DEBUG
+		As.dnames = (string_t *)MKL_calloc(As.ndim, sizeof(string_t), MEM_DATA_ALIGN);
+		#endif
+
+		// just copy data pointers
+		As.data = A->data;
+	}
+
+	// reorder and regroup levels: d0 x d1 x D0 x D2 -> d0 x D0 x d1 x D2 -> (d0 * D0) x (d1 * D2)
+	tensor_t Ar;
 	{
 		const int perm12[4] = { 0, 2, 1, 3 };
-		TransposeTensor(perm12, A, A0);
+		TransposeTensor(perm12, &As, &Ar);
+
+		const size_t dim[2] = { d0 * A->dim[1], d1 * A->dim[2] };
+		ReshapeTensor(2, dim, &Ar);
 	}
 
-	// use SVD to separate the two sites
+	// 'As' no longer needed
+	#ifdef _DEBUG
+	MKL_free(As.dnames);
+	#endif
+	MKL_free(As.dim);
 
-	// overwrite 'A0' by the 'U' matrix
-	const size_t m = A0->dim[0]*A0->dim[1];
-	const size_t n = A0->dim[2]*A0->dim[3];
-	size_t k = (m <= n ? m : n);    // min(m, n)
-	const size_t dim_mn[2] = { m, n };
-	ReshapeTensor(2, dim_mn, A0);
-	double *sigma = MKL_malloc(k * sizeof(double), MEM_DATA_ALIGN);
-	double *superb = MKL_malloc((k - 1) * sizeof(double), MEM_DATA_ALIGN);
-	const size_t dim_kn[2] = { k, n };
-	AllocateTensor(2, dim_kn, &s);
-	int info = LAPACKE_zgesvd(LAPACK_COL_MAJOR, 'O', 'S', (lapack_int)m, (lapack_int)n, A0->data, (lapack_int)m, sigma, NULL, (lapack_int)m, s.data, (lapack_int)k, superb);
-	if (info != 0) {
-		duprintf("Call of LAPACK function 'zgesvd()' in 'SplitMPSTensor()' failed, return value: %i\n", info);
-		exit(-1);
-	}
-
-	// truncate small singular values
-	double sigma_sq_sum = 0;
-	size_t i;
-	for (i = k; i > 0; i--) {
-		sigma_sq_sum += square(sigma[i - 1]);
-	}
-	double sigma_sq_acc = 0;
-	for (i = k; i > 0; i--) {
-		sigma_sq_acc += square(sigma[i - 1]);
-		if (sigma_sq_acc / sigma_sq_sum > tol) {
-			break;
-		}
-	}
-	if (i > maxD)
+	// compute quantum numbers of matrix representation
+	qnumber_t *q0 = (qnumber_t *)MKL_malloc(d0 * A->dim[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q2 = (qnumber_t *)MKL_malloc(d1 * A->dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	size_t i, j;
+	// q0
+	for (j = 0; j < A->dim[1]; j++)
 	{
-		// determine effective tolerance
-		sigma_sq_acc = 0;
-		for (i = k; i > maxD; i--)
+		for (i = 0; i < d0; i++)
 		{
-			sigma_sq_acc += square(sigma[i - 1]);
+			q0[i + d0*j] = AddQuantumNumbers(qd0[i], qA0[j]);
 		}
-		ti.tol_eff = sigma_sq_acc / sigma_sq_sum;
-
-		assert(i == maxD);
 	}
-	else if (i < 1)
+	// q2
+	for (j = 0; j < A->dim[2]; j++)
 	{
-		i = 1;
-	}
-	// new truncated bond dimension
-	k = i;
-
-	// record norm and von Neumann entropy of retained singular values
-	{
-		ti.nsigma = Norm(k, sigma);
-
-		// normalized singular values
-		double *sigma_nrm = MKL_malloc(k * sizeof(double), MEM_DATA_ALIGN);
-		size_t j;
-		for (j = 0; j < k; j++)
+		for (i = 0; i < d1; i++)
 		{
-			sigma_nrm[j] = sigma[j] / ti.nsigma;
-		}
-
-		ti.entropy = VonNeumannEntropy(k, sigma_nrm);
-
-		MKL_free(sigma_nrm);
-	}
-
-	// adjust dimension corresponding to truncated bond and distribute singular values
-	A0->dim[1] = k;
-	const int perm2[2] = { 1, 0 };
-	TransposeTensor(perm2, &s, &t);
-	DeleteTensor(&s);
-	t.dim[1] = k;
-	if (svd_distr == SVD_DISTR_LEFT)
-	{
-		// distribute singular values to 'U' matrices from SVD
-		for (i = 0; i < k; i++)
-		{
-			cblas_dscal((MKL_INT)(2*m), sigma[i], (double *)&A0->data[m*i], 1);
+			q2[i + d1*j] = SubtractQuantumNumbers(qA2[j], qd1[i]);
 		}
 	}
-	else if (svd_distr == SVD_DISTR_RIGHT)
-	{
-		// distribute singular values to the 'V' matrices from SVD
-		for (i = 0; i < k; i++)
-		{
-			cblas_dscal((MKL_INT)(2*n), sigma[i], (double *)&t.data[n*i], 1);
-		}
-	}
-	else if (svd_distr == SVD_DISTR_SQRT)
-	{
-		// distribute square root of singular values to both 'U' and 'V' matrices from SVD
-		for (i = 0; i < k; i++)
-		{
-			const double sqrt_sigma = sqrt(sigma[i]);
-			cblas_dscal((MKL_INT)(2*m), sqrt_sigma, (double *)&A0->data[m*i], 1);
-			cblas_dscal((MKL_INT)(2*n), sqrt_sigma, (double *)  &t.data[n*i], 1);
-		}
-	}
-	else
-	{
-		// invalid option
-		assert(false);
-	}
-	MKL_free(superb);
-	MKL_free(sigma);
 
-	// restore original physical dimensions
-	const size_t dim0[3] = { A->dim[0], A->dim[2], k };
-	ReshapeTensor(3, dim0, A0);
-	const size_t dim1[3] = { A->dim[1], A->dim[3], k };
-	ReshapeTensor(3, dim1, &t);
-	// reorder virtual bond dimension
-	const int perm3[3] = { 0, 2, 1 };
-	TransposeTensor(perm3, &t, A1);
-	DeleteTensor(&t);
+	// temporary version of A1 until final transposition
+	tensor_t A1t;
+
+	// actually perform splitting
+	trunc_info_t ti = SplitMatrix(&Ar, q0, q2, svd_distr, tol, maxD, renormalize, A0, &A1t, qbond);
+	assert(A0->ndim == 2 && A0->dim[0] == d0 * A->dim[1]);
+	assert(A1t.ndim == 2 && A1t.dim[1] == d1 * A->dim[2]);
+	assert(A0->dim[1] == A1t.dim[0]);
+
+	// quantum numbers of matrix representation and 'Ar' no longer needed
+	MKL_free(q2);
+	MKL_free(q0);
+	DeleteTensor(&Ar);
+
+	// reshape (and transpose) A0 and A1 to restore original physical dimensions
+	// A0
+	{
+		const size_t dim[3] = { d0, A->dim[1], A0->dim[1] };
+		ReshapeTensor(3, dim, A0);
+	}
+	// A1
+	{
+		const size_t dim[3] = { A1t.dim[0], d1, A->dim[2] };
+		ReshapeTensor(3, dim, &A1t);
+
+		const int perm[3] = { 1, 0, 2 };
+		TransposeTensor(perm, &A1t, A1);
+
+		DeleteTensor(&A1t);
+	}
 
 	return ti;
 }

@@ -8,6 +8,35 @@
 #include <stdio.h>
 
 
+//________________________________________________________________________________________________________________________
+///
+/// \brief Check whether solely entries corresponding to matching quantum numbers are non-zero
+///
+static double BlockStructureError(const tensor_t *A, const qnumber_t *restrict qd, const qnumber_t *restrict qD0, const qnumber_t *restrict qD1)
+{
+	assert(A->ndim == 3);
+
+	double err = 0;
+
+	size_t i, j, k;
+	for (k = 0; k < A->dim[2]; k++)
+	{
+		for (j = 0; j < A->dim[1]; j++)
+		{
+			for (i = 0; i < A->dim[0]; i++)
+			{
+				if (qd[i] + qD0[j] != qD1[k])
+				{
+					err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*k)]);
+				}
+			}
+		}
+	}
+
+	return err;
+}
+
+
 int MPSTest()
 {
 	int i;
@@ -328,87 +357,165 @@ int MPSTest()
 		DeleteTensor(&W);
 	}
 
-	// splitting of a two-site MPS tensor
+	// split a MPS tensor
 	{
+		const size_t d0 = 4;
+		const size_t d1 = 5;
+
+		int status;
+
 		tensor_t E2;
 		{
-			const size_t dim[4] = { 3, 4, 11, 7 };
-			AllocateTensor(4, dim, &E2);
-			int status = ReadData("../test/mps_test_E2.dat", E2.data, sizeof(MKL_Complex16), NumTensorElements(&E2));
+			const size_t dim[3] = { d0 * d1, 13, 11 };
+			AllocateTensor(3, dim, &E2);
+			status = ReadData("../test/mps_test_E2.dat", E2.data, sizeof(MKL_Complex16), NumTensorElements(&E2));
 			if (status < 0) { return status; }
 		}
 
-		// split E2 into two tensors
-		tensor_t E0, E1;
-		trunc_info_t ti = SplitMPSTensor(&E2, SVD_DISTR_RIGHT, 0.0, INT32_MAX, &E0, &E1);
+		// load quantum numbers from disk
+		// physical
+		qnumber_t *qd0 = (qnumber_t *)MKL_malloc(d0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qd1 = (qnumber_t *)MKL_malloc(d1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		status = ReadData("../test/mps_test_qd0.dat", qd0, sizeof(qnumber_t), d0); if (status < 0) { return status; }
+		status = ReadData("../test/mps_test_qd1.dat", qd1, sizeof(qnumber_t), d1); if (status < 0) { return status; }
+		// virtual
+		qnumber_t *qE0 = (qnumber_t *)MKL_malloc(E2.dim[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qE2 = (qnumber_t *)MKL_malloc(E2.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		status = ReadData("../test/mps_test_qE0.dat", qE0, sizeof(qnumber_t), E2.dim[1]); if (status < 0) { return status; }
+		status = ReadData("../test/mps_test_qE2.dat", qE2, sizeof(qnumber_t), E2.dim[2]); if (status < 0) { return status; }
 
-		// merge the two tensors again and compare with original tensor
-		tensor_t E2mrg;
-		MergeMPSTensorPair(&E0, &E1, &E2mrg);
-
-		// check dimensions; E2 has two physical dimensions, which are combined into one physical dimension in E2mrg
-		if (E2mrg.ndim != 3 || E2mrg.dim[0] != E2.dim[0]*E2.dim[1] || E2mrg.dim[1] != E2.dim[2] || E2mrg.dim[2] != E2.dim[3])
+		// without truncation
 		{
-			err = fmax(err, 1);
+			// split E2 into two tensors
+			tensor_t E0, E1;
+			qnumber_t *qE1;
+			trunc_info_t ti = SplitMPSTensor(&E2, qE0, qE2, d0, d1, qd0, qd1, SVD_DISTR_SQRT, 0.0, INT32_MAX, false, &E0, &E1, &qE1);
+
+			// block structure error
+			err = fmax(err, BlockStructureError(&E0, qd0, qE0, qE1));
+			err = fmax(err, BlockStructureError(&E1, qd1, qE1, qE2));
+
+			// check bond quantum numbers
+			const size_t D_ref = 37;
+			qnumber_t *qE1_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+			status = ReadData("../test/mps_test_qE1.dat", qE1_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
+			if (E0.dim[2] != D_ref)
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				size_t j;
+				for (j = 0; j < D_ref; j++) {
+					err = fmax(err, (double)abs(qE1[j] - qE1_ref[j]));
+				}
+			}
+			MKL_free(qE1_ref);
+			MKL_free(qE1);
+
+			// norm and von Neumann entropy of singular values
+			{
+				const double nsigma_ref  = 2.8435216389588707;
+				const double entropy_ref = 3.2565623957019234;
+
+				err = fmax(err, fabs(ti.nsigma  -  nsigma_ref));
+				err = fmax(err, fabs(ti.entropy - entropy_ref));
+			}
+
+			// merge the two tensors again and compare with original tensor
+			tensor_t E2mrg;
+			MergeMPSTensorPair(&E0, &E1, &E2mrg);
+
+			// check dimensions
+			if (E2mrg.ndim != 3 || E2mrg.dim[0] != E2.dim[0] || E2mrg.dim[1] != E2.dim[1] || E2mrg.dim[2] != E2.dim[2])
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				// largest entrywise error
+				err = fmax(err, UniformDistance(2*NumTensorElements(&E2), (double *)E2mrg.data, (double *)E2.data));
+			}
+			DeleteTensor(&E2mrg);
+
+			DeleteTensor(&E1);
+			DeleteTensor(&E0);
 		}
-		else
+
+		// with truncation
 		{
-			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&E2), (double *)E2mrg.data, (double *)E2.data));
+			// split E2 into two tensors again, but now using a tolerance cut-off for the bond dimension
+			tensor_t E0, E1;
+			qnumber_t *qE1;
+			trunc_info_t ti = SplitMPSTensor(&E2, qE0, qE2, d0, d1, qd0, qd1, SVD_DISTR_SQRT, 0.08, INT32_MAX, false, &E0, &E1, &qE1);
+
+			// block structure error
+			err = fmax(err, BlockStructureError(&E0, qd0, qE0, qE1));
+			err = fmax(err, BlockStructureError(&E1, qd1, qE1, qE2));
+
+			// check bond quantum numbers
+			const size_t D_ref = 25;
+			qnumber_t *qE1_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+			status = ReadData("../test/mps_test_qE1_red.dat", qE1_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
+			if (E0.dim[2] != D_ref)
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				size_t j;
+				for (j = 0; j < D_ref; j++) {
+					err = fmax(err, (double)abs(qE1[j] - qE1_ref[j]));
+				}
+			}
+			MKL_free(qE1_ref);
+			MKL_free(qE1);
+
+			// norm and von Neumann entropy of singular values
+			{
+				const double nsigma_ref  = 2.7363043112988086;
+				const double entropy_ref = 3.053396693408922;
+
+				err = fmax(err, fabs(ti.nsigma  -  nsigma_ref));
+				err = fmax(err, fabs(ti.entropy - entropy_ref));
+			}
+
+			// merge the two tensors
+			tensor_t E2mrg;
+			MergeMPSTensorPair(&E0, &E1, &E2mrg);
+
+			// check dimensions
+			if (E2mrg.ndim != 3 || E2mrg.dim[0] != E2.dim[0] || E2mrg.dim[1] != E2.dim[1] || E2mrg.dim[2] != E2.dim[2])
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				// reference (truncated approximation)
+				tensor_t E2mrg_ref;
+				{
+					const size_t dim[3] = { E2.dim[0], E2.dim[1], E2.dim[2] };
+					AllocateTensor(3, dim, &E2mrg_ref);
+					int status;
+					status = ReadData("../test/mps_test_E2_red.dat", E2mrg_ref.data, sizeof(MKL_Complex16), NumTensorElements(&E2mrg_ref));
+					if (status < 0) { return status; }
+				}
+
+				// largest entrywise error
+				err = fmax(err, UniformDistance(2*NumTensorElements(&E2mrg_ref), (double *)E2mrg.data, (double *)E2mrg_ref.data));
+
+				DeleteTensor(&E2mrg_ref);
+			}
+			DeleteTensor(&E2mrg);
+
+			DeleteTensor(&E1);
+			DeleteTensor(&E0);
 		}
-		DeleteTensor(&E2mrg);
-		DeleteTensor(&E1);
-		DeleteTensor(&E0);
 
-		// norm and von Neumann entropy of singular values
-		{
-			const double nsigma_ref  = 6.208706214000858;
-			const double entropy_ref = 2.9174835032576425;
-
-			err = fmax(err, fabs(ti.nsigma  -  nsigma_ref));
-			err = fmax(err, fabs(ti.entropy - entropy_ref));
-		}
-
-		// split E2 into two tensors again, but now using a capped bond dimension
-		ti = SplitMPSTensor(&E2, SVD_DISTR_RIGHT, 0.0, 17, &E0, &E1);
-
-		// merge the two tensors
-		MergeMPSTensorPair(&E0, &E1, &E2mrg);
-
-		// compare with reference
-		tensor_t E2mrg_ref;
-		{
-			const size_t dim[3] = { E2.dim[0]*E2.dim[1], E2.dim[2], E2.dim[3] };
-			AllocateTensor(3, dim, &E2mrg_ref);
-			int status;
-			status = ReadData("../test/mps_test_E2mrg.dat", E2mrg_ref.data, sizeof(MKL_Complex16), NumTensorElements(&E2mrg_ref));
-			if (status < 0) { return status; }
-		}
-
-		// check dimensions
-		if (E2mrg.ndim != 3 || E2mrg.dim[0] != E2mrg_ref.dim[0] || E2mrg.dim[1] != E2mrg_ref.dim[1] || E2mrg.dim[2] != E2mrg_ref.dim[2])
-		{
-			err = fmax(err, 1);
-		}
-		else
-		{
-			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&E2mrg_ref), (double *)E2mrg.data, (double *)E2mrg_ref.data));
-		}
-		DeleteTensor(&E2mrg_ref);
-		DeleteTensor(&E2mrg);
-		DeleteTensor(&E1);
-		DeleteTensor(&E0);
-
-		// norm and von Neumann entropy of singular values
-		{
-			const double nsigma_ref  = 5.9775790063705285;
-			const double entropy_ref = 2.695728869388412;
-
-			err = fmax(err, fabs(ti.nsigma  -  nsigma_ref));
-			err = fmax(err, fabs(ti.entropy - entropy_ref));
-		}
-
+		MKL_free(qd0);
+		MKL_free(qd1);
+		MKL_free(qE0);
+		MKL_free(qE2);
 		DeleteTensor(&E2);
 	}
 

@@ -73,6 +73,8 @@ CompressVirtualBonds[A0_,A1_,{q0_,q1_,q2_},tol_]:=Module[{A=ConstantArray[0,{Len
 	(* for efficiency, could mask quantum numbers in q0 and q2 which are not in q1 *)
 	SplitMatrix[A,{q0,q2},tol]]
 
+NeumannEntropy[S_]:=If[Norm[S]==0,0,Module[{Ssq=Select[(S/Norm[S])^2,#>0&]},-Ssq.Log[Ssq]]]
+
 
 (* MPS tensor operations
 

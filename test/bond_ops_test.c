@@ -7,7 +7,7 @@
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Check only entries corresponding to matching quantum numbers are non-zero
+/// \brief Check whether solely entries corresponding to matching quantum numbers are non-zero
 ///
 static double BlockStructureError(const tensor_t *A, const qnumber_t *restrict q0, const qnumber_t *restrict q1)
 {
