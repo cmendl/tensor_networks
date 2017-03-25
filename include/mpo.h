@@ -77,6 +77,13 @@ MKL_Complex16 MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict
 //
 
 
+void MPOComposition(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict ret);
+
+
+//________________________________________________________________________________________________________________________
+//
+
+
 void ApplySingleSiteTopOperator(tensor_t *restrict A, const tensor_t *restrict opT);
 
 void ApplySingleSiteBottomOperator(tensor_t *restrict A, const tensor_t *restrict opB);

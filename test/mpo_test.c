@@ -20,7 +20,7 @@ int MPOTest()
 
 	const int L = 6;
 
-	// allocate 'X' and 'Y' MPOs
+	// allocate 'X', 'Y' and 'Z' MPOs
 	mpo_t X;
 	{
 		const size_t d[] = { 3, 4 };
@@ -32,6 +32,12 @@ int MPOTest()
 		const size_t d[] = { 4, 3 };
 		const size_t D[] = { 1, 5, 6, 4, 7, 4, 1 };
 		AllocateMPO(L, d, D, &Y);
+	}
+	mpo_t Z;
+	{
+		const size_t d[] = { 4, 4 };
+		const size_t D[] = { 1, 5, 6, 3, 7, 4, 1 };
+		AllocateMPO(L, d, D, &Z);
 	}
 
 	// load MPO tensors from disk
@@ -47,6 +53,13 @@ int MPOTest()
 		char filename[1024];
 		sprintf(filename, "../test/mpo_test_A1_%i.dat", i);
 		status = ReadData(filename, Y.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&Y.A[i]));
+		if (status < 0) { return status; }
+	}
+	for (i = 0; i < L; i++)
+	{
+		char filename[1024];
+		sprintf(filename, "../test/mpo_test_B%i.dat", i);
+		status = ReadData(filename, Z.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&Z.A[i]));
 		if (status < 0) { return status; }
 	}
 
@@ -124,29 +137,13 @@ int MPOTest()
 
 	// trace
 	{
-		mpo_t B;
-		const size_t d[] = { 4, 4 };
-		const size_t D[] = { 1, 5, 6, 3, 7, 4, 1 };
-		AllocateMPO(L, d, D, &B);
-
-		// load MPO tensors from disk
-		for (i = 0; i < L; i++)
-		{
-			char filename[1024];
-			sprintf(filename, "../test/mpo_test_B%i.dat", i);
-			status = ReadData(filename, B.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&B.A[i]));
-			if (status < 0) { return status; }
-		}
-
-		MKL_Complex16 tr = MPOTrace(&B);
+		MKL_Complex16 tr = MPOTrace(&Z);
 
 		// reference value
 		const MKL_Complex16 tr_ref = { -0.018380127839321195, 0.023927449138618842 };
 
 		// relative error
 		err = fmax(err, ComplexAbs(ComplexSubtract(tr, tr_ref)) / ComplexAbs(tr_ref));
-
-		DeleteMPO(&B);
 	}
 
 	// trace of tensor product
@@ -208,6 +205,42 @@ int MPOTest()
 		{
 			DeleteMPO(&F[j]);
 		}
+	}
+
+	// composition of MPOs
+	{
+		mpo_t XZ;
+		MPOComposition(&X, &Z, &XZ);
+
+		// allocate and load reference tensors from disk
+		mpo_t XZ_ref;
+		const size_t d[] = { 3, 4 };
+		const size_t D[] = { 1, 25, 36, 12, 49, 16, 1 };
+		AllocateMPO(L, d, D, &XZ_ref);
+		for (i = 0; i < L; i++)
+		{
+			char filename[1024];
+			sprintf(filename, "../test/mpo_test_A0B_%i.dat", i);
+			status = ReadData(filename, XZ_ref.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XZ_ref.A[i]));
+			if (status < 0) { return status; }
+		}
+
+		// compare
+		for (i = 0; i < L; i++)
+		{
+			if (XZ.A[i].dim[0] != XZ_ref.A[i].dim[0] || XZ.A[i].dim[1] != XZ_ref.A[i].dim[1] || XZ.A[i].dim[2] != XZ_ref.A[i].dim[2] || XZ.A[i].dim[3] != XZ_ref.A[i].dim[3])
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				// largest entrywise error
+				err = fmax(err, UniformDistance(2*NumTensorElements(&XZ_ref.A[i]), (double *)XZ.A[i].data, (double *)XZ_ref.A[i].data));
+			}
+		}
+
+		DeleteMPO(&XZ_ref);
+		DeleteMPO(&XZ);
 	}
 
 	// apply two-site operators
@@ -274,6 +307,7 @@ int MPOTest()
 	// clean up
 	DeleteTensor(&C1);
 	DeleteTensor(&C0);
+	DeleteMPO(&Z);
 	DeleteMPO(&Y);
 	DeleteMPO(&X);
 

@@ -509,6 +509,68 @@ MKL_Complex16 MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Composition of local MPO tensors 'A' and 'B' along physical dimension
+///
+static void ComposeMPOTensors(const tensor_t *restrict A, const tensor_t *restrict B, tensor_t *restrict ret)
+{
+	assert(A->ndim == 4);
+	assert(B->ndim == 4);
+
+	tensor_t t;
+
+	// multiply physical dimensions
+	{
+		const int perm[4] = { 0, 3, 1, 2 };
+		tensor_t s;
+		TransposeTensor(perm, A, &s);
+		MultiplyTensor(&s, B, 1, &t);
+		DeleteTensor(&s);
+	}
+
+	// reorder dimensions and combine virtual bonds
+	{
+		assert(t.ndim == 6);
+
+		const int perm[6] = { 0, 2, 4, 1, 3, 5 };
+		TransposeTensor(perm, &t, ret);
+		DeleteTensor(&t);
+
+		const size_t dim[4] = { ret->dim[0], ret->dim[1], ret->dim[2]*ret->dim[3], ret->dim[4]*ret->dim[5] };
+		ReshapeTensor(4, dim, ret);
+	}
+
+	// TODO: add corresponding quantum numbers
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Composition of MPOs 'X' and 'Y' along physical dimension
+///
+void MPOComposition(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict ret)
+{
+	// dimensions must be compatible
+	assert(X->L == Y->L);
+	assert(X->d[1] == Y->d[0]);
+
+	const int L = X->L;
+
+	ret->L = L;
+	ret->d[0] = X->d[0];
+	ret->d[1] = Y->d[1];
+
+	ret->A = (tensor_t *)MKL_calloc(L, sizeof(tensor_t), MEM_DATA_ALIGN);
+
+	int i;
+	for (i = 0; i < L; i++)
+	{
+		ComposeMPOTensors(&X->A[i], &Y->A[i], &ret->A[i]);
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Local MPO update by single-site operator 'opT' from the top
 ///
 void ApplySingleSiteTopOperator(tensor_t *restrict A, const tensor_t *restrict opT)
