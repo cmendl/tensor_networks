@@ -495,7 +495,7 @@ void MergeMPSFull(const mps_t *restrict mps, tensor_t *restrict A)
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Split a d x D0 x D1 tensor 'A' into two tensors 'A0' and 'A1',
+/// \brief Split a d x D0 x D2 tensor 'A' into two tensors 'A0' and 'A1',
 /// with the joining bond dimension determined by the specified tolerance and restricted to maxD
 ///
 ///                |                           |                   |

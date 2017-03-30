@@ -170,7 +170,7 @@ MPOTraceProduct[A_List,B_List]:=
 MPOFrobeniusNorm[A_List]:=Sqrt[Re[MPOTraceProduct[A,ConjugateTranspose/@A]]]
 
 (* Return 0 if MPO 'A' has expected block structure determined by quantum numbers *)
-MPOBlockStructureError[{A_,qA0_,qA1_},qd_]:=Norm[Flatten[A Outer[If[#1-#2+#3-#4!=0,1,0]&,qd,qd,qA0,qA1]]]
+MPOBlockStructureError[{A_,qA0_,qA1_},{qd0_,qd1_}]:=Norm[Flatten[A Outer[If[#1-#2+#3-#4!=0,1,0]&,qd0,qd1,qA0,qA1]]]
 
 (* Split a MPO tensor with dimension d\[Times]d\[Times]D1\[Times]D2 into two MPO tensors;
    qd0,qd1 are the physical quantum numbers of the two sites such that d\[Equal]Length[qd0]Length[qd1] *)

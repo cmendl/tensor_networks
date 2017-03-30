@@ -8,6 +8,38 @@
 #include <stdio.h>
 
 
+//________________________________________________________________________________________________________________________
+///
+/// \brief Check whether solely entries corresponding to matching quantum numbers are non-zero
+///
+static double BlockStructureError(const tensor_t *A, const qnumber_t *restrict qd[2], const qnumber_t *restrict qD0, const qnumber_t *restrict qD1)
+{
+	assert(A->ndim == 4);
+
+	double err = 0;
+
+	size_t i, j, k, l;
+	for (l = 0; l < A->dim[3]; l++)
+	{
+		for (k = 0; k < A->dim[2]; k++)
+		{
+			for (j = 0; j < A->dim[1]; j++)
+			{
+				for (i = 0; i < A->dim[0]; i++)
+				{
+					if (qd[0][i] + qD0[k] != qd[1][j] + qD1[l])
+					{
+						err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*(k + A->dim[2]*l))]);
+					}
+				}
+			}
+		}
+	}
+
+	return err;
+}
+
+
 int MPOTest()
 {
 	int i;
@@ -207,6 +239,172 @@ int MPOTest()
 		}
 	}
 
+	// split a MPO tensor
+	{
+		const size_t d0 = 4;
+		const size_t d1 = 5;
+
+		int status;
+
+		tensor_t G2;
+		{
+			const size_t dim[4] = { d0 * d1, d0 * d1, 13, 11 };
+			AllocateTensor(4, dim, &G2);
+			status = ReadData("../test/mpo_test_G2.dat", G2.data, sizeof(MKL_Complex16), NumTensorElements(&G2));
+			if (status < 0) { return status; }
+		}
+
+		// load quantum numbers from disk
+		// physical
+		qnumber_t *qd0 = (qnumber_t *)MKL_malloc(d0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qd1 = (qnumber_t *)MKL_malloc(d1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		status = ReadData("../test/mpo_test_qd0.dat", qd0, sizeof(qnumber_t), d0); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qd1.dat", qd1, sizeof(qnumber_t), d1); if (status < 0) { return status; }
+		// virtual
+		qnumber_t *qG0 = (qnumber_t *)MKL_malloc(G2.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qG2 = (qnumber_t *)MKL_malloc(G2.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		status = ReadData("../test/mpo_test_qG0.dat", qG0, sizeof(qnumber_t), G2.dim[2]); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qG2.dat", qG2, sizeof(qnumber_t), G2.dim[3]); if (status < 0) { return status; }
+
+		// without truncation
+		{
+			// split G2 into two tensors
+			tensor_t G0, G1;
+			qnumber_t *qG1;
+			trunc_info_t ti = SplitMPOTensor(&G2, qG0, qG2, d0, d1, qd0, qd1, SVD_DISTR_SQRT, 0.0, INT32_MAX, false, &G0, &G1, &qG1);
+
+			// block structure error
+			const qnumber_t *qd0_pair[2] = { qd0, qd0 }; 
+			const qnumber_t *qd1_pair[2] = { qd1, qd1 }; 
+			err = fmax(err, BlockStructureError(&G0, qd0_pair, qG0, qG1));
+			err = fmax(err, BlockStructureError(&G1, qd1_pair, qG1, qG2));
+
+			// check bond quantum numbers
+			const size_t D_ref = 175;
+			qnumber_t *qG1_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+			status = ReadData("../test/mpo_test_qG1.dat", qG1_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
+			if (G0.dim[3] != D_ref)
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				size_t j;
+				for (j = 0; j < D_ref; j++) {
+					err = fmax(err, (double)abs(qG1[j] - qG1_ref[j]));
+				}
+			}
+			MKL_free(qG1_ref);
+			MKL_free(qG1);
+
+			// norm and von Neumann entropy of singular values
+			{
+				const double nsigma_ref  = 48.77942245012797;
+				const double entropy_ref = 4.770317493788066;
+
+				err = fmax(err, fabs(ti.nsigma  -  nsigma_ref) / nsigma_ref);
+				err = fmax(err, fabs(ti.entropy - entropy_ref) / entropy_ref);
+			}
+
+			// merge the two tensors again and compare with original tensor
+			tensor_t G2mrg;
+			MergeMPOTensorPair(&G0, &G1, &G2mrg);
+
+			// check dimensions
+			if (G2mrg.ndim != 4 || G2mrg.dim[0] != G2.dim[0] || G2mrg.dim[1] != G2.dim[1] || G2mrg.dim[2] != G2.dim[2] || G2mrg.dim[3] != G2.dim[3])
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				// largest entrywise error
+				err = fmax(err, UniformDistance(2*NumTensorElements(&G2), (double *)G2mrg.data, (double *)G2.data));
+			}
+			DeleteTensor(&G2mrg);
+
+			DeleteTensor(&G1);
+			DeleteTensor(&G0);
+		}
+
+		// with truncation
+		{
+			// split G2 into two tensors again, but now using a tolerance cut-off for the bond dimension
+			tensor_t G0, G1;
+			qnumber_t *qG1;
+			trunc_info_t ti = SplitMPOTensor(&G2, qG0, qG2, d0, d1, qd0, qd1, SVD_DISTR_SQRT, 0.1, INT32_MAX, false, &G0, &G1, &qG1);
+
+			// block structure error
+			const qnumber_t *qd0_pair[2] = { qd0, qd0 }; 
+			const qnumber_t *qd1_pair[2] = { qd1, qd1 }; 
+			err = fmax(err, BlockStructureError(&G0, qd0_pair, qG0, qG1));
+			err = fmax(err, BlockStructureError(&G1, qd1_pair, qG1, qG2));
+
+			// check bond quantum numbers
+			const size_t D_ref = 102;
+			qnumber_t *qG1_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+			status = ReadData("../test/mpo_test_qG1_red.dat", qG1_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
+			if (G0.dim[3] != D_ref)
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				size_t j;
+				for (j = 0; j < D_ref; j++) {
+					err = fmax(err, (double)abs(qG1[j] - qG1_ref[j]));
+				}
+			}
+			MKL_free(qG1_ref);
+			MKL_free(qG1);
+
+			// norm and von Neumann entropy of singular values
+			{
+				const double nsigma_ref  = 46.345164006872245;
+				const double entropy_ref = 4.49445479211037;
+
+				err = fmax(err, fabs(ti.nsigma  -  nsigma_ref) / nsigma_ref);
+				err = fmax(err, fabs(ti.entropy - entropy_ref) / entropy_ref);
+			}
+
+			// merge the two tensors
+			tensor_t G2mrg;
+			MergeMPOTensorPair(&G0, &G1, &G2mrg);
+
+			// check dimensions
+			if (G2mrg.ndim != 4 || G2mrg.dim[0] != G2.dim[0] || G2mrg.dim[1] != G2.dim[1] || G2mrg.dim[2] != G2.dim[2] || G2mrg.dim[3] != G2.dim[3])
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				// reference (truncated approximation)
+				tensor_t G2mrg_ref;
+				{
+					const size_t dim[4] = { G2.dim[0], G2.dim[1], G2.dim[2], G2.dim[3] };
+					AllocateTensor(4, dim, &G2mrg_ref);
+					int status;
+					status = ReadData("../test/mpo_test_G2_red.dat", G2mrg_ref.data, sizeof(MKL_Complex16), NumTensorElements(&G2mrg_ref));
+					if (status < 0) { return status; }
+				}
+
+				// largest entrywise error
+				err = fmax(err, UniformDistance(2*NumTensorElements(&G2mrg_ref), (double *)G2mrg.data, (double *)G2mrg_ref.data));
+
+				DeleteTensor(&G2mrg_ref);
+			}
+			DeleteTensor(&G2mrg);
+
+			DeleteTensor(&G1);
+			DeleteTensor(&G0);
+		}
+
+		MKL_free(qd0);
+		MKL_free(qd1);
+		MKL_free(qG0);
+		MKL_free(qG2);
+		DeleteTensor(&G2);
+	}
+
 	// composition of MPOs
 	{
 		mpo_t XZ;
@@ -311,5 +509,5 @@ int MPOTest()
 	DeleteMPO(&Y);
 	DeleteMPO(&X);
 
-	return (err < 4e-15 ? 0 : 1);
+	return (err < 2e-14 ? 0 : 1);
 }

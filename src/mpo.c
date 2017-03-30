@@ -29,6 +29,15 @@ void AllocateMPO(const int L, const size_t d[2], const size_t *D, mpo_t *restric
 		const size_t dim[4] = { d[0], d[1], D[i], D[i+1] };
 		AllocateTensor(4, dim, &mpo->A[i]);
 	}
+
+	// initialize quantum numbers with zeros
+	mpo->qd[0] = (qnumber_t *)MKL_calloc(d[0], sizeof(qnumber_t), MEM_DATA_ALIGN);
+	mpo->qd[1] = (qnumber_t *)MKL_calloc(d[1], sizeof(qnumber_t), MEM_DATA_ALIGN);
+	mpo->qD = (qnumber_t **)MKL_malloc((L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	for (i = 0; i < L + 1; i++)
+	{
+		mpo->qD[i] = (qnumber_t *)MKL_calloc(D[i], sizeof(qnumber_t), MEM_DATA_ALIGN);
+	}
 }
 
 
@@ -39,6 +48,15 @@ void AllocateMPO(const int L, const size_t d[2], const size_t *D, mpo_t *restric
 void DeleteMPO(mpo_t *mpo)
 {
 	int i;
+
+	for (i = 0; i < mpo->L + 1; i++)
+	{
+		MKL_free(mpo->qD[i]);
+	}
+	MKL_free(mpo->qD);
+	MKL_free(mpo->qd[1]);
+	MKL_free(mpo->qd[0]);
+
 	for (i = 0; i < mpo->L; i++)
 	{
 		DeleteTensor(&mpo->A[i]);
@@ -67,6 +85,20 @@ void CopyMPO(const mpo_t *restrict src, mpo_t *restrict dst)
 	for (i = 0; i < src->L; i++)
 	{
 		CopyTensor(&src->A[i], &dst->A[i]);
+	}
+
+	// copy physical quantum numbers
+	dst->qd[0] = (qnumber_t *)MKL_malloc(src->d[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	dst->qd[1] = (qnumber_t *)MKL_malloc(src->d[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	memcpy(dst->qd[0], src->qd[0], src->d[0] * sizeof(qnumber_t));
+	memcpy(dst->qd[1], src->qd[1], src->d[1] * sizeof(qnumber_t));
+	// copy virtual bond quantum numbers
+	dst->qD = (qnumber_t **)MKL_malloc((src->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	for (i = 0; i < src->L + 1; i++)
+	{
+		const size_t D = (i < src->L ? src->A[i].dim[2] : src->A[src->L-1].dim[3]);
+		dst->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		memcpy(dst->qD[i], src->qD[i], D * sizeof(qnumber_t));
 	}
 }
 
@@ -140,6 +172,20 @@ void TransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoT)
 		assert(mpoT->A[i].dim[0] == mpoT->d[0]);
 		assert(mpoT->A[i].dim[1] == mpoT->d[1]);
 	}
+
+	// interchange and copy physical quantum numbers
+	mpoT->qd[0] = (qnumber_t *)MKL_malloc(mpo->d[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	mpoT->qd[1] = (qnumber_t *)MKL_malloc(mpo->d[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	memcpy(mpoT->qd[0], mpo->qd[1], mpo->d[1] * sizeof(qnumber_t));
+	memcpy(mpoT->qd[1], mpo->qd[0], mpo->d[0] * sizeof(qnumber_t));
+	// copy virtual bond quantum numbers
+	mpoT->qD = (qnumber_t **)MKL_malloc((mpo->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	for (i = 0; i < mpo->L + 1; i++)
+	{
+		const size_t D = (i < mpo->L ? mpo->A[i].dim[2] : mpo->A[mpo->L-1].dim[3]);
+		mpoT->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		memcpy(mpoT->qD[i], mpo->qD[i], D * sizeof(qnumber_t));
+	}
 }
 
 
@@ -167,6 +213,20 @@ void ConjugateTransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoH)
 		ConjugateTransposeTensor(perm, &mpo->A[i], &mpoH->A[i]);
 		assert(mpoH->A[i].dim[0] == mpoH->d[0]);
 		assert(mpoH->A[i].dim[1] == mpoH->d[1]);
+	}
+
+	// interchange and copy physical quantum numbers
+	mpoH->qd[0] = (qnumber_t *)MKL_malloc(mpo->d[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	mpoH->qd[1] = (qnumber_t *)MKL_malloc(mpo->d[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	memcpy(mpoH->qd[0], mpo->qd[1], mpo->d[1] * sizeof(qnumber_t));
+	memcpy(mpoH->qd[1], mpo->qd[0], mpo->d[0] * sizeof(qnumber_t));
+	// copy virtual bond quantum numbers
+	mpoH->qD = (qnumber_t **)MKL_malloc((mpo->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	for (i = 0; i < mpo->L + 1; i++)
+	{
+		const size_t D = (i < mpo->L ? mpo->A[i].dim[2] : mpo->A[mpo->L-1].dim[3]);
+		mpoH->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		memcpy(mpoH->qD[i], mpo->qD[i], D * sizeof(qnumber_t));
 	}
 }
 
@@ -387,7 +447,7 @@ double MPOFrobeniusNorm(const mpo_t *X)
 	for (i = X->L-1; i >= 0; i--)
 	{
 		tensor_t Ai_dagger;
-		const int perm[4] = { 1, 0, 2, 3 };	// transpose physical dimensions
+		const int perm[4] = { 1, 0, 2, 3 }; // transpose physical dimensions
 		ConjugateTransposeTensor(perm, &X->A[i], &Ai_dagger);
 
 		MPOTraceProductTensorReduce(&X->A[i], &Ai_dagger, &R);
@@ -509,6 +569,128 @@ MKL_Complex16 MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Split a d x d x D0 x D2 tensor 'A' into two tensors 'A0' and 'A1',
+/// with the joining bond dimension determined by the specified tolerance and restricted to maxD
+///
+///                |                           |                   |
+///          ______|______                 ____|____           ____|____
+///         /      d      \               /    d0   \         /    d1   \
+///         |             |               |         |         |         |
+///      ---|D0    A    D2|---   -->   ---|D0 A0  D1|---   ---|D1 A1  D2|---
+///         |             |               |         |         |         |
+///         \______d______/               \____d0___/         \____d1___/
+///                |                           |                   |
+///                |                           |                   |
+///
+trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restrict qA0, const qnumber_t *restrict qA2,
+	const size_t d0, const size_t d1, const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
+	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond)
+{
+	assert(tol >= 0);
+	assert(maxD > 0);
+	assert(A->ndim == 4);
+	assert(A->dim[0] == d0*d1);
+	assert(A->dim[1] == d0*d1);
+
+	// reshape 'A' tensor into dimensions d0 x d1 x d0 x d1 x D0 x D2
+	tensor_t As;
+	{
+		const size_t dim[6] = { d0, d1, d0, d1, A->dim[2], A->dim[3] };
+
+		As.ndim = 6;
+		As.dim = (size_t *)MKL_malloc(6 * sizeof(size_t), MEM_DATA_ALIGN);
+		memcpy(As.dim, dim, 6*sizeof(size_t));
+		assert(NumTensorElements(&As) == NumTensorElements(A));
+
+		#ifdef _DEBUG
+		As.dnames = (string_t *)MKL_calloc(As.ndim, sizeof(string_t), MEM_DATA_ALIGN);
+		#endif
+
+		// just copy data pointers
+		As.data = A->data;
+	}
+
+	// reorder and regroup levels: d0 x d1 x d0 x d1 x D0 x D2 -> d0 x d0 x D0 x d1 x d1 x D2 -> (d0^2 * D0) x (d1^2 * D2)
+	tensor_t Ar;
+	{
+		const int perm[6] = { 0, 3, 1, 4, 2, 5 };
+		TransposeTensor(perm, &As, &Ar);
+
+		const size_t dim[2] = { d0 * d0 * A->dim[2], d1 * d1 * A->dim[3] };
+		ReshapeTensor(2, dim, &Ar);
+	}
+
+	// 'As' no longer needed
+	#ifdef _DEBUG
+	MKL_free(As.dnames);
+	#endif
+	MKL_free(As.dim);
+
+	// compute quantum numbers of matrix representation
+	qnumber_t *q0 = (qnumber_t *)MKL_malloc(d0 * d0 * A->dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q2 = (qnumber_t *)MKL_malloc(d1 * d1 * A->dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	size_t i, j, k;
+	// q0
+	for (k = 0; k < A->dim[2]; k++)
+	{
+		for (j = 0; j < d0; j++)
+		{
+			for (i = 0; i < d0; i++)
+			{
+				q0[i + d0*(j + d0*k)] = SubtractQuantumNumbers(AddQuantumNumbers(qd0[i], qA0[k]), qd0[j]);
+			}
+		}
+	}
+	// q2
+	for (k = 0; k < A->dim[3]; k++)
+	{
+		for (j = 0; j < d1; j++)
+		{
+			for (i = 0; i < d1; i++)
+			{
+				q2[i + d1*(j + d1*k)] = SubtractQuantumNumbers(AddQuantumNumbers(qA2[k], qd1[j]), qd1[i]);
+			}
+		}
+	}
+
+	// temporary version of A1 until final transposition
+	tensor_t A1t;
+
+	// actually perform splitting
+	trunc_info_t ti = SplitMatrix(&Ar, q0, q2, svd_distr, tol, maxD, renormalize, A0, &A1t, qbond);
+	assert(A0->ndim == 2 && A0->dim[0] == d0 * d0 * A->dim[2]);
+	assert(A1t.ndim == 2 && A1t.dim[1] == d1 * d1 * A->dim[3]);
+	assert(A0->dim[1] == A1t.dim[0]);
+
+	// quantum numbers of matrix representation and 'Ar' no longer needed
+	MKL_free(q2);
+	MKL_free(q0);
+	DeleteTensor(&Ar);
+
+	// reshape (and transpose) A0 and A1 to restore original physical dimensions
+	// A0
+	{
+		const size_t dim[4] = { d0, d0, A->dim[2], A0->dim[1] };
+		ReshapeTensor(4, dim, A0);
+	}
+	// A1
+	{
+		const size_t dim[4] = { A1t.dim[0], d1, d1, A->dim[3] };
+		ReshapeTensor(4, dim, &A1t);
+
+		const int perm[4] = { 2, 0, 1, 3 };
+		TransposeTensor(perm, &A1t, A1);
+
+		DeleteTensor(&A1t);
+	}
+
+	return ti;
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Composition of local MPO tensors 'A' and 'B' along physical dimension
 ///
 static void ComposeMPOTensors(const tensor_t *restrict A, const tensor_t *restrict B, tensor_t *restrict ret)
@@ -538,8 +720,24 @@ static void ComposeMPOTensors(const tensor_t *restrict A, const tensor_t *restri
 		const size_t dim[4] = { ret->dim[0], ret->dim[1], ret->dim[2]*ret->dim[3], ret->dim[4]*ret->dim[5] };
 		ReshapeTensor(4, dim, ret);
 	}
+}
 
-	// TODO: add corresponding quantum numbers
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Form all combinations (outer product) of quantum numbers
+///
+static void CombineQuantumNumbers(const size_t m, const size_t n, const qnumber_t *restrict q0, const qnumber_t *restrict q1, qnumber_t *restrict qC)
+{
+	size_t j;
+	for (j = 0; j < n; j++)
+	{
+		size_t i;
+		for (i = 0; i < m; i++)
+		{
+			qC[i + m*j] = AddQuantumNumbers(q0[i], q1[j]);
+		}
+	}
 }
 
 
@@ -559,12 +757,33 @@ void MPOComposition(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *res
 	ret->d[0] = X->d[0];
 	ret->d[1] = Y->d[1];
 
+	// physical quantum numbers
+	ret->qd[0] = (qnumber_t *)MKL_malloc(ret->d[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	ret->qd[1] = (qnumber_t *)MKL_malloc(ret->d[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	memcpy(ret->qd[0], X->qd[0], X->d[0]*sizeof(qnumber_t));
+	memcpy(ret->qd[1], Y->qd[1], Y->d[1]*sizeof(qnumber_t));
+
 	ret->A = (tensor_t *)MKL_calloc(L, sizeof(tensor_t), MEM_DATA_ALIGN);
+
+	ret->qD = (qnumber_t **)MKL_malloc((L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
 
 	int i;
 	for (i = 0; i < L; i++)
 	{
 		ComposeMPOTensors(&X->A[i], &Y->A[i], &ret->A[i]);
+
+		// virtual bond quantum numbers
+		const size_t D = ret->A[i].dim[2];
+		assert(D == X->A[i].dim[2] * Y->A[i].dim[2]);
+		ret->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		CombineQuantumNumbers(X->A[i].dim[2], Y->A[i].dim[2], X->qD[i], Y->qD[i], ret->qD[i]);
+	}
+	// rightmost virtual bond quantum numbers
+	{
+		const size_t D = ret->A[L-1].dim[3];
+		assert(D == X->A[L-1].dim[3] * Y->A[L-1].dim[3]);
+		ret->qD[L] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		CombineQuantumNumbers(X->A[L-1].dim[3], Y->A[L-1].dim[3], X->qD[L], Y->qD[L], ret->qD[L]);
 	}
 }
 

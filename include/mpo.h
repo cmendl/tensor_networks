@@ -12,11 +12,15 @@
 ///
 /// \brief Matrix product operator (MPO) in one dimension
 ///
+/// Set all quantum numbers to zero to effectively disable quantum number conservation
+///
 typedef struct
 {
-	tensor_t *A;    //!< tensors associated with sites, with dimensions d[0] x d[1] x D_i x D_{i+1}; array of length L
-	size_t d[2];    //!< physical dimensions of each site
-	int L;          //!< lattice size
+	tensor_t *A;        //!< tensors associated with sites, with dimensions d[0] x d[1] x D_i x D_{i+1}; array of length L
+	size_t d[2];        //!< physical dimensions of each site
+	qnumber_t  *qd[2];  //!< physical quantum numbers at each site
+	qnumber_t **qD;     //!< quantum numbers of virtual bonds; array of size L+1
+	int L;              //!< lattice size
 }
 mpo_t;
 
@@ -71,6 +75,16 @@ double MPOFrobeniusNorm(const mpo_t *X);
 
 
 MKL_Complex16 MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict Y, const mpo_t *restrict Z, const mpo_t *restrict W);
+
+
+//________________________________________________________________________________________________________________________
+//
+
+
+trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restrict qA0, const qnumber_t *restrict qA2,
+	const size_t d0, const size_t d1, const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
+	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond);
 
 
 //________________________________________________________________________________________________________________________
