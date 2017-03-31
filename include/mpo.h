@@ -87,6 +87,13 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond);
 
 
+trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
+	const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
+	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
+	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	qnumber_t *restrict *qA1compr);
+
+
 //________________________________________________________________________________________________________________________
 //
 

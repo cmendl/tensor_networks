@@ -689,6 +689,110 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 }
 
 
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Compress virtual bonds between tensors A0 and A1; qd0, qd1 are the physical quantum numbers of the two sites
+///
+///
+///              |                   |                         |                   |
+///          ____|____           ____|____                 ____|____           ____|____
+///         /    d0   \         /    d1   \               /    d0   \         /    d1   \
+///         |         |         |         |               |         |         |         |
+///      ---|D0 A0  D1|---   ---|D1 A1  D2|---   -->   ---|D0 A0' D1'---   ---|D1'A1' D2|---
+///         |         |         |         |               |         |         |         |
+///         \____d0___/         \____d1___/               \____d0___/         \____d1___/
+///              |                   |                         |                   |
+///              |                   |                         |                   |
+///
+trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
+	const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
+	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
+	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	qnumber_t *restrict *qA1compr)
+{
+	assert(A0->ndim == 4);
+	assert(A1->ndim == 4);
+
+	const size_t d0 = A0->dim[0];
+	const size_t d1 = A1->dim[0];
+	// only same ingoing and outgoing physical dimensions supported yet
+	assert(d0 == A0->dim[1]);
+	assert(d1 == A1->dim[1]);
+
+	const size_t D0 = A0->dim[2];
+	const size_t D2 = A1->dim[3];
+
+	// compute quantum numbers of matrix representation
+	qnumber_t *q0 = (qnumber_t *)MKL_malloc(d0 * d0 * D0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q2 = (qnumber_t *)MKL_malloc(d1 * d1 * D2 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	size_t i, j, k;
+	// q0
+	for (k = 0; k < D0; k++)
+	{
+		for (j = 0; j < d0; j++)
+		{
+			for (i = 0; i < d0; i++)
+			{
+				q0[i + d0*(j + d0*k)] = SubtractQuantumNumbers(AddQuantumNumbers(qd0[i], qA0[k]), qd0[j]);
+			}
+		}
+	}
+	// q2
+	for (k = 0; k < D2; k++)
+	{
+		for (j = 0; j < d1; j++)
+		{
+			for (i = 0; i < d1; i++)
+			{
+				q2[i + d1*(j + d1*k)] = SubtractQuantumNumbers(AddQuantumNumbers(qA2[k], qd1[j]), qd1[i]);
+			}
+		}
+	}
+
+	tensor_t A1t;
+
+	// reshape (and transpose) A0 and A1 into matrices
+	// A0
+	{
+		const size_t dim[2] = { d0 * d0 * D0, A0->dim[3] };
+		ReshapeTensor(2, dim, A0);
+	}
+	// A1
+	{
+		const int perm[4] = { 1, 2, 0, 3 };
+		TransposeTensor(perm, A1, &A1t);
+		DeleteTensor(A1);
+
+		const size_t dim[2] = { A1t.dim[0], d1 * d1 * D2 };
+		ReshapeTensor(2, dim, &A1t);
+	}
+
+	trunc_info_t ti = CompressVirtualBonds(A0, &A1t, q0, qA1, q2, svd_distr, tol, maxD, renormalize, qA1compr);
+
+	// reshape (and transpose) A0 and A1 back to restore original physical dimensions
+	// A0
+	{
+		const size_t dim[4] = { d0, d0, D0, A0->dim[1] };
+		ReshapeTensor(4, dim, A0);
+	}
+	// A1
+	{
+		const size_t dim[4] = { A1t.dim[0], d1, d1, D2 };
+		ReshapeTensor(4, dim, &A1t);
+
+		const int perm[4] = { 2, 0, 1, 3 };
+		TransposeTensor(perm, &A1t, A1);
+	}
+
+	DeleteTensor(&A1t);
+	MKL_free(q2);
+	MKL_free(q0);
+
+	return ti;
+}
+
+
 //________________________________________________________________________________________________________________________
 ///
 /// \brief Composition of local MPO tensors 'A' and 'B' along physical dimension

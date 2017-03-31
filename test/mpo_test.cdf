@@ -23,10 +23,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[      1064,         20]
-NotebookDataLength[     71387,       2349]
-NotebookOptionsPosition[     65025,       2114]
-NotebookOutlinePosition[     65368,       2129]
-CellTagsIndexPosition[     65325,       2126]
+NotebookDataLength[     84731,       2801]
+NotebookOptionsPosition[     76900,       2518]
+NotebookOutlinePosition[     77243,       2533]
+CellTagsIndexPosition[     77200,       2530]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -1541,6 +1541,410 @@ Cell[BoxData[
 
 Cell[CellGroupData[{
 
+Cell["Compress virtual bonds", "Subsection"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "fictitious", " ", "virtual", " ", "bond", " ", "quantum", " ", 
+    "numbers"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     SubscriptBox["qK", "0"], "=", 
+     RowBox[{"{", 
+      RowBox[{"1", ",", "2", ",", 
+       RowBox[{"-", "1"}], ",", 
+       RowBox[{"-", "3"}], ",", "0"}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     SubscriptBox["qK", "1"], "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"-", "2"}], ",", 
+       RowBox[{"-", "2"}], ",", "1", ",", 
+       RowBox[{"-", "4"}], ",", 
+       RowBox[{"-", "7"}], ",", "0", ",", 
+       RowBox[{"-", "2"}], ",", "4", ",", "3", ",", "5", ",", "1", ",", 
+       RowBox[{"-", "5"}], ",", 
+       RowBox[{"-", "5"}], ",", "1"}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     SubscriptBox["qK", "2"], "=", 
+     RowBox[{"{", 
+      RowBox[{"4", ",", 
+       RowBox[{"-", "2"}], ",", 
+       RowBox[{"-", "2"}], ",", "0", ",", "3", ",", 
+       RowBox[{"-", "5"}], ",", 
+       RowBox[{"-", "2"}]}], "}"}]}], ";"}]}]}]], "Input"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"SeedRandom", "[", "44", "]"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   SubscriptBox["K", "0"], "=", 
+   RowBox[{"Outer", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"If", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"#1", "-", "#2", "+", "#3", "-", "#4"}], "\[Equal]", "0"}], 
+        ",", 
+        RowBox[{"RandomComplex", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", 
+            RowBox[{"(", 
+             RowBox[{"1", "+", "\[ImaginaryI]"}], ")"}]}], ",", 
+           RowBox[{"(", 
+            RowBox[{"1", "+", "\[ImaginaryI]"}], ")"}]}], "}"}], "]"}], ",", 
+        "0"}], "]"}], "&"}], ",", 
+     SubscriptBox["qd", "0"], ",", 
+     SubscriptBox["qd", "0"], ",", 
+     SubscriptBox["qK", "0"], ",", 
+     SubscriptBox["qK", "1"]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   SubscriptBox["K", "1"], "=", 
+   RowBox[{"Outer", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"If", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"#1", "-", "#2", "+", "#3", "-", "#4"}], "\[Equal]", "0"}], 
+        ",", 
+        RowBox[{"RandomComplex", "[", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"-", 
+            RowBox[{"(", 
+             RowBox[{"1", "+", "\[ImaginaryI]"}], ")"}]}], ",", 
+           RowBox[{"(", 
+            RowBox[{"1", "+", "\[ImaginaryI]"}], ")"}]}], "}"}], "]"}], ",", 
+        "0"}], "]"}], "&"}], ",", 
+     SubscriptBox["qd", "1"], ",", 
+     SubscriptBox["qd", "1"], ",", 
+     SubscriptBox["qK", "1"], ",", 
+     SubscriptBox["qK", "2"]}], "]"}]}], ";"}]}], "Input"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{"Dimensions", "[", 
+  SubscriptBox["K", "0"], "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Dimensions", "[", 
+  SubscriptBox["K", "1"], "]"}]}], "Input"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"4", ",", "4", ",", "5", ",", "14"}], "}"}]], "Output"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"5", ",", "5", ",", "14", ",", "7"}], "}"}]], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["cK", "0"], ",", 
+       SubscriptBox["qcK", "0"], ",", 
+       SubscriptBox["qcK", "1"]}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["cK", "1"], ",", 
+       SubscriptBox["qcK", 
+        RowBox[{"1", ",", "alt"}]], ",", 
+       SubscriptBox["qcK", "2"]}], "}"}], ",", 
+     SubscriptBox["\[Sigma]", 
+      RowBox[{"K", ",", "val"}]]}], "}"}], "=", 
+   RowBox[{"MPOCompressTensors", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["K", "0"], ",", 
+       SubscriptBox["qK", "0"], ",", 
+       SubscriptBox["qK", "1"]}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["K", "1"], ",", 
+       SubscriptBox["qK", "1"], ",", 
+       SubscriptBox["qK", "2"]}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["qd", "0"], ",", 
+       SubscriptBox["qd", "1"]}], "}"}], ",", "0.02"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Dimensions", "[", 
+  SubscriptBox["cK", "0"], "]"}], "\[IndentingNewLine]", 
+ RowBox[{"Dimensions", "[", 
+  SubscriptBox["cK", "1"], "]"}]}], "Input"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"4", ",", "4", ",", "5", ",", "10"}], "}"}]], "Output"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"5", ",", "5", ",", "10", ",", "7"}], "}"}]], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"consistency", " ", "check"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"Norm", "[", 
+    RowBox[{
+     SubscriptBox["qcK", "0"], "-", 
+     SubscriptBox["qK", "0"]}], "]"}], "\[IndentingNewLine]", 
+   RowBox[{"Norm", "[", 
+    RowBox[{
+     SubscriptBox["qcK", "1"], "-", 
+     SubscriptBox["qcK", 
+      RowBox[{"1", ",", "alt"}]]}], "]"}], "\[IndentingNewLine]", 
+   RowBox[{"Norm", "[", 
+    RowBox[{
+     SubscriptBox["qcK", "2"], "-", 
+     SubscriptBox["qK", "2"]}], "]"}]}]}]], "Input"],
+
+Cell[BoxData["0"], "Output"],
+
+Cell[BoxData["0"], "Output"],
+
+Cell[BoxData["0"], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", "example", " ", "*)"}], "\[IndentingNewLine]", 
+  SubscriptBox["\[Sigma]", 
+   RowBox[{"K", ",", "val"}]]}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+  "4.756782906426508`", ",", "10.088597257987622`", ",", "8.33354112197053`", 
+   ",", "4.698085010718789`", ",", "7.882556927835047`", ",", 
+   "10.805500112558825`", ",", "8.177908455108158`", ",", 
+   "4.870331027612785`", ",", "5.071679712752171`", ",", 
+   "4.024141348772294`"}], "}"}]], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"norm", " ", "of", " ", "singular", " ", "values"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{"Norm", "[", 
+   SubscriptBox["\[Sigma]", 
+    RowBox[{"K", ",", "val"}]], "]"}]}]], "Input"],
+
+Cell[BoxData["22.963758071744884`"], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "von", " ", "Neumann", " ", "entropy", " ", "of", " ", "singular", " ", 
+    "values"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"NeumannEntropy", "[", 
+   SubscriptBox["\[Sigma]", 
+    RowBox[{"K", ",", "val"}]], "]"}]}]], "Input"],
+
+Cell[BoxData["2.093919636764969`"], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"check", ":", " ", 
+    RowBox[{
+     RowBox[{"entries", " ", "are", " ", "non"}], "-", 
+     RowBox[{
+     "zero", " ", "only", " ", "for", " ", "matching", " ", "quantum", " ", 
+      "numbers"}]}]}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"MPOBlockStructureError", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["cK", "0"], ",", 
+       SubscriptBox["qcK", "0"], ",", 
+       SubscriptBox["qcK", "1"]}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["qd", "0"], ",", 
+       SubscriptBox["qd", "0"]}], "}"}]}], "]"}], "\[IndentingNewLine]", 
+   RowBox[{"MPOBlockStructureError", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["cK", "1"], ",", 
+       SubscriptBox["qcK", "1"], ",", 
+       SubscriptBox["qcK", "2"]}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["qd", "1"], ",", 
+       SubscriptBox["qd", "1"]}], "}"}]}], "]"}]}]}]], "Input"],
+
+Cell[BoxData["0.`"], "Output"],
+
+Cell[BoxData["0.`"], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "merge", " ", "the", " ", "two", " ", "tensors", " ", "with", " ", 
+    "reduced", " ", "bond", " ", "dimension"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     SubscriptBox["cK", "pair"], "=", 
+     RowBox[{"MPOMergeTensors", "[", 
+      RowBox[{
+       RowBox[{
+        SubscriptBox["cK", "0"], ".", 
+        RowBox[{"DiagonalMatrix", "[", 
+         SubscriptBox["\[Sigma]", 
+          RowBox[{"K", ",", "val"}]], "]"}]}], ",", 
+       SubscriptBox["cK", "1"]}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{"Dimensions", "[", "%", "]"}]}]}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{"20", ",", "20", ",", "5", ",", "7"}], "}"}]], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "compressed", " ", "tensors", " ", "no", " ", "longer", " ", "exactly", 
+    " ", "reproduce", " ", "original", " ", "tensors", " ", "due", " ", "to", 
+    " ", "finite", " ", "tolerance"}], " ", "*)"}], "\[IndentingNewLine]", 
+  FractionBox[
+   RowBox[{"Norm", "[", 
+    RowBox[{"Flatten", "[", 
+     RowBox[{
+      RowBox[{"MPOMergeTensors", "[", 
+       RowBox[{
+        SubscriptBox["K", "0"], ",", 
+        SubscriptBox["K", "1"]}], "]"}], "-", 
+      SubscriptBox["cK", "pair"]}], "]"}], "]"}], 
+   RowBox[{"Norm", "[", 
+    RowBox[{"Flatten", "[", 
+     RowBox[{"MPOMergeTensors", "[", 
+      RowBox[{
+       SubscriptBox["K", "0"], ",", 
+       SubscriptBox["K", "1"]}], "]"}], "]"}], "]"}]]}]], "Input"],
+
+Cell[BoxData["0.138290715435202`"], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{
+   "save", " ", "tensors", " ", "as", " ", "reference", " ", "to", " ", 
+    "disk"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Table", "[", 
+     RowBox[{
+      RowBox[{"Export", "[", 
+       RowBox[{
+        RowBox[{
+         SubscriptBox["fn", "base"], "<>", "\"\<_K\>\"", "<>", 
+         RowBox[{"ToString", "[", "i", "]"}], "<>", "\"\<.dat\>\""}], ",", 
+        RowBox[{"ColumnMajorLayout", "[", 
+         SubscriptBox["K", "i"], "]"}], ",", "\"\<Complex128\>\""}], "]"}], 
+      ",", 
+      RowBox[{"{", 
+       RowBox[{"i", ",", "0", ",", "1"}], "}"}]}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Export", "[", 
+     RowBox[{
+      RowBox[{
+       SubscriptBox["fn", "base"], "<>", "\"\<_cK2.dat\>\""}], ",", 
+      RowBox[{"ColumnMajorLayout", "[", 
+       RowBox[{"ArrayReshape", "[", 
+        RowBox[{
+         SubscriptBox["cK", "pair"], ",", 
+         RowBox[{"{", 
+          RowBox[{
+           RowBox[{"Length", "[", 
+            SubscriptBox["qd", "0"], "]"}], ",", 
+           RowBox[{"Length", "[", 
+            SubscriptBox["qd", "1"], "]"}], ",", 
+           RowBox[{"Length", "[", 
+            SubscriptBox["qd", "0"], "]"}], ",", 
+           RowBox[{"Length", "[", 
+            SubscriptBox["qd", "1"], "]"}], ",", 
+           RowBox[{"Length", "[", 
+            SubscriptBox["qK", "0"], "]"}], ",", 
+           RowBox[{"Length", "[", 
+            SubscriptBox["qK", "2"], "]"}]}], "}"}]}], "]"}], "]"}], ",", 
+      "\"\<Complex128\>\""}], "]"}], ";"}]}]}]], "Input"],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"save", " ", "quantum", " ", "numbers", " ", "to", " ", "disk"}], 
+   " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"Table", "[", 
+     RowBox[{
+      RowBox[{"Export", "[", 
+       RowBox[{
+        RowBox[{
+         SubscriptBox["fn", "base"], "<>", "\"\<_qK\>\"", "<>", 
+         RowBox[{"ToString", "[", "i", "]"}], "<>", "\"\<.dat\>\""}], ",", 
+        SubscriptBox["qK", "i"], ",", "\"\<Integer32\>\""}], "]"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"i", ",", "0", ",", "2"}], "}"}]}], "]"}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"Export", "[", 
+     RowBox[{
+      RowBox[{
+       SubscriptBox["fn", "base"], "<>", "\"\<_qcK1.dat\>\""}], ",", 
+      SubscriptBox["qcK", "1"], ",", "\"\<Integer32\>\""}], "]"}], 
+    ";"}]}]}]], "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
 Cell["MPO composition", "Subsection"],
 
 Cell[CellGroupData[{
@@ -2321,47 +2725,95 @@ Cell[45252, 1507, 1124, 30, 52, "Input"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[46425, 1543, 37, 0, 43, "Subsection"],
+Cell[46425, 1543, 44, 0, 43, "Subsection"],
+Cell[46472, 1545, 1132, 34, 92, "Input"],
+Cell[47607, 1581, 1630, 50, 72, "Input"],
 Cell[CellGroupData[{
-Cell[46487, 1547, 2093, 56, 112, "Input"],
-Cell[48583, 1605, 537, 14, 31, "Output"]
-}, Open  ]],
-Cell[49135, 1622, 2671, 67, 152, "Input"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[51843, 1694, 46, 0, 43, "Subsection"],
-Cell[51892, 1696, 488, 15, 92, "Input"],
-Cell[52383, 1713, 1411, 46, 72, "Input"],
-Cell[CellGroupData[{
-Cell[53819, 1763, 85, 2, 31, "Input"],
-Cell[53907, 1767, 93, 2, 31, "Output"]
+Cell[49262, 1635, 173, 4, 52, "Input"],
+Cell[49438, 1641, 94, 2, 31, "Output"],
+Cell[49535, 1645, 94, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[54037, 1774, 85, 2, 31, "Input"],
-Cell[54125, 1778, 93, 2, 31, "Output"]
-}, Open  ]],
-Cell[54233, 1783, 2408, 74, 89, "Input"],
-Cell[CellGroupData[{
-Cell[56666, 1861, 167, 4, 52, "Input"],
-Cell[56836, 1867, 213, 6, 31, "Output"],
-Cell[57052, 1875, 213, 6, 31, "Output"]
-}, Open  ]],
-Cell[57280, 1884, 3243, 91, 95, "Input"],
-Cell[CellGroupData[{
-Cell[60548, 1979, 85, 2, 31, "Input"],
-Cell[60636, 1983, 94, 2, 31, "Output"]
+Cell[49666, 1652, 1190, 38, 74, "Input"],
+Cell[50859, 1692, 94, 2, 31, "Output"],
+Cell[50956, 1696, 94, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[60767, 1990, 85, 2, 31, "Input"],
-Cell[60855, 1994, 94, 2, 31, "Output"]
+Cell[51087, 1703, 569, 17, 95, "Input"],
+Cell[51659, 1722, 28, 0, 31, "Output"],
+Cell[51690, 1724, 28, 0, 31, "Output"],
+Cell[51721, 1726, 28, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[60986, 2001, 162, 4, 52, "Input"],
-Cell[61151, 2007, 1067, 19, 52, "Output"]
+Cell[51786, 1731, 163, 4, 52, "Input"],
+Cell[51952, 1737, 343, 7, 31, "Output"]
 }, Open  ]],
-Cell[62233, 2029, 668, 19, 52, "Input"],
-Cell[62904, 2050, 1310, 36, 52, "Input"],
-Cell[64217, 2088, 780, 22, 52, "Input"]
+Cell[CellGroupData[{
+Cell[52332, 1749, 253, 7, 52, "Input"],
+Cell[52588, 1758, 46, 0, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[52671, 1763, 300, 8, 52, "Input"],
+Cell[52974, 1773, 45, 0, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[53056, 1778, 1019, 31, 72, "Input"],
+Cell[54078, 1811, 30, 0, 31, "Output"],
+Cell[54111, 1813, 30, 0, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[54178, 1818, 657, 19, 72, "Input"],
+Cell[54838, 1839, 95, 2, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[54970, 1846, 773, 21, 70, "Input"],
+Cell[55746, 1869, 45, 0, 31, "Output"]
+}, Open  ]],
+Cell[55806, 1872, 1604, 44, 72, "Input"],
+Cell[57413, 1918, 850, 24, 72, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[58300, 1947, 37, 0, 43, "Subsection"],
+Cell[CellGroupData[{
+Cell[58362, 1951, 2093, 56, 112, "Input"],
+Cell[60458, 2009, 537, 14, 31, "Output"]
+}, Open  ]],
+Cell[61010, 2026, 2671, 67, 152, "Input"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[63718, 2098, 46, 0, 43, "Subsection"],
+Cell[63767, 2100, 488, 15, 92, "Input"],
+Cell[64258, 2117, 1411, 46, 72, "Input"],
+Cell[CellGroupData[{
+Cell[65694, 2167, 85, 2, 31, "Input"],
+Cell[65782, 2171, 93, 2, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[65912, 2178, 85, 2, 31, "Input"],
+Cell[66000, 2182, 93, 2, 31, "Output"]
+}, Open  ]],
+Cell[66108, 2187, 2408, 74, 89, "Input"],
+Cell[CellGroupData[{
+Cell[68541, 2265, 167, 4, 52, "Input"],
+Cell[68711, 2271, 213, 6, 31, "Output"],
+Cell[68927, 2279, 213, 6, 31, "Output"]
+}, Open  ]],
+Cell[69155, 2288, 3243, 91, 95, "Input"],
+Cell[CellGroupData[{
+Cell[72423, 2383, 85, 2, 31, "Input"],
+Cell[72511, 2387, 94, 2, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[72642, 2394, 85, 2, 31, "Input"],
+Cell[72730, 2398, 94, 2, 31, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[72861, 2405, 162, 4, 52, "Input"],
+Cell[73026, 2411, 1067, 19, 52, "Output"]
+}, Open  ]],
+Cell[74108, 2433, 668, 19, 52, "Input"],
+Cell[74779, 2454, 1310, 36, 52, "Input"],
+Cell[76092, 2492, 780, 22, 52, "Input"]
 }, Open  ]]
 }, Open  ]]
 }
@@ -2370,4 +2822,4 @@ Cell[64217, 2088, 780, 22, 52, "Input"]
 
 (* End of internal cache information *)
 
-(* NotebookSignature 6upd4NS4gJssCDg7fTumRu3r *)
+(* NotebookSignature CxpvL3x1Zfs8pAKXnTbUuH@7 *)

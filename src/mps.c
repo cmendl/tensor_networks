@@ -610,6 +610,14 @@ trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restric
 ///
 /// \brief Compress virtual bonds between tensors A0 and A1; qd0, qd1 are the physical quantum numbers of the two sites
 ///
+///              |                   |                         |                   |
+///          ____|____           ____|____                 ____|____           ____|____
+///         /    d0   \         /    d1   \               /    d0   \         /    d1   \
+///         |         |         |         |               |         |         |         |
+///      ---|D0 A0  D1|---   ---|D1 A1  D2|---   -->   ---|D0 A0' D1'---   ---|D1'A1' D2|---
+///         |         |         |         |               |         |         |         |
+///         \_________/         \_________/               \_________/         \_________/
+///
 trunc_info_t CompressMPSTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
 	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
