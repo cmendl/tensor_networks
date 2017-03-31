@@ -604,3 +604,86 @@ trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restric
 
 	return ti;
 }
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Compress virtual bonds between tensors A0 and A1; qd0, qd1 are the physical quantum numbers of the two sites
+///
+trunc_info_t CompressMPSTensors(tensor_t *restrict A0, tensor_t *restrict A1,
+	const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
+	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
+	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	qnumber_t *restrict *qA1compr)
+{
+	assert(A0->ndim == 3);
+	assert(A1->ndim == 3);
+
+	const size_t d0 = A0->dim[0];
+	const size_t d1 = A1->dim[0];
+
+	const size_t D0 = A0->dim[1];
+	const size_t D2 = A1->dim[2];
+
+	// compute quantum numbers of matrix representation
+	qnumber_t *q0 = (qnumber_t *)MKL_malloc(d0 * D0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q2 = (qnumber_t *)MKL_malloc(d1 * D2 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	size_t i, j;
+	// q0
+	for (j = 0; j < D0; j++)
+	{
+		for (i = 0; i < d0; i++)
+		{
+			q0[i + d0*j] = AddQuantumNumbers(qd0[i], qA0[j]);
+		}
+	}
+	// q2
+	for (j = 0; j < D2; j++)
+	{
+		for (i = 0; i < d1; i++)
+		{
+			q2[i + d1*j] = SubtractQuantumNumbers(qA2[j], qd1[i]);
+		}
+	}
+
+	tensor_t A1t;
+
+	// reshape (and transpose) A0 and A1 into matrices
+	// A0
+	{
+		const size_t dim[2] = { d0 * D0, A0->dim[2] };
+		ReshapeTensor(2, dim, A0);
+	}
+	// A1
+	{
+		const int perm[3] = { 1, 0, 2 };
+		TransposeTensor(perm, A1, &A1t);
+		DeleteTensor(A1);
+
+		const size_t dim[2] = { A1t.dim[0], A1t.dim[1] * A1t.dim[2] };
+		ReshapeTensor(2, dim, &A1t);
+	}
+
+	trunc_info_t ti = CompressVirtualBonds(A0, &A1t, q0, qA1, q2, svd_distr, tol, maxD, renormalize, qA1compr);
+
+	// reshape (and transpose) A0 and A1 back to restore original physical dimensions
+	// A0
+	{
+		const size_t dim[3] = { d0, D0, A0->dim[1] };
+		ReshapeTensor(3, dim, A0);
+	}
+	// A1
+	{
+		const size_t dim[3] = { A1t.dim[0], d1, D2 };
+		ReshapeTensor(3, dim, &A1t);
+
+		const int perm[3] = { 1, 0, 2 };
+		TransposeTensor(perm, &A1t, A1);
+	}
+
+	DeleteTensor(&A1t);
+	MKL_free(q2);
+	MKL_free(q0);
+
+	return ti;
+}

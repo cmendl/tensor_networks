@@ -54,5 +54,10 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond);
 
 
+trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
+	const qnumber_t *restrict q0, const qnumber_t *restrict q1, const qnumber_t *restrict q2,
+	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize, qnumber_t *restrict *q1compr);
+
+
 
 #endif

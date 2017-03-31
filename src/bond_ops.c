@@ -456,3 +456,33 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 
 	return ti;
 }
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief "Compress" shared dimension in matrix product A0.A1, taking quantum numbers into account;
+/// 'A0' and 'A1' matrices are overwritten
+///
+trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
+	const qnumber_t *restrict q0, const qnumber_t *restrict q1, const qnumber_t *restrict q2,
+	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize, qnumber_t *restrict *q1compr)
+{
+	assert(A0->ndim == 2);
+	assert(A1->ndim == 2);
+	assert(A0->dim[1] == A1->dim[0]);
+
+	// TODO: could use quantum number information to speed up matrix product
+	tensor_t A;
+	MultiplyTensor(A0, A1, 1, &A);
+	DeleteTensor(A0);
+	DeleteTensor(A1);
+
+	// avoid "unused parameter" warning
+	(void *)q1;
+
+	trunc_info_t ti = SplitMatrix(&A, q0, q2, svd_distr, tol, maxD, renormalize, A0, A1, q1compr);
+
+	DeleteTensor(&A);
+
+	return ti;
+}
