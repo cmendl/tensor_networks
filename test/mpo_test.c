@@ -513,6 +513,153 @@ int MPOTest()
 		DeleteTensor(&K0);
 	}
 
+	// compose MPO tensor pairs
+	{
+		const size_t d0 = 4;
+		const size_t d1 = 5;
+
+		int status;
+
+		tensor_t K0, K1;
+		{
+			const size_t dimK0[4] = { d0, d0, 5, 14 };
+			AllocateTensor(4, dimK0, &K0);
+			status = ReadData("../test/mpo_test_K0.dat", K0.data, sizeof(MKL_Complex16), NumTensorElements(&K0));
+			if (status < 0) { return status; }
+
+			const size_t dimK1[4] = { d1, d1, 14, 7 };
+			AllocateTensor(4, dimK1, &K1);
+			status = ReadData("../test/mpo_test_K1.dat", K1.data, sizeof(MKL_Complex16), NumTensorElements(&K1));
+			if (status < 0) { return status; }
+		}
+
+		tensor_t M0, M1;
+		{
+			const size_t dimM0[4] = { d0, d0, 6, 10 };
+			AllocateTensor(4, dimM0, &M0);
+			status = ReadData("../test/mpo_test_M0.dat", M0.data, sizeof(MKL_Complex16), NumTensorElements(&M0));
+			if (status < 0) { return status; }
+
+			const size_t dimM1[4] = { d1, d1, 10, 6 };
+			AllocateTensor(4, dimM1, &M1);
+			status = ReadData("../test/mpo_test_M1.dat", M1.data, sizeof(MKL_Complex16), NumTensorElements(&M1));
+			if (status < 0) { return status; }
+		}
+
+		// load quantum numbers from disk
+		// physical
+		qnumber_t *qd0 = (qnumber_t *)MKL_malloc(d0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qd1 = (qnumber_t *)MKL_malloc(d1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		status = ReadData("../test/mpo_test_qd0.dat", qd0, sizeof(qnumber_t), d0); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qd1.dat", qd1, sizeof(qnumber_t), d1); if (status < 0) { return status; }
+		// virtual
+		qnumber_t *qK0 = (qnumber_t *)MKL_malloc(K0.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qK1 = (qnumber_t *)MKL_malloc(K0.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qK2 = (qnumber_t *)MKL_malloc(K1.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qM0 = (qnumber_t *)MKL_malloc(M0.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qM1 = (qnumber_t *)MKL_malloc(M0.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qM2 = (qnumber_t *)MKL_malloc(M1.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		status = ReadData("../test/mpo_test_qK0.dat", qK0, sizeof(qnumber_t), K0.dim[2]); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qK1.dat", qK1, sizeof(qnumber_t), K0.dim[3]); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qK2.dat", qK2, sizeof(qnumber_t), K1.dim[3]); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qM0.dat", qM0, sizeof(qnumber_t), M0.dim[2]); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qM1.dat", qM1, sizeof(qnumber_t), M0.dim[3]); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qM2.dat", qM2, sizeof(qnumber_t), M1.dim[3]); if (status < 0) { return status; }
+
+		// compose tensor pairs
+		tensor_t P0, P1;
+		qnumber_t *qP0;
+		qnumber_t *qP1;
+		qnumber_t *qP2;
+		trunc_info_t ti = ComposeMPOTensorPairs(&K0, &K1, qK0, qK1, qK2, &M0, &M1, qM0, qM1, qM2, qd0, qd1, SVD_DISTR_SQRT, 0.05, INT32_MAX, false, &P0, &P1, &qP0, &qP1, &qP2);
+
+		// block structure error
+		const qnumber_t *qd0_pair[2] = { qd0, qd0 }; 
+		const qnumber_t *qd1_pair[2] = { qd1, qd1 }; 
+		err = fmax(err, BlockStructureError(&P0, qd0_pair, qP0, qP1));
+		err = fmax(err, BlockStructureError(&P1, qd1_pair, qP1, qP2));
+
+		// check virtual bond quantum numbers
+
+		// load reference quantum numbers from disk
+		const size_t D0_ref = 30;
+		const size_t D1_ref = 57;
+		const size_t D2_ref = 42;
+		qnumber_t *qP0_ref = (qnumber_t *)MKL_malloc(D0_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qP1_ref = (qnumber_t *)MKL_malloc(D1_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qP2_ref = (qnumber_t *)MKL_malloc(D2_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		status = ReadData("../test/mpo_test_qP0.dat", qP0_ref, sizeof(qnumber_t), D0_ref); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qP1.dat", qP1_ref, sizeof(qnumber_t), D1_ref); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qP2.dat", qP2_ref, sizeof(qnumber_t), D2_ref); if (status < 0) { return status; }
+
+		if (P0.dim[2] != D0_ref || P0.dim[3] != D1_ref || P1.dim[3] != D2_ref)
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			size_t j;
+			for (j = 0; j < D0_ref; j++) { err = fmax(err, (double)abs(qP0[j] - qP0_ref[j])); }
+			for (j = 0; j < D1_ref; j++) { err = fmax(err, (double)abs(qP1[j] - qP1_ref[j])); }
+			for (j = 0; j < D2_ref; j++) { err = fmax(err, (double)abs(qP2[j] - qP2_ref[j])); }
+		}
+		MKL_free(qP2_ref);
+		MKL_free(qP1_ref);
+		MKL_free(qP0_ref);
+
+		// norm and von Neumann entropy of singular values
+		{
+			const double nsigma_ref  = 29.932926894252983;
+			const double entropy_ref = 3.6956519290156757;
+
+			err = fmax(err, fabs(ti.nsigma  -  nsigma_ref) / nsigma_ref);
+			err = fmax(err, fabs(ti.entropy - entropy_ref) / entropy_ref);
+		}
+
+		// merge the two tensors, for comparison with reference
+		tensor_t P2mrg;
+		MergeMPOTensorPair(&P0, &P1, &P2mrg);
+
+		// check dimensions
+		if (P2mrg.ndim != 4 || P2mrg.dim[0] != d0*d1 || P2mrg.dim[1] != d0*d1 || P2mrg.dim[2] != D0_ref || P2mrg.dim[3] != D2_ref)
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// first few entries of reference tensor
+			const int n = 16384;
+			MKL_Complex16 *P2mrg_ref = (MKL_Complex16 *)MKL_malloc(n*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+			status = ReadData("../test/mpo_test_P2.dat", P2mrg_ref, sizeof(MKL_Complex16), n);
+			if (status < 0) { return status; }
+
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*n, (double *)P2mrg.data, (double *)P2mrg_ref));
+
+			MKL_free(P2mrg_ref);
+		}
+		DeleteTensor(&P2mrg);
+
+		// clean up
+		MKL_free(qP2);
+		MKL_free(qP1);
+		MKL_free(qP0);
+		MKL_free(qM2);
+		MKL_free(qM1);
+		MKL_free(qM0);
+		MKL_free(qK2);
+		MKL_free(qK1);
+		MKL_free(qK0);
+		MKL_free(qd1);
+		MKL_free(qd0);
+		DeleteTensor(&P1);
+		DeleteTensor(&P0);
+		DeleteTensor(&M1);
+		DeleteTensor(&M0);
+		DeleteTensor(&K1);
+		DeleteTensor(&K0);
+	}
+
 	// composition of MPOs
 	{
 		mpo_t XZ;

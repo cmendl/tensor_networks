@@ -795,6 +795,24 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Form all combinations (outer product) of quantum numbers
+///
+static void CombineQuantumNumbers(const size_t m, const size_t n, const qnumber_t *restrict q0, const qnumber_t *restrict q1, qnumber_t *restrict qC)
+{
+	size_t j;
+	for (j = 0; j < n; j++)
+	{
+		size_t i;
+		for (i = 0; i < m; i++)
+		{
+			qC[i + m*j] = AddQuantumNumbers(q0[i], q1[j]);
+		}
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Composition of local MPO tensors 'A' and 'B' along physical dimension
 ///
 static void ComposeMPOTensors(const tensor_t *restrict A, const tensor_t *restrict B, tensor_t *restrict ret)
@@ -829,19 +847,33 @@ static void ComposeMPOTensors(const tensor_t *restrict A, const tensor_t *restri
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Form all combinations (outer product) of quantum numbers
+/// \brief Composition of local MPO tensor pairs 'A0, A1' and 'B0, B1' along physical dimension
 ///
-static void CombineQuantumNumbers(const size_t m, const size_t n, const qnumber_t *restrict q0, const qnumber_t *restrict q1, qnumber_t *restrict qC)
+trunc_info_t ComposeMPOTensorPairs(
+	const tensor_t *restrict A0, const tensor_t *restrict A1, const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
+	const tensor_t *restrict B0, const tensor_t *restrict B1, const qnumber_t *restrict qB0, const qnumber_t *restrict qB1, const qnumber_t *restrict qB2,
+	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
+	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	tensor_t *restrict R0, tensor_t *restrict R1, qnumber_t *restrict *qR0, qnumber_t *restrict *qR1, qnumber_t *restrict *qR2)
 {
-	size_t j;
-	for (j = 0; j < n; j++)
-	{
-		size_t i;
-		for (i = 0; i < m; i++)
-		{
-			qC[i + m*j] = AddQuantumNumbers(q0[i], q1[j]);
-		}
-	}
+	ComposeMPOTensors(A0, B0, R0);
+	ComposeMPOTensors(A1, B1, R1);
+
+	// compute corresponding quantum numbers of virtual bonds
+	assert(A0->dim[3] == A1->dim[2]);
+	assert(B0->dim[3] == B1->dim[2]);
+	qnumber_t *qR1t;
+	(*qR0) = (qnumber_t *)MKL_malloc(A0->dim[2]*B0->dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	  qR1t = (qnumber_t *)MKL_malloc(A0->dim[3]*B0->dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	(*qR2) = (qnumber_t *)MKL_malloc(A1->dim[3]*B1->dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	CombineQuantumNumbers(A0->dim[2], B0->dim[2], qA0, qB0, (*qR0));
+	CombineQuantumNumbers(A0->dim[3], B0->dim[3], qA1, qB1,   qR1t);
+	CombineQuantumNumbers(A1->dim[3], B1->dim[3], qA2, qB2, (*qR2));
+
+	trunc_info_t ti = CompressMPOTensors(R0, R1, (*qR0), qR1t, (*qR2), qd0, qd1, svd_distr, tol, maxD, renormalize, qR1);
+	MKL_free(qR1t);
+
+	return ti;
 }
 
 
