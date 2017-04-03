@@ -32,25 +32,6 @@ static int makedir(const char *path)
 
 
 //________________________________________________________________________________________________________________________
-///
-/// \brief Extract virtual bond dimensions from a matrix product operator
-///
-static inline void GetVirtualBondDimensions(const mpo_t *mpo, size_t *D)
-{
-	const int L = mpo->L;
-
-	int i;
-	for (i = 0; i < L; i++)
-	{
-		assert(mpo->A[i].ndim == 4);
-		assert(i < L - 1 ? mpo->A[i].dim[3] == mpo->A[i+1].dim[2] : true);
-		D[i] = mpo->A[i].dim[2];
-	}
-	D[L] = mpo->A[L-1].dim[3];
-}
-
-
-//________________________________________________________________________________________________________________________
 //
 
 
@@ -150,7 +131,7 @@ int main(int argc, char *argv[])
 
 	// record virtual bond dimensions
 	size_t *D_beta = (size_t *)MKL_malloc((L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
-	GetVirtualBondDimensions(&rho_beta, D_beta);
+	MPOBondDims(&rho_beta, D_beta);
 
 	// record Frobenius norm
 	const double norm_rho = MPOFrobeniusNorm(&rho_beta);

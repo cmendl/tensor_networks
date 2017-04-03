@@ -32,25 +32,6 @@ static int makedir(const char *path)
 
 
 //________________________________________________________________________________________________________________________
-///
-/// \brief Extract virtual bond dimensions from a matrix product operator
-///
-static inline void GetVirtualBondDimensions(const mpo_t *mpo, size_t *D)
-{
-	const int L = mpo->L;
-
-	int i;
-	for (i = 0; i < L; i++)
-	{
-		assert(mpo->A[i].ndim == 4);
-		assert(i < L - 1 ? mpo->A[i].dim[3] == mpo->A[i+1].dim[2] : 1);
-		D[i] = mpo->A[i].dim[2];
-	}
-	D[L] = mpo->A[L-1].dim[3];
-}
-
-
-//________________________________________________________________________________________________________________________
 //
 
 
@@ -162,7 +143,7 @@ int main(int argc, char *argv[])
 		duprintf("imaginary time step %i / %i, beta = %g\n", n, nsteps - 1, n*params.dbeta);
 
 		// record virtual bond dimensions
-		GetVirtualBondDimensions(&rho, &D[n*(L + 1)]);
+		MPOBondDims(&rho, &D[n*(L + 1)]);
 
 		// record trace of exp(-beta H)
 		const double Z = ComplexReal(MPOTrace(&rho));

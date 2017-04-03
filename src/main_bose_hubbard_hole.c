@@ -32,25 +32,6 @@ static int makedir(const char *path)
 
 
 //________________________________________________________________________________________________________________________
-///
-/// \brief Extract virtual bond dimensions from a matrix product operator
-///
-static inline void GetVirtualBondDimensions(const mpo_t *mpo, size_t *D)
-{
-	const int L = mpo->L;
-
-	int i;
-	for (i = 0; i < L; i++)
-	{
-		assert(mpo->A[i].ndim == 4);
-		assert(i < L - 1 ? mpo->A[i].dim[3] == mpo->A[i+1].dim[2] : 1);
-		D[i] = mpo->A[i].dim[2];
-	}
-	D[L] = mpo->A[L-1].dim[3];
-}
-
-
-//________________________________________________________________________________________________________________________
 //
 
 
@@ -180,7 +161,7 @@ int main(int argc, char *argv[])
 
 		// record virtual bond dimensions
 		size_t *D_beta = (size_t *)MKL_malloc((L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
-		GetVirtualBondDimensions(&rho_beta, D_beta);
+		MPOBondDims(&rho_beta, D_beta);
 
 		// save effective tolerances and virtual bond dimensions to disk
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_beta.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_beta, sizeof(double), nsteps*(L - 1), false);
@@ -241,8 +222,8 @@ int main(int argc, char *argv[])
 	gfA[0] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &rho_beta));
 	gfB[0] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&rho_beta, &XB));
 	// initial virtual bond dimensions
-	GetVirtualBondDimensions(&XA, D_XA);
-	GetVirtualBondDimensions(&XB, D_XB);
+	MPOBondDims(&XA, D_XA);
+	MPOBondDims(&XB, D_XB);
 
 	int n;
 	for (n = 0; n < nsteps; n++)
@@ -258,8 +239,8 @@ int main(int argc, char *argv[])
 		gfB[n + 1] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&rho_beta, &XB));
 
 		// record virtual bond dimensions
-		GetVirtualBondDimensions(&XA, &D_XA[(n + 1)*(L + 1)]);
-		GetVirtualBondDimensions(&XB, &D_XB[(n + 1)*(L + 1)]);
+		MPOBondDims(&XA, &D_XA[(n + 1)*(L + 1)]);
+		MPOBondDims(&XB, &D_XB[(n + 1)*(L + 1)]);
 	}
 
 	duprintf("hole Green's function at t = %g: (%g, %g)\n", params.tmax, gf[nsteps].real, gf[nsteps].imag);

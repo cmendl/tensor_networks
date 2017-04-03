@@ -96,7 +96,7 @@ void CopyMPO(const mpo_t *restrict src, mpo_t *restrict dst)
 	dst->qD = (qnumber_t **)MKL_malloc((src->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
 	for (i = 0; i < src->L + 1; i++)
 	{
-		const size_t D = (i < src->L ? src->A[i].dim[2] : src->A[src->L-1].dim[3]);
+		const size_t D = MPOBondDim(src, i);
 		dst->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		memcpy(dst->qD[i], src->qD[i], D * sizeof(qnumber_t));
 	}
@@ -182,7 +182,7 @@ void TransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoT)
 	mpoT->qD = (qnumber_t **)MKL_malloc((mpo->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
 	for (i = 0; i < mpo->L + 1; i++)
 	{
-		const size_t D = (i < mpo->L ? mpo->A[i].dim[2] : mpo->A[mpo->L-1].dim[3]);
+		const size_t D = MPOBondDim(mpo, i);
 		mpoT->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		size_t j;
 		for (j = 0; j < D; j++)
@@ -228,7 +228,7 @@ void ConjugateTransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoH)
 	mpoH->qD = (qnumber_t **)MKL_malloc((mpo->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
 	for (i = 0; i < mpo->L + 1; i++)
 	{
-		const size_t D = (i < mpo->L ? mpo->A[i].dim[2] : mpo->A[mpo->L-1].dim[3]);
+		const size_t D = MPOBondDim(mpo, i);
 		mpoH->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		size_t j;
 		for (j = 0; j < D; j++)
@@ -652,10 +652,10 @@ void MPOAdd(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict Z)
 	// concatenate virtual bond quantum numbers
 	for (i = 0; i < L + 1; i++)
 	{
-		const size_t DX = (i < L ? X->A[i].dim[2] : X->A[L-1].dim[3]);
-		const size_t DY = (i < L ? Y->A[i].dim[2] : Y->A[L-1].dim[3]);
+		const size_t DX = MPOBondDim(X, i);
+		const size_t DY = MPOBondDim(Y, i);
 		#ifndef NDEBUG
-		const size_t DZ = (i < L ? Z->A[i].dim[2] : Z->A[L-1].dim[3]);
+		const size_t DZ = MPOBondDim(Z, i);
 		#endif
 		assert((0 == i || i == L) || (DZ == DX + DY));
 

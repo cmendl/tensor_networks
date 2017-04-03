@@ -37,6 +37,38 @@ void CreateIdentityMPO(const int L, const size_t d, mpo_t *restrict mpo);
 
 
 //________________________________________________________________________________________________________________________
+///
+/// \brief Dimension of i-th virtual bond
+///
+static inline size_t MPOBondDim(const mpo_t *restrict mpo, const int i)
+{
+	const int L = mpo->L;
+
+	assert(0 <= i && i <= L);
+
+	return (i < L ? mpo->A[i].dim[2] : mpo->A[L-1].dim[3]);
+}
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Extract all virtual bond dimensions
+///
+static inline void MPOBondDims(const mpo_t *restrict mpo, size_t *D)
+{
+	const int L = mpo->L;
+
+	int i;
+	for (i = 0; i < L; i++)
+	{
+		assert(mpo->A[i].ndim == 4);
+		assert(i < L - 1 ? mpo->A[i].dim[3] == mpo->A[i+1].dim[2] : true);
+		D[i] = mpo->A[i].dim[2];
+	}
+	D[L] = mpo->A[L-1].dim[3];
+}
+
+
+//________________________________________________________________________________________________________________________
 //
 
 

@@ -34,6 +34,20 @@ void CopyMPS(const mps_t *restrict src, mps_t *restrict dst);
 
 
 //________________________________________________________________________________________________________________________
+///
+/// \brief Dimension of i-th virtual bond
+///
+static inline size_t MPSBondDim(const mps_t *restrict mps, const int i)
+{
+	const int L = mps->L;
+
+	assert(0 <= i && i <= L);
+
+	return (i < L ? mps->A[i].dim[1] : mps->A[L-1].dim[2]);
+}
+
+
+//________________________________________________________________________________________________________________________
 //
 
 

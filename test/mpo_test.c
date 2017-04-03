@@ -119,9 +119,9 @@ int MPOTest()
 	for (i = 0; i < L + 1; i++)
 	{
 		// virtual bond dimension
-		const size_t DX = (i < L ? X.A[i].dim[2] : X.A[L-1].dim[3]);
-		const size_t DY = (i < L ? Y.A[i].dim[2] : Y.A[L-1].dim[3]);
-		const size_t DZ = (i < L ? Z.A[i].dim[2] : Z.A[L-1].dim[3]);
+		const size_t DX = MPOBondDim(&X, i);
+		const size_t DY = MPOBondDim(&Y, i);
+		const size_t DZ = MPOBondDim(&Z, i);
 
 		char filename[1024];
 		sprintf(filename, "../test/mpo_test_qA0_%i.dat", i);
@@ -790,7 +790,7 @@ int MPOTest()
 		// check virtual bond quantum numbers
 		for (i = 0; i < L + 1; i++)
 		{
-			const size_t D = (i < L ? ZX_ref.A[i].dim[2] : ZX_ref.A[L-1].dim[3]);
+			const size_t D = MPOBondDim(&ZX_ref, i);
 			size_t j;
 			for (j = 0; j < D; j++) {
 				err = fmax(err, (double)abs(ZX.qD[i][j] - ZX_ref.qD[i][j]));

@@ -89,7 +89,7 @@ void CopyMPS(const mps_t *restrict src, mps_t *restrict dst)
 	dst->qD = (qnumber_t **)MKL_malloc((src->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
 	for (i = 0; i < src->L + 1; i++)
 	{
-		const size_t D = (i < src->L ? src->A[i].dim[1] : src->A[src->L-1].dim[2]);
+		const size_t D = MPSBondDim(src, i);
 		dst->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		memcpy(dst->qD[i], src->qD[i], D * sizeof(qnumber_t));
 	}

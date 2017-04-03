@@ -32,25 +32,6 @@ static int makedir(const char *path)
 
 
 //________________________________________________________________________________________________________________________
-///
-/// \brief Extract virtual bond dimensions from a matrix product operator
-///
-static inline void GetVirtualBondDimensions(const mpo_t *mpo, size_t *D)
-{
-	const int L = mpo->L;
-
-	int i;
-	for (i = 0; i < L; i++)
-	{
-		assert(mpo->A[i].ndim == 4);
-		assert(i < L - 1 ? mpo->A[i].dim[3] == mpo->A[i+1].dim[2] : 1);
-		D[i] = mpo->A[i].dim[2];
-	}
-	D[L] = mpo->A[L-1].dim[3];
-}
-
-
-//________________________________________________________________________________________________________________________
 //
 
 
@@ -214,8 +195,8 @@ int main(int argc, char *argv[])
 	// response function at time t = 0
 	chi[0] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
 	// initial virtual bond dimensions
-	GetVirtualBondDimensions(&XA, D_XA);
-	GetVirtualBondDimensions(&XB, D_XB);
+	MPOBondDims(&XA, D_XA);
+	MPOBondDims(&XB, D_XB);
 
 	int n;
 	for (n = 0; n < nsteps; n++)
@@ -229,8 +210,8 @@ int main(int argc, char *argv[])
 		chi[n + 1] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
 
 		// record virtual bond dimensions
-		GetVirtualBondDimensions(&XA, &D_XA[(n + 1)*(L + 1)]);
-		GetVirtualBondDimensions(&XB, &D_XB[(n + 1)*(L + 1)]);
+		MPOBondDims(&XA, &D_XA[(n + 1)*(L + 1)]);
+		MPOBondDims(&XB, &D_XB[(n + 1)*(L + 1)]);
 	}
 
 	duprintf("chi at t = %g: (%g, %g)\n", params.tmax, chi[nsteps].real, chi[nsteps].imag);
