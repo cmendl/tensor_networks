@@ -50,26 +50,46 @@ int MPOTest()
 
 	printf("Testing MPO operations...\n");
 
-	const int L = 6;
+	const int L = 5;
+
+	const size_t d0 = 4;
+	const size_t d1 = 5;
+
+	// load physical quantum numbers from disk
+	qnumber_t *qd0 = (qnumber_t *)MKL_malloc(d0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *qd1 = (qnumber_t *)MKL_malloc(d1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	{
+		status = ReadData("../test/mpo_test_qd0.dat", qd0, sizeof(qnumber_t), d0); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_qd1.dat", qd1, sizeof(qnumber_t), d1); if (status < 0) { return status; }
+	}
 
 	// allocate 'X', 'Y' and 'Z' MPOs
 	mpo_t X;
 	{
-		const size_t d[] = { 3, 4 };
-		const size_t D[] = { 1, 5, 6, 4, 7, 4, 1 };
+		const size_t d[] = { d0, d1 };
+		const size_t D[] = { 1, 5, 9, 7, 4, 1 };
 		AllocateMPO(L, d, D, &X);
+
+		memcpy(X.qd[0], qd0, d0*sizeof(qnumber_t));
+		memcpy(X.qd[1], qd1, d1*sizeof(qnumber_t));
 	}
 	mpo_t Y;
 	{
-		const size_t d[] = { 4, 3 };
-		const size_t D[] = { 1, 5, 6, 4, 7, 4, 1 };
+		const size_t d[] = { d1, d0 };
+		const size_t D[] = { 1, 10, 6, 8, 7, 1 };
 		AllocateMPO(L, d, D, &Y);
+
+		memcpy(Y.qd[0], qd1, d1*sizeof(qnumber_t));
+		memcpy(Y.qd[1], qd0, d0*sizeof(qnumber_t));
 	}
 	mpo_t Z;
 	{
-		const size_t d[] = { 4, 4 };
-		const size_t D[] = { 1, 5, 6, 3, 7, 4, 1 };
+		const size_t d[] = { d0, d0 };
+		const size_t D[] = { 1, 5, 6, 7, 8, 1 };
 		AllocateMPO(L, d, D, &Z);
+
+		memcpy(Z.qd[0], qd0, d0*sizeof(qnumber_t));
+		memcpy(Z.qd[1], qd0, d0*sizeof(qnumber_t));
 	}
 
 	// load MPO tensors from disk
@@ -95,6 +115,30 @@ int MPOTest()
 		if (status < 0) { return status; }
 	}
 
+	// load virtual bond quantum numbers from disk
+	for (i = 0; i < L + 1; i++)
+	{
+		// virtual bond dimension
+		const size_t DX = (i < L ? X.A[i].dim[2] : X.A[L-1].dim[3]);
+		const size_t DY = (i < L ? Y.A[i].dim[2] : Y.A[L-1].dim[3]);
+		const size_t DZ = (i < L ? Z.A[i].dim[2] : Z.A[L-1].dim[3]);
+
+		char filename[1024];
+		sprintf(filename, "../test/mpo_test_qA0_%i.dat", i);
+		status = ReadData(filename, X.qD[i], sizeof(qnumber_t), DX); if (status < 0) { return status; }
+		sprintf(filename, "../test/mpo_test_qA1_%i.dat", i);
+		status = ReadData(filename, Y.qD[i], sizeof(qnumber_t), DY); if (status < 0) { return status; }
+		sprintf(filename, "../test/mpo_test_qB%i.dat", i);
+		status = ReadData(filename, Z.qD[i], sizeof(qnumber_t), DZ); if (status < 0) { return status; }
+
+		if (i > 0)
+		{
+			err = fmax(err, BlockStructureError(&X.A[i-1], (const qnumber_t *restrict *)X.qd, X.qD[i-1], X.qD[i]));
+			err = fmax(err, BlockStructureError(&Y.A[i-1], (const qnumber_t *restrict *)Y.qd, Y.qD[i-1], Y.qD[i]));
+			err = fmax(err, BlockStructureError(&Z.A[i-1], (const qnumber_t *restrict *)Z.qd, Z.qD[i-1], Z.qD[i]));
+		}
+	}
+
 	// allocate and load 'C' tensors
 	tensor_t C0, C1;
 	{
@@ -111,24 +155,35 @@ int MPOTest()
 		tensor_t Am;
 		MergeMPOFull(&X, &Am);
 
-		// first few entries of reference tensor
-		const int n = 1764;
-		MKL_Complex16 *Am_ref = (MKL_Complex16 *)MKL_malloc(n*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-		status = ReadData("../test/mpo_test_A_merged.dat", Am_ref, sizeof(MKL_Complex16), n);
-		if (status < 0) { return status; }
+		tensor_t Am_ref;
+		const size_t dim_ref[2] = { 1024, 3125 };
+		AllocateTensor(2, dim_ref, &Am_ref);
+		// non-zero entries of reference tensor
+		const size_t nnz = 9412;
+		MKL_Complex16 *val = (MKL_Complex16 *)MKL_malloc(nnz*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		uint64_t      *ind =      (uint64_t *)MKL_malloc(nnz*sizeof(uint64_t),      MEM_DATA_ALIGN);
+		status = ReadData("../test/mpo_test_A_merged_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
+		status = ReadData("../test/mpo_test_A_merged_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
+		size_t j;
+		for (j = 0; j < nnz; j++)
+		{
+			Am_ref.data[ind[j]] = val[j];
+		}
+		MKL_free(ind);
+		MKL_free(val);
 
 		// check dimensions
-		if (Am.ndim != 2 || Am.dim[0] != 729 || Am.dim[1] != 4096)
+		if (Am.ndim != 2 || Am.dim[0] != Am_ref.dim[0] || Am.dim[1] != Am_ref.dim[1])
 		{
 			err = fmax(err, 1);
 		}
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*n, (double *)Am.data, (double *)Am_ref));
+			err = fmax(err, UniformDistance(2*NumTensorElements(&Am_ref), (double *)Am.data, (double *)Am_ref.data));
 		}
 
-		MKL_free(Am_ref);
+		DeleteTensor(&Am_ref);
 		DeleteTensor(&Am);
 	}
 
@@ -137,8 +192,8 @@ int MPOTest()
 		size_t dim[2];
 
 		tensor_t R;
-		dim[0] = 4;
-		dim[1] = 4;
+		dim[0] = 8;
+		dim[1] = 7;
 		AllocateTensor(2, dim, &R);
 		status = ReadData("../test/mpo_test_R0.dat", R.data, sizeof(MKL_Complex16), NumTensorElements(&R));
 		if (status < 0) { return status; }
@@ -148,7 +203,7 @@ int MPOTest()
 		// reference tensor
 		tensor_t R_ref;
 		dim[0] = 6;
-		dim[1] = 6;
+		dim[1] = 9;
 		AllocateTensor(2, dim, &R_ref);
 		status = ReadData("../test/mpo_test_R1.dat", R_ref.data, sizeof(MKL_Complex16), NumTensorElements(&R_ref));
 		if (status < 0) { return status; }
@@ -172,7 +227,7 @@ int MPOTest()
 		MKL_Complex16 tr = MPOTrace(&Z);
 
 		// reference value
-		const MKL_Complex16 tr_ref = { -0.018380127839321195, 0.023927449138618842 };
+		const MKL_Complex16 tr_ref = { -0.06181116171457786, 0.41652782215072304 };
 
 		// relative error
 		err = fmax(err, ComplexAbs(ComplexSubtract(tr, tr_ref)) / ComplexAbs(tr_ref));
@@ -183,7 +238,7 @@ int MPOTest()
 		MKL_Complex16 tr = MPOTraceProduct(&X, &Y);
 
 		// reference value
-		const MKL_Complex16 tr_ref = { -0.002196494532973509, -0.0006521869447454243 };
+		const MKL_Complex16 tr_ref = { 0.0034089965364192724, 0.0010843561394613549 };
 
 		// relative error
 		err = fmax(err, ComplexAbs(ComplexSubtract(tr, tr_ref)) / ComplexAbs(tr_ref));
@@ -194,7 +249,7 @@ int MPOTest()
 		double nF = MPOFrobeniusNorm(&X);
 
 		// reference value
-		const double nF_ref = 1.891276051987931;
+		const double nF_ref = 1.3400324621941806;
 
 		// relative error
 		err = fmax(err, fabs(nF - nF_ref) / nF_ref);
@@ -203,12 +258,12 @@ int MPOTest()
 	// trace of tensor quad-product
 	{
 		mpo_t F[4];
-		const size_t d[5] = { 3, 5, 4, 2, 3 };
+		const size_t d[5] = { 3, 6, 4, 2, 3 };
 		const size_t D[4][7] = {
-			{ 1, 5, 6, 4, 7, 4, 1 },
-			{ 1, 6, 2, 7, 8, 5, 1 },
-			{ 1, 5, 6, 7, 3, 4, 1 },
-			{ 1, 5, 7, 3, 1, 4, 1 }
+			{ 1, 5, 6, 4, 7, 1 },
+			{ 1, 6, 2, 7, 5, 1 },
+			{ 1, 5, 6, 7, 3, 1 },
+			{ 1, 5, 7, 1, 3, 1 }
 		};
 		int j;
 		for (j = 0; j < 4; j++)
@@ -227,7 +282,7 @@ int MPOTest()
 		const MKL_Complex16 tr = MPOTraceQuadProduct(&F[0], &F[1], &F[2], &F[3]);
 
 		// reference value
-		const MKL_Complex16 tr_ref = { -0.23230111591311567, 0.04966814423773235 };
+		const MKL_Complex16 tr_ref = { -0.18256141240166204, -0.03934545059094635 };
 
 		// relative error
 		err = fmax(err, ComplexAbs(ComplexSubtract(tr, tr_ref)) / ComplexAbs(tr_ref));
@@ -241,11 +296,6 @@ int MPOTest()
 
 	// split a MPO tensor
 	{
-		const size_t d0 = 4;
-		const size_t d1 = 5;
-
-		int status;
-
 		tensor_t G2;
 		{
 			const size_t dim[4] = { d0 * d1, d0 * d1, 13, 11 };
@@ -254,13 +304,7 @@ int MPOTest()
 			if (status < 0) { return status; }
 		}
 
-		// load quantum numbers from disk
-		// physical
-		qnumber_t *qd0 = (qnumber_t *)MKL_malloc(d0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qd1 = (qnumber_t *)MKL_malloc(d1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		status = ReadData("../test/mpo_test_qd0.dat", qd0, sizeof(qnumber_t), d0); if (status < 0) { return status; }
-		status = ReadData("../test/mpo_test_qd1.dat", qd1, sizeof(qnumber_t), d1); if (status < 0) { return status; }
-		// virtual
+		// load virtual quantum numbers from disk
 		qnumber_t *qG0 = (qnumber_t *)MKL_malloc(G2.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		qnumber_t *qG2 = (qnumber_t *)MKL_malloc(G2.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		status = ReadData("../test/mpo_test_qG0.dat", qG0, sizeof(qnumber_t), G2.dim[2]); if (status < 0) { return status; }
@@ -382,7 +426,6 @@ int MPOTest()
 				{
 					const size_t dim[4] = { G2.dim[0], G2.dim[1], G2.dim[2], G2.dim[3] };
 					AllocateTensor(4, dim, &G2mrg_ref);
-					int status;
 					status = ReadData("../test/mpo_test_G2_red.dat", G2mrg_ref.data, sizeof(MKL_Complex16), NumTensorElements(&G2mrg_ref));
 					if (status < 0) { return status; }
 				}
@@ -398,8 +441,6 @@ int MPOTest()
 			DeleteTensor(&G0);
 		}
 
-		MKL_free(qd0);
-		MKL_free(qd1);
 		MKL_free(qG0);
 		MKL_free(qG2);
 		DeleteTensor(&G2);
@@ -407,11 +448,6 @@ int MPOTest()
 
 	// compress virtual bonds
 	{
-		const size_t d0 = 4;
-		const size_t d1 = 5;
-
-		int status;
-
 		tensor_t K0, K1;
 		{
 			const size_t dimK0[4] = { d0, d0, 5, 14 };
@@ -425,13 +461,7 @@ int MPOTest()
 			if (status < 0) { return status; }
 		}
 
-		// load quantum numbers from disk
-		// physical
-		qnumber_t *qd0 = (qnumber_t *)MKL_malloc(d0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qd1 = (qnumber_t *)MKL_malloc(d1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		status = ReadData("../test/mpo_test_qd0.dat", qd0, sizeof(qnumber_t), d0); if (status < 0) { return status; }
-		status = ReadData("../test/mpo_test_qd1.dat", qd1, sizeof(qnumber_t), d1); if (status < 0) { return status; }
-		// virtual
+		// load virtual quantum numbers from disk
 		qnumber_t *qK0 = (qnumber_t *)MKL_malloc(K0.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		qnumber_t *qK1 = (qnumber_t *)MKL_malloc(K0.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		qnumber_t *qK2 = (qnumber_t *)MKL_malloc(K1.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
@@ -491,7 +521,6 @@ int MPOTest()
 			tensor_t K2mrg_ref;
 			{
 				AllocateTensor(4, K2mrg.dim, &K2mrg_ref);
-				int status;
 				status = ReadData("../test/mpo_test_cK2.dat", K2mrg_ref.data, sizeof(MKL_Complex16), NumTensorElements(&K2mrg_ref));
 				if (status < 0) { return status; }
 			}
@@ -507,19 +536,12 @@ int MPOTest()
 		MKL_free(qK2);
 		MKL_free(qcK1);
 		MKL_free(qK0);
-		MKL_free(qd1);
-		MKL_free(qd0);
 		DeleteTensor(&K1);
 		DeleteTensor(&K0);
 	}
 
 	// compose MPO tensor pairs
 	{
-		const size_t d0 = 4;
-		const size_t d1 = 5;
-
-		int status;
-
 		tensor_t K0, K1;
 		{
 			const size_t dimK0[4] = { d0, d0, 5, 14 };
@@ -546,13 +568,7 @@ int MPOTest()
 			if (status < 0) { return status; }
 		}
 
-		// load quantum numbers from disk
-		// physical
-		qnumber_t *qd0 = (qnumber_t *)MKL_malloc(d0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qd1 = (qnumber_t *)MKL_malloc(d1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		status = ReadData("../test/mpo_test_qd0.dat", qd0, sizeof(qnumber_t), d0); if (status < 0) { return status; }
-		status = ReadData("../test/mpo_test_qd1.dat", qd1, sizeof(qnumber_t), d1); if (status < 0) { return status; }
-		// virtual
+		// load virtual quantum numbers from disk
 		qnumber_t *qK0 = (qnumber_t *)MKL_malloc(K0.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		qnumber_t *qK1 = (qnumber_t *)MKL_malloc(K0.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		qnumber_t *qK2 = (qnumber_t *)MKL_malloc(K1.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
@@ -650,8 +666,6 @@ int MPOTest()
 		MKL_free(qK2);
 		MKL_free(qK1);
 		MKL_free(qK0);
-		MKL_free(qd1);
-		MKL_free(qd0);
 		DeleteTensor(&P1);
 		DeleteTensor(&P0);
 		DeleteTensor(&M1);
@@ -662,38 +676,65 @@ int MPOTest()
 
 	// composition of MPOs
 	{
-		mpo_t XZ;
-		MPOComposition(&X, &Z, &XZ);
+		mpo_t ZX;
+		MPOComposition(&Z, &X, &ZX);
 
 		// allocate and load reference tensors from disk
-		mpo_t XZ_ref;
-		const size_t d[] = { 3, 4 };
-		const size_t D[] = { 1, 25, 36, 12, 49, 16, 1 };
-		AllocateMPO(L, d, D, &XZ_ref);
+		mpo_t ZX_ref;
+		const size_t d[] = { d0, d1 };
+		const size_t D[] = { 1, 25, 54, 49, 32, 1 };
+		AllocateMPO(L, d, D, &ZX_ref);
 		for (i = 0; i < L; i++)
 		{
 			char filename[1024];
-			sprintf(filename, "../test/mpo_test_A0B_%i.dat", i);
-			status = ReadData(filename, XZ_ref.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XZ_ref.A[i]));
+			sprintf(filename, "../test/mpo_test_BA0_%i.dat", i);
+			status = ReadData(filename, ZX_ref.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&ZX_ref.A[i]));
 			if (status < 0) { return status; }
 		}
 
-		// compare
+		memcpy(ZX_ref.qd[0], qd0, d0*sizeof(qnumber_t));
+		memcpy(ZX_ref.qd[1], qd1, d1*sizeof(qnumber_t));
+
+		// load virtual bond quantum numbers from disk
+		for (i = 0; i < L + 1; i++)
+		{
+			char filename[1024];
+			sprintf(filename, "../test/mpo_test_qBA0_%i.dat", i);
+			status = ReadData(filename, ZX_ref.qD[i], sizeof(qnumber_t), D[i]);
+			if (status < 0) { return status; }
+
+			if (i > 0)
+			{
+				err = fmax(err, BlockStructureError(&ZX_ref.A[i-1], (const qnumber_t *restrict *)ZX_ref.qd, ZX_ref.qD[i-1], ZX_ref.qD[i]));
+			}
+		}
+
+		// compare matrix entries
 		for (i = 0; i < L; i++)
 		{
-			if (XZ.A[i].dim[0] != XZ_ref.A[i].dim[0] || XZ.A[i].dim[1] != XZ_ref.A[i].dim[1] || XZ.A[i].dim[2] != XZ_ref.A[i].dim[2] || XZ.A[i].dim[3] != XZ_ref.A[i].dim[3])
+			if (ZX.A[i].dim[0] != ZX_ref.A[i].dim[0] || ZX.A[i].dim[1] != ZX_ref.A[i].dim[1] || ZX.A[i].dim[2] != ZX_ref.A[i].dim[2] || ZX.A[i].dim[3] != ZX_ref.A[i].dim[3])
 			{
 				err = fmax(err, 1);
 			}
 			else
 			{
 				// largest entrywise error
-				err = fmax(err, UniformDistance(2*NumTensorElements(&XZ_ref.A[i]), (double *)XZ.A[i].data, (double *)XZ_ref.A[i].data));
+				err = fmax(err, UniformDistance(2*NumTensorElements(&ZX_ref.A[i]), (double *)ZX.A[i].data, (double *)ZX_ref.A[i].data));
 			}
 		}
 
-		DeleteMPO(&XZ_ref);
-		DeleteMPO(&XZ);
+		// check virtual bond quantum numbers
+		for (i = 0; i < L + 1; i++)
+		{
+			const size_t D = (i < L ? ZX_ref.A[i].dim[2] : ZX_ref.A[L-1].dim[3]);
+			size_t j;
+			for (j = 0; j < D; j++) {
+				err = fmax(err, (double)abs(ZX.qD[i][j] - ZX_ref.qD[i][j]));
+			}
+		}
+
+		DeleteMPO(&ZX_ref);
+		DeleteMPO(&ZX);
 	}
 
 	// apply two-site operators
@@ -763,6 +804,8 @@ int MPOTest()
 	DeleteMPO(&Z);
 	DeleteMPO(&Y);
 	DeleteMPO(&X);
+	MKL_free(qd0);
+	MKL_free(qd1);
 
 	return (err < 2e-14 ? 0 : 1);
 }
