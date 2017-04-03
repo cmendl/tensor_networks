@@ -37,6 +37,16 @@ inline qnumber_t SubtractQuantumNumbers(const qnumber_t q0, const qnumber_t q1)
 
 
 //________________________________________________________________________________________________________________________
+///
+/// \brief Flip the sign of a quantum number
+///
+inline qnumber_t NegateQuantumNumber(const qnumber_t q)
+{
+	return -q;
+}
+
+
+//________________________________________________________________________________________________________________________
 //
 
 

@@ -156,21 +156,24 @@ int MPOTest()
 		MergeMPOFull(&X, &Am);
 
 		tensor_t Am_ref;
-		const size_t dim_ref[2] = { 1024, 3125 };
-		AllocateTensor(2, dim_ref, &Am_ref);
-		// non-zero entries of reference tensor
-		const size_t nnz = 9412;
-		MKL_Complex16 *val = (MKL_Complex16 *)MKL_malloc(nnz*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-		uint64_t      *ind =      (uint64_t *)MKL_malloc(nnz*sizeof(uint64_t),      MEM_DATA_ALIGN);
-		status = ReadData("../test/mpo_test_A_merged_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
-		status = ReadData("../test/mpo_test_A_merged_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
-		size_t j;
-		for (j = 0; j < nnz; j++)
 		{
-			Am_ref.data[ind[j]] = val[j];
+			const size_t dim_ref[2] = { 1024, 3125 };
+			AllocateTensor(2, dim_ref, &Am_ref);
+
+			// non-zero entries of reference tensor
+			const size_t nnz = 9412;
+			MKL_Complex16 *val = (MKL_Complex16 *)MKL_malloc(nnz*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+			uint64_t      *ind =      (uint64_t *)MKL_malloc(nnz*sizeof(uint64_t),      MEM_DATA_ALIGN);
+			status = ReadData("../test/mpo_test_A_merged_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
+			status = ReadData("../test/mpo_test_A_merged_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
+			size_t j;
+			for (j = 0; j < nnz; j++)
+			{
+				Am_ref.data[ind[j]] = val[j];
+			}
+			MKL_free(ind);
+			MKL_free(val);
 		}
-		MKL_free(ind);
-		MKL_free(val);
 
 		// check dimensions
 		if (Am.ndim != 2 || Am.dim[0] != Am_ref.dim[0] || Am.dim[1] != Am_ref.dim[1])
@@ -292,6 +295,67 @@ int MPOTest()
 		{
 			DeleteMPO(&F[j]);
 		}
+	}
+
+	// add two MPOs
+	{
+		mpo_t Yh;
+		ConjugateTransposeMPO(&Y, &Yh);
+
+		for (i = 0; i < L; i++)
+		{
+			err = fmax(err, BlockStructureError(&Yh.A[i], (const qnumber_t *restrict *)Yh.qd, Yh.qD[i], Yh.qD[i+1]));
+		}
+
+		// perform addition using MPO representation
+		mpo_t XYh;
+		MPOAdd(&X, &Yh, &XYh);
+
+		for (i = 0; i < L; i++)
+		{
+			err = fmax(err, BlockStructureError(&XYh.A[i], (const qnumber_t *restrict *)XYh.qd, XYh.qD[i], XYh.qD[i+1]));
+		}
+
+		// representation on full Hilbert space, for comparison with reference
+		tensor_t XYhm;
+		MergeMPOFull(&XYh, &XYhm);
+
+		// load reference data from disk
+		tensor_t XYhm_ref;
+		{
+			const size_t dim_ref[2] = { 1024, 3125 };
+			AllocateTensor(2, dim_ref, &XYhm_ref);
+
+			// non-zero entries of reference tensor
+			const size_t nnz = 75233;
+			MKL_Complex16 *val = (MKL_Complex16 *)MKL_malloc(nnz*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+			uint64_t      *ind =      (uint64_t *)MKL_malloc(nnz*sizeof(uint64_t),      MEM_DATA_ALIGN);
+			status = ReadData("../test/mpo_test_Asum_merged_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
+			status = ReadData("../test/mpo_test_Asum_merged_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
+			size_t j;
+			for (j = 0; j < nnz; j++)
+			{
+				XYhm_ref.data[ind[j]] = val[j];
+			}
+			MKL_free(ind);
+			MKL_free(val);
+		}
+
+		// check dimensions
+		if (XYhm.ndim != 2 || XYhm.dim[0] != XYhm_ref.dim[0] || XYhm.dim[1] != XYhm_ref.dim[1])
+		{
+			err = fmax(err, 1);
+		}
+		else
+		{
+			// largest entrywise error
+			err = fmax(err, UniformDistance(2*NumTensorElements(&XYhm_ref), (double *)XYhm.data, (double *)XYhm_ref.data));
+		}
+
+		DeleteTensor(&XYhm_ref);
+		DeleteTensor(&XYhm);
+		DeleteMPO(&XYh);
+		DeleteMPO(&Yh);
 	}
 
 	// split a MPO tensor

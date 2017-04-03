@@ -81,6 +81,13 @@ MKL_Complex16 MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict
 //
 
 
+void MPOAdd(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict Z);
+
+
+//________________________________________________________________________________________________________________________
+//
+
+
 trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restrict qA0, const qnumber_t *restrict qA2,
 	const size_t d0, const size_t d1, const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
 	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,

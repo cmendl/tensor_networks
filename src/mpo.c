@@ -178,13 +178,17 @@ void TransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoT)
 	mpoT->qd[1] = (qnumber_t *)MKL_malloc(mpo->d[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
 	memcpy(mpoT->qd[0], mpo->qd[1], mpo->d[1] * sizeof(qnumber_t));
 	memcpy(mpoT->qd[1], mpo->qd[0], mpo->d[0] * sizeof(qnumber_t));
-	// copy virtual bond quantum numbers
+	// flip signs of virtual bond quantum numbers
 	mpoT->qD = (qnumber_t **)MKL_malloc((mpo->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
 	for (i = 0; i < mpo->L + 1; i++)
 	{
 		const size_t D = (i < mpo->L ? mpo->A[i].dim[2] : mpo->A[mpo->L-1].dim[3]);
 		mpoT->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		memcpy(mpoT->qD[i], mpo->qD[i], D * sizeof(qnumber_t));
+		size_t j;
+		for (j = 0; j < D; j++)
+		{
+			mpoT->qD[i][j] = NegateQuantumNumber(mpo->qD[i][j]);
+		}
 	}
 }
 
@@ -220,13 +224,17 @@ void ConjugateTransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoH)
 	mpoH->qd[1] = (qnumber_t *)MKL_malloc(mpo->d[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
 	memcpy(mpoH->qd[0], mpo->qd[1], mpo->d[1] * sizeof(qnumber_t));
 	memcpy(mpoH->qd[1], mpo->qd[0], mpo->d[0] * sizeof(qnumber_t));
-	// copy virtual bond quantum numbers
+	// flip signs of virtual bond quantum numbers
 	mpoH->qD = (qnumber_t **)MKL_malloc((mpo->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
 	for (i = 0; i < mpo->L + 1; i++)
 	{
 		const size_t D = (i < mpo->L ? mpo->A[i].dim[2] : mpo->A[mpo->L-1].dim[3]);
 		mpoH->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		memcpy(mpoH->qD[i], mpo->qD[i], D * sizeof(qnumber_t));
+		size_t j;
+		for (j = 0; j < D; j++)
+		{
+			mpoH->qD[i][j] = NegateQuantumNumber(mpo->qD[i][j]);
+		}
 	}
 }
 
@@ -564,6 +572,104 @@ MKL_Complex16 MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict
 	DeleteTensor(&R);
 
 	return tr;
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Add two MPOs: Z = X + Y
+///
+void MPOAdd(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict Z)
+{
+	// dimensions must be compatible
+	assert(X->L == Y->L);
+	assert(X->d[0] == Y->d[0]);
+	assert(X->d[1] == Y->d[1]);
+
+	const int L = X->L;
+	assert(L >= 1);
+
+	const size_t d[2] = { X->d[0], X->d[1] };
+
+	int i;
+
+	// add virtual bond dimensions, except for first and last virtual bond with dimension 1
+	size_t *D = (size_t *)MKL_malloc((L + 1)*sizeof(size_t), MEM_DATA_ALIGN);
+	// leftmost (dummy) virtual bond
+	{
+		assert(X->A[0].dim[2] == 1);
+		assert(Y->A[0].dim[2] == 1);
+		D[0] = 1;
+	}
+	for (i = 1; i < L; i++)
+	{
+		D[i] = X->A[i].dim[2] + Y->A[i].dim[2];
+	}
+	// rightmost (dummy) virtual bond
+	{
+		assert(X->A[L-1].dim[3] == 1);
+		assert(Y->A[L-1].dim[3] == 1);
+		D[L] = 1;
+	}
+
+	AllocateMPO(L, d, D, Z);
+	MKL_free(D);
+
+	// store tensors in X and Y as diagonal blocks in output tensors
+	for (i = 0; i < L; i++)
+	{
+		const size_t DX0 = X->A[i].dim[2];
+		const size_t DX1 = X->A[i].dim[3];
+		const size_t DY0 = Y->A[i].dim[2];
+		const size_t DY1 = Y->A[i].dim[3];
+		const size_t DZ0 = Z->A[i].dim[2];
+		// dummy virtual bond dimensions on the left and right ends must be 1
+		assert(i > 0   || (DX0 == 1 && DY0 == 1 && DZ0 == 1));
+		assert(i < L-1 || (DX1 == 1 && DY1 == 1));
+
+		// leading dimensions
+		const size_t ldX = d[0]*d[1] * DX0;
+		const size_t ldY = d[0]*d[1] * DY0;
+		const size_t ldZ = d[0]*d[1] * DZ0;
+
+		size_t j;
+		for (j = 0; j < DX1; j++)
+		{
+			memcpy(&Z->A[i].data[ldZ*j], &X->A[i].data[ldX*j], ldX*sizeof(MKL_Complex16));
+		}
+		for (j = 0; j < DY1; j++)
+		{
+			const size_t offset0 = (i == 0   ? 0 : ldX);
+			const size_t offsetL = (i == L-1 ? 0 : DX1);
+			memcpy(&Z->A[i].data[offset0 + ldZ*(offsetL + j)], &Y->A[i].data[ldY*j], ldY*sizeof(MKL_Complex16));
+		}
+	}
+
+	// copy physical quantum numbers (must agree with quantum numbers stored in Y)
+	memcpy(Z->qd[0], X->qd[0], X->d[0] * sizeof(qnumber_t));
+	memcpy(Z->qd[1], X->qd[1], X->d[1] * sizeof(qnumber_t));
+
+	// concatenate virtual bond quantum numbers
+	for (i = 0; i < L + 1; i++)
+	{
+		const size_t DX = (i < L ? X->A[i].dim[2] : X->A[L-1].dim[3]);
+		const size_t DY = (i < L ? Y->A[i].dim[2] : Y->A[L-1].dim[3]);
+		#ifndef NDEBUG
+		const size_t DZ = (i < L ? Z->A[i].dim[2] : Z->A[L-1].dim[3]);
+		#endif
+		assert((0 == i || i == L) || (DZ == DX + DY));
+
+		memcpy(Z->qD[i], X->qD[i], DX * sizeof(qnumber_t));
+		if (0 < i && i < L)
+		{
+			memcpy(Z->qD[i] + DX, Y->qD[i], DY * sizeof(qnumber_t));
+		}
+		else
+		{
+			assert(DX == 1 && DY == 1 && DZ == 1);
+			assert(Y->qD[i][0] == X->qD[i][0]);
+		}
+	}
 }
 
 
