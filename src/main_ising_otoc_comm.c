@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 		return -5;
 	}
 
-	duprintf("Computing OTOCs for the Ising model on a chain with parameters:\n");
+	duprintf("Computing OTOC commutators for the Ising model on a chain with parameters:\n");
 	duprintf("            lattice size L: %i\n", params.L);
 	duprintf("       J coupling constant: %g\n", params.J);
 	duprintf(" magnetic field strength h: %g\n", params.hext);
@@ -348,10 +348,9 @@ int main(int argc, char *argv[])
 
 	duprintf("\nStarting time evolution...\n");
 
-	// time-evolve two MPOs
-	mpo_t XA, XB;
-	MPOComposition(&exp_betaH, &op, &XA);
-	CopyMPO(&op, &XB);
+	// time-evolve W(t) MPO
+	mpo_t XW;
+	CopyMPO(&op, &XW);
 
 	// compute dynamics data for time evolution
 	dynamics_data_t dyn_time;
@@ -371,19 +370,16 @@ int main(int argc, char *argv[])
 	MKL_Complex16 *gf   = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 
 	// effective tolerance (truncation weight)
-	double *tol_eff_A = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
-	double *tol_eff_B = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+	double *tol_eff_W = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
 
 	// record virtual bond dimensions
-	size_t *D_XA = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
-	size_t *D_XB = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *D_XW = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
 
 	int nstart = 0;
 
 	if (params.save_tensors)
 	{
-		sprintf(filename, "%s/ising_L%i_XA", argv[5], L); makedir(filename);
-		sprintf(filename, "%s/ising_L%i_XB", argv[5], L); makedir(filename);
+		sprintf(filename, "%s/ising_L%i_XW", argv[5], L); makedir(filename);
 
 		// try to open 'n_step' file if it exists, to continue simulation after previous checkpoint
 		duprintf("Trying to read 'n_step' file...\n");
@@ -396,26 +392,22 @@ int main(int argc, char *argv[])
 			// read intermediate results from disk
 			sprintf(filename, "%s/ising_L%i_otoc_tmp.dat",      argv[5], L); status = ReadData(filename, otoc,      sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
 			sprintf(filename, "%s/ising_L%i_gf_tmp.dat",        argv[5], L); status = ReadData(filename, gf,        sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
-			sprintf(filename, "%s/ising_L%i_DXA_tmp.dat",       argv[5], L); status = ReadData(filename, D_XA,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
-			sprintf(filename, "%s/ising_L%i_DXB_tmp.dat",       argv[5], L); status = ReadData(filename, D_XB,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
-			sprintf(filename, "%s/ising_L%i_tol_eff_A_tmp.dat", argv[5], L); status = ReadData(filename, tol_eff_A, sizeof(double),  nstart     *(L - 1));  if (status < 0) { return status; }
-			sprintf(filename, "%s/ising_L%i_tol_eff_B_tmp.dat", argv[5], L); status = ReadData(filename, tol_eff_B, sizeof(double),  nstart     *(L - 1));  if (status < 0) { return status; }
+			sprintf(filename, "%s/ising_L%i_DXW_tmp.dat",       argv[5], L); status = ReadData(filename, D_XW,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
+			sprintf(filename, "%s/ising_L%i_tol_eff_W_tmp.dat", argv[5], L); status = ReadData(filename, tol_eff_W, sizeof(double),  nstart     *(L - 1));  if (status < 0) { return status; }
 
 			// re-allocate and fill MPOs
-			DeleteMPO(&XB);
-			DeleteMPO(&XA);
+			DeleteMPO(&XW);
 			const size_t dim[2] = { 2, 2 };
-			AllocateMPO(L, dim, &D_XA[nstart*(L + 1)], &XA);
-			AllocateMPO(L, dim, &D_XB[nstart*(L + 1)], &XB);
+			AllocateMPO(L, dim, &D_XW[nstart*(L + 1)], &XW);
 			for (i = 0; i < L; i++)
 			{
-				sprintf(filename, "%s/ising_L%i_XA/A%i.dat", argv[5], L, i); status = ReadData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]));  if (status < 0) { return status; }
-				sprintf(filename, "%s/ising_L%i_XB/A%i.dat", argv[5], L, i); status = ReadData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]));  if (status < 0) { return status; }
+				sprintf(filename, "%s/ising_L%i_XW/A%i.dat", argv[5], L, i);
+				status = ReadData(filename, XW.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XW.A[i]));
+				if (status < 0) { return status; }
 			}
 
 			// single step; "forward" and "backward" are reversed in Heisenberg picture
-			EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XA, &tol_eff_A[nstart*(L - 1)]);
-			EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XB, &tol_eff_B[nstart*(L - 1)]);
+			EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XW, &tol_eff_W[nstart*(L - 1)]);
 
 			nstart++;
 		}
@@ -433,37 +425,48 @@ int main(int argc, char *argv[])
 
 		// OTOCs at current time point
 		{
-			mpo_t XAop, XBop;
-			MPOComposition(&XA, &op, &XAop);
-			MPOComposition(&XB, &op, &XBop);
+			// W(t) V(0) and V(0) W(t)
+			mpo_t WV, VW;
+			MPOComposition(&XW, &op, &WV);
+			MPOComposition(&op, &XW, &VW);
 
-			otoc[n] = ComplexScale(1/Zbeta, MPOTraceProduct(&XAop, &XBop));
-			  gf[n] = ComplexScale(1/Zbeta, MPOTrace(&XAop));
+			// effectively flip sign of V(0) W(t)
+			const MKL_Complex16 neg1 = { -1, 0 };
+			cblas_zscal(NumTensorElements(&VW.A[0]), &neg1, VW.A[0].data, 1);
+
+			// W(t) V(0) - V(0) W(t)
+			mpo_t WVcomm;
+			MPOAdd(&WV, &VW, &WVcomm);
+			DeleteMPO(&VW);
+			DeleteMPO(&WV);
+
+			// exp(-beta H) (W(t) V(0) - V(0) W(t))
+			mpo_t exp_betaH_WVcomm;
+			MPOComposition(&exp_betaH, &WVcomm, &exp_betaH_WVcomm);
+
+			otoc[n] = ComplexScale(1/Zbeta, MPOTraceProduct(&WVcomm, &exp_betaH_WVcomm));
+			  gf[n] = ComplexScale(1/Zbeta, MPOTrace(&exp_betaH_WVcomm));
 
 			// clean up
-			DeleteMPO(&XAop);
-			DeleteMPO(&XBop);
+			DeleteMPO(&exp_betaH_WVcomm);
+			DeleteMPO(&WVcomm);
 		}
 
 		// record virtual bond dimensions
-		MPOBondDims(&XA, &D_XA[n*(L + 1)]);
-		MPOBondDims(&XB, &D_XB[n*(L + 1)]);
+		MPOBondDims(&XW, &D_XW[n*(L + 1)]);
 
 		// save intermediate results to disk
 		sprintf(filename, "%s/ising_L%i_otoc_tmp.dat", argv[5], L); WriteData(filename, &otoc[n], sizeof(MKL_Complex16), 1, true);
 		sprintf(filename, "%s/ising_L%i_gf_tmp.dat",   argv[5], L); WriteData(filename, &gf[n],   sizeof(MKL_Complex16), 1, true);
-		sprintf(filename, "%s/ising_L%i_DXA_tmp.dat",  argv[5], L); WriteData(filename, &D_XA[n*(L + 1)], sizeof(size_t), L + 1, true);
-		sprintf(filename, "%s/ising_L%i_DXB_tmp.dat",  argv[5], L); WriteData(filename, &D_XB[n*(L + 1)], sizeof(size_t), L + 1, true);
+		sprintf(filename, "%s/ising_L%i_DXW_tmp.dat",  argv[5], L); WriteData(filename, &D_XW[n*(L + 1)], sizeof(size_t), L + 1, true);
 		if (n > 0) {
-			sprintf(filename, "%s/ising_L%i_tol_eff_A_tmp.dat", argv[5], L); WriteData(filename, &tol_eff_A[(n - 1)*(L - 1)], sizeof(double), L - 1, true);
-			sprintf(filename, "%s/ising_L%i_tol_eff_B_tmp.dat", argv[5], L); WriteData(filename, &tol_eff_B[(n - 1)*(L - 1)], sizeof(double), L - 1, true);
+			sprintf(filename, "%s/ising_L%i_tol_eff_W_tmp.dat", argv[5], L); WriteData(filename, &tol_eff_W[(n - 1)*(L - 1)], sizeof(double), L - 1, true);
 		}
 		if (params.save_tensors)
 		{
 			for (i = 0; i < L; i++)
 			{
-				sprintf(filename, "%s/ising_L%i_XA/A%i.dat", argv[5], L, i); WriteData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]), false);
-				sprintf(filename, "%s/ising_L%i_XB/A%i.dat", argv[5], L, i); WriteData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]), false);
+				sprintf(filename, "%s/ising_L%i_XW/A%i.dat", argv[5], L, i); WriteData(filename, XW.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XW.A[i]), false);
 			}
 		}
 
@@ -476,13 +479,12 @@ int main(int argc, char *argv[])
 		}
 
 		// single step; "forward" and "backward" are reversed in Heisenberg picture
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XA, &tol_eff_A[n*(L - 1)]);
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XB, &tol_eff_B[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XW, &tol_eff_W[n*(L - 1)]);
 	}
 
 	duprintf("At t = %g:\n", params.tmax);
-	duprintf("<W(t) V(0) W(t) V(0)> = (%g, %g)\n", otoc[nsteps].real, otoc[nsteps].imag);
-	duprintf("<W(t) V(0)>           = (%g, %g)\n",   gf[nsteps].real,   gf[nsteps].imag);
+	duprintf("<[W(t), V(0)]^2> = (%g, %g)\n", otoc[nsteps].real, otoc[nsteps].imag);
+	duprintf("<[W(t), V(0)]>   = (%g, %g)\n",   gf[nsteps].real,   gf[nsteps].imag);
 
 	const clock_t t_cpu_end = clock();
 	const unsigned long long t_wall_end = GetTimeTicks();
@@ -496,21 +498,16 @@ int main(int argc, char *argv[])
 	// save results to disk
 	sprintf(filename, "%s/ising_L%i_otoc.dat",      argv[5], L); WriteData(filename, otoc, sizeof(MKL_Complex16),   nsteps + 1, false);
 	sprintf(filename, "%s/ising_L%i_gf.dat",        argv[5], L); WriteData(filename, gf,   sizeof(MKL_Complex16),   nsteps + 1, false);
-	sprintf(filename, "%s/ising_L%i_tol_eff_A.dat", argv[5], L); WriteData(filename, tol_eff_A, sizeof(double),  nsteps*(L - 1), false);
-	sprintf(filename, "%s/ising_L%i_tol_eff_B.dat", argv[5], L); WriteData(filename, tol_eff_B, sizeof(double),  nsteps*(L - 1), false);
-	sprintf(filename, "%s/ising_L%i_DXA.dat",       argv[5], L); WriteData(filename, D_XA, sizeof(size_t), (nsteps + 1)*(L + 1), false);
-	sprintf(filename, "%s/ising_L%i_DXB.dat",       argv[5], L); WriteData(filename, D_XB, sizeof(size_t), (nsteps + 1)*(L + 1), false);
+	sprintf(filename, "%s/ising_L%i_tol_eff_W.dat", argv[5], L); WriteData(filename, tol_eff_W, sizeof(double),  nsteps*(L - 1), false);
+	sprintf(filename, "%s/ising_L%i_DXW.dat",       argv[5], L); WriteData(filename, D_XW, sizeof(size_t), (nsteps + 1)*(L + 1), false);
 
 	// clean up
-	MKL_free(D_XB);
-	MKL_free(D_XA);
-	MKL_free(tol_eff_B);
-	MKL_free(tol_eff_A);
+	MKL_free(D_XW);
+	MKL_free(tol_eff_W);
 	MKL_free(gf);
 	MKL_free(otoc);
 	DeleteDynamicsData(&dyn_time);
-	DeleteMPO(&XB);
-	DeleteMPO(&XA);
+	DeleteMPO(&XW);
 	DeleteMPO(&exp_betaH);
 	DeleteLocalHamiltonianOperators(L, h);
 	MKL_free(h);
