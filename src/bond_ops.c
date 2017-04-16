@@ -64,6 +64,167 @@ static int CompareValue(const void *p1, const void *p2)
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Compute the QR decomposition of a matrix 'A',
+/// taking sparsity structure dictated by quantum numbers into account
+///
+void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, const qnumber_t *restrict q1, tensor_t *restrict Q, tensor_t *restrict R, qnumber_t *restrict *qinterm)
+{
+	size_t i, j, l;
+
+	// must be a regular matrix
+	assert(A->ndim == 2);
+
+	// find common quantum numbers
+	qnumber_t *qis;
+	size_t nis;
+	IntersectQuantumNumbers(q0, A->dim[0], q1, A->dim[1], &qis, &nis);
+
+	if (nis == 0)
+	{
+		// special case: no common quantum numbers;
+		// use dummy intermediate dimension 1 with all entries in 'R' set to zero
+
+		const size_t dimQ[2] = { A->dim[0], 1 };
+		const size_t dimR[2] = { 1, A->dim[1] };
+		AllocateTensor(2, dimQ, Q);
+		AllocateTensor(2, dimR, R);
+
+		// single column of 'Q' should have norm 1
+		Q->data[0].real = 1;
+
+		(*qinterm) = (qnumber_t *)MKL_malloc(sizeof(qnumber_t), MEM_DATA_ALIGN);
+		// ensure non-zero entry in 'Q' formally matches quantum numbers
+		(*qinterm)[0] = q0[0];
+
+		return;
+	}
+
+	// indices of current quantum number
+	size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
+
+	// maximum intermediate dimension
+	const size_t max_interm_dim = (A->dim[1] < A->dim[0] ? A->dim[0] : A->dim[1]);
+
+	// keep track of intermediate dimension
+	size_t D = 0;
+
+	// allocate 'Q' matrix (some of the columns might remain unused)
+	{
+		const size_t dimQ[2] = { A->dim[0], max_interm_dim };
+		AllocateTensor(2, dimQ, Q);
+	}
+
+	// temporary 'R' matrix (some of the rows might remain unused)
+	tensor_t Ri;
+	{
+		const size_t dimRi[2] = { max_interm_dim, A->dim[1] };
+		AllocateTensor(2, dimRi, &Ri);
+	}
+
+	// corresponding quantum numbers (we might not use full length)
+	(*qinterm) = MKL_calloc(max_interm_dim, sizeof(qnumber_t), MEM_DATA_ALIGN);
+
+	// for each shared quantum number...
+	for (i = 0; i < nis; i++)
+	{
+		// subindices of current quantum number qis[i]
+		size_t m = 0;
+		for (j = 0; j < A->dim[0]; j++)
+		{
+			if (q0[j] == qis[i])
+			{
+				i0[m] = j;
+				m++;
+			}
+		}
+		size_t n = 0;
+		for (j = 0; j < A->dim[1]; j++)
+		{
+			if (q1[j] == qis[i])
+			{
+				i1[n] = j;
+				n++;
+			}
+		}
+		assert(m > 0 && n > 0);
+
+		// extract submatrix
+		tensor_t Asub;
+		const size_t *restrict idx[2] = { i0, i1 };
+		const size_t sdim[2] = { m, n };
+		SubTensor(A, sdim, idx, &Asub);
+
+		// perform a QR decomposition
+		size_t k = (m <= n ? m : n);    // min(m, n)
+		MKL_Complex16 *tau = (MKL_Complex16 *)MKL_malloc(k * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		int info = LAPACKE_zgeqrf(LAPACK_COL_MAJOR, m, n, Asub.data, m, tau);
+		if (info != 0) {
+			duprintf("Call of LAPACK function 'zgeqrf()' in 'QRDecomposition()' failed, return value: %i\n", info);
+			exit(-1);
+		}
+
+		// copy current 'R' matrix
+		for (j = 0; j < n; j++)
+		{
+			const size_t l_max = (k-1 < j ? k-1 : j);
+			for (l = 0; l <= l_max; l++)
+			{
+				Ri.data[(D + l) + Ri.dim[0]*i1[j]] = Asub.data[l + m*j];
+			}
+		}
+
+		// generate and copy current 'Q' matrix
+		// 'Asub.data' is overwritten by 'Q' matrix
+		info = LAPACKE_zungqr(LAPACK_COL_MAJOR, m, k, k, Asub.data, m, tau);
+		for (l = 0; l < k; l++)
+		{
+			for (j = 0; j < m; j++)
+			{
+				Q->data[i0[j] + Q->dim[0]*(D + l)] = Asub.data[j + m*l];
+			}
+		}
+
+		// copy current quantum number
+		for (l = 0; l < k; l++)
+		{
+			(*qinterm)[D + l] = qis[i];
+		}
+
+		// update bond dimension
+		D += k;
+
+		MKL_free(tau);
+		DeleteTensor(&Asub);
+	}
+	assert(D <= max_interm_dim);
+
+	// truncate second dimension of 'Q' matrix
+	Q->dim[1] = D;
+
+	// allocate final 'R' matrix and copy entries
+	{
+		const size_t dimR[2] = { D, A->dim[1] };
+		AllocateTensor(2, dimR, R);
+
+		for (j = 0; j < A->dim[1]; j++)
+		{
+			for (l = 0; l < D; l++)
+			{
+				R->data[l + D*j] = Ri.data[l + Ri.dim[0]*j];
+			}
+		}
+	}
+
+	DeleteTensor(&Ri);
+	MKL_free(i1);
+	MKL_free(i0);
+	MKL_free(qis);
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Truncate singular values based on given tolerance 'tol' and length cut-off 'maxD';
 /// singular values need not be sorted at input
 ///

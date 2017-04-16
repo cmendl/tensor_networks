@@ -40,6 +40,22 @@ int BondOperationsTest()
 
 	printf("Testing virtual bond operations...\n");
 
+	// load 'A' matrix from disk
+	tensor_t A;
+	{
+		const size_t dim[2] = { 15, 13 };
+		AllocateTensor(2, dim,  &A);
+		status = ReadData("../test/bond_ops_test_A.dat", A.data, sizeof(MKL_Complex16), NumTensorElements(&A));
+		if (status < 0) { return status; }
+	}
+
+	// load quantum numbers from disk
+	qnumber_t *q0 = (qnumber_t *)MKL_malloc(A.dim[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q1 = (qnumber_t *)MKL_malloc(A.dim[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	{
+		status = ReadData("../test/bond_ops_test_q0.dat", q0, sizeof(qnumber_t), A.dim[0]); if (status < 0) { return status; }
+		status = ReadData("../test/bond_ops_test_q1.dat", q1, sizeof(qnumber_t), A.dim[1]); if (status < 0) { return status; }
+	}
 
 	// truncated bond indices
 	{
@@ -98,19 +114,6 @@ int BondOperationsTest()
 
 	// split a matrix
 	{
-		// load 'A' matrix from disk
-		tensor_t A;
-		const size_t dim[2] = { 15, 13 };
-		AllocateTensor(2, dim,  &A);
-		status = ReadData("../test/bond_ops_test_A.dat", A.data, sizeof(MKL_Complex16), NumTensorElements(&A));
-		if (status < 0) { return status; }
-
-		// load quantum numbers from disk
-		qnumber_t *q0 = (qnumber_t *)MKL_malloc(A.dim[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *q1 = (qnumber_t *)MKL_malloc(A.dim[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		status = ReadData("../test/bond_ops_test_q0.dat", q0, sizeof(qnumber_t), A.dim[0]); if (status < 0) { return status; }
-		status = ReadData("../test/bond_ops_test_q1.dat", q1, sizeof(qnumber_t), A.dim[1]); if (status < 0) { return status; }
-
 		// load reference data from disk
 		// bond quantum numbers
 		const size_t D_ref = 7;
@@ -123,6 +126,7 @@ int BondOperationsTest()
 		status = ReadData("../test/bond_ops_test_S_entropy.dat", &entropy_ref, sizeof(double), 1); if (status < 0) { return status; }
 		// truncated SVD approximation of 'A'
 		tensor_t A01_ref;
+		const size_t dim[2] = { 15, 13 };
 		AllocateTensor(2, dim,  &A01_ref);
 		status = ReadData("../test/bond_ops_test_A01.dat", A01_ref.data, sizeof(MKL_Complex16), NumTensorElements(&A01_ref));
 		if (status < 0) { return status; }
@@ -174,12 +178,63 @@ int BondOperationsTest()
 		// clean up
 		DeleteTensor(&A01_ref);
 		MKL_free(qbond_ref);
-		MKL_free(q1);
-		MKL_free(q0);
-		DeleteTensor(&A);
+	}
+
+	// QR decomposition
+	{
+		tensor_t Q, R;
+		qnumber_t *qinterm;
+		QRDecomposition(&A, q0, q1, &Q, &R, &qinterm);
+
+		// block structure error
+		err = fmax(err, BlockStructureError(&Q, q0, qinterm));
+		err = fmax(err, BlockStructureError(&R, qinterm, q1));
+
+		// recompute original matrix and compare
+		tensor_t QR;
+		MultiplyTensor(&Q, &R, 1, &QR);
+		if (QR.dim[0] != A.dim[0] || QR.dim[1] != A.dim[1])
+		{
+			// dimension error
+			err = fmax(err, 1);
+		}
+		else
+		{
+			err = fmax(err, UniformDistance(2*NumTensorElements(&A), (double *)QR.data, (double *)A.data));
+		}
+		DeleteTensor(&QR);
+
+		// check whether 'Q' is unitary
+		{
+			tensor_t QH;
+			const int perm[2] = { 1, 0 };
+			ConjugateTransposeTensor(perm, &Q, &QH);
+
+			tensor_t QHQ;
+			MultiplyTensor(&QH, &Q, 1, &QHQ);
+			DeleteTensor(&QH);
+
+			tensor_t id;
+			AllocateTensor(2, QHQ.dim, &id);
+			IdentityTensor(&id);
+
+			err = fmax(err, UniformDistance(2*NumTensorElements(&QHQ), (double *)QHQ.data, (double *)id.data));
+
+			DeleteTensor(&id);
+			DeleteTensor(&QHQ);
+		}
+
+		MKL_free(qinterm);
+		DeleteTensor(&R);
+		DeleteTensor(&Q);
 	}
 
 	printf("Largest error: %g\n", err);
+
+	// clean up
+	MKL_free(q1);
+	MKL_free(q0);
+	DeleteTensor(&A);
 
 	return (err < 5e-15 ? 0 : 1);
 }

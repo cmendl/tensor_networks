@@ -46,6 +46,13 @@ double VonNeumannEntropy(const size_t n, const double *restrict lambda);
 //
 
 
+void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, const qnumber_t *restrict q1, tensor_t *restrict Q, tensor_t *restrict R, qnumber_t *restrict *qinterm);
+
+
+//________________________________________________________________________________________________________________________
+//
+
+
 trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, const double tol, const size_t maxD, size_t *restrict *indtr, size_t *restrict ntr);
 
 
