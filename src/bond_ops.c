@@ -135,11 +135,13 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 	MKL_free(s_sort);
 
 	// indices of accumulated squares larger than tolerance
+	// filter out singular values which are zero (almost) to machine precision
+	const double tol_mzero = fmax(tol, 1e-28);
 	(*indtr) = (size_t *)MKL_malloc(n * sizeof(size_t), MEM_DATA_ALIGN);
 	(*ntr) = 0;
 	for (i = 0; i < n; i++)
 	{
-		if (accum[i] > tol)
+		if (accum[i] > tol_mzero)
 		{
 			(*indtr)[(*ntr)] = i;
 			(*ntr)++;

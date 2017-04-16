@@ -604,6 +604,50 @@ int MPOTest()
 		DeleteTensor(&K0);
 	}
 
+	// compress a MPO
+	{
+		sweep_dir_t direction;
+		for (direction = SWEEP_LEFT_TO_RIGHT; direction <= SWEEP_RIGHT_TO_LEFT; direction++)
+		{
+			mpo_t Zmod;
+			CopyMPO(&Z, &Zmod);
+
+			// load modified 'Z' tensor data from disk
+			{
+				status = ReadData("../test/mpo_test_B1_mod.dat", Zmod.A[1].data, sizeof(MKL_Complex16), NumTensorElements(&Zmod.A[1]));
+				if (status < 0) { return status; }
+			}
+
+			// merge MPO, as reference
+			tensor_t Am_ref;
+			MergeMPOFull(&Zmod, &Am_ref);
+
+			// modified 'Z' tensor is redundant, such that lossless compression should be possible
+			trunc_info_t *ti = (trunc_info_t *)MKL_malloc((L - 1) * sizeof(trunc_info_t), MEM_DATA_ALIGN);
+			CompressMPO(&Zmod, direction, 0, INT32_MAX, false, ti);
+
+			// merge compressed MPO
+			tensor_t Am;
+			MergeMPOFull(&Zmod, &Am);
+
+			// check dimensions
+			if (Am.ndim != 2 || Am.dim[0] != Am_ref.dim[0] || Am.dim[1] != Am_ref.dim[1])
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				// largest entrywise error
+				err = fmax(err, UniformDistance(2*NumTensorElements(&Am_ref), (double *)Am.data, (double *)Am_ref.data));
+			}
+
+			DeleteTensor(&Am);
+			MKL_free(ti);
+			DeleteTensor(&Am_ref);
+			DeleteMPO(&Zmod);
+		}
+	}
+
 	// compose MPO tensor pairs
 	{
 		tensor_t K0, K1;

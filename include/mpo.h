@@ -117,7 +117,15 @@ void MPOAdd(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict Z)
 
 
 //________________________________________________________________________________________________________________________
-//
+///
+/// \brief Lattice sweep direction
+///
+typedef enum
+{
+	SWEEP_LEFT_TO_RIGHT = 0,
+	SWEEP_RIGHT_TO_LEFT = 1
+}
+sweep_dir_t;
 
 
 trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restrict qA0, const qnumber_t *restrict qA2,
@@ -131,6 +139,9 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
 	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
 	qnumber_t *restrict *qA1compr);
+
+
+void CompressMPO(mpo_t *restrict mpo, const sweep_dir_t direction, const double tol, const size_t maxD, const bool renormalize, trunc_info_t *restrict ti);
 
 
 //________________________________________________________________________________________________________________________

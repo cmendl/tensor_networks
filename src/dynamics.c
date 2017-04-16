@@ -44,18 +44,6 @@ void DeleteDynamicsData(dynamics_data_t *dyn)
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Lattice sweep direction
-///
-typedef enum
-{
-	SWEEP_LEFT_TO_RIGHT = 0,
-	SWEEP_RIGHT_TO_LEFT = 1
-}
-sweep_dir_t;
-
-
-//________________________________________________________________________________________________________________________
-///
 /// \brief Apply two-site operators 'opT' from the top and 'opB' from the bottom to even or odd bonds only, and orthonormalize complementary bonds;
 /// 'opT' and 'opB' must point to arrays of length 'L - 1'
 ///

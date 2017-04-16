@@ -901,6 +901,46 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Compress all virtual bonds of a MPO
+///
+void CompressMPO(mpo_t *restrict mpo, const sweep_dir_t direction, const double tol, const size_t maxD, const bool renormalize, trunc_info_t *restrict ti)
+{
+	// TODO: only need to "compress" single tensors for MPO in canonical form
+
+	int i;
+
+	if (direction == SWEEP_LEFT_TO_RIGHT)
+	{
+		for (i = 0; i < mpo->L - 1; i++)
+		{
+			// bond quantum numbers after compression
+			qnumber_t *qcD1;
+			ti[i] = CompressMPOTensors(&mpo->A[i], &mpo->A[i+1], mpo->qD[i], mpo->qD[i+1], mpo->qD[i+2], mpo->qd[0], mpo->qd[1], SVD_DISTR_RIGHT, tol, maxD, renormalize, &qcD1);
+			MKL_free(mpo->qD[i+1]);
+			mpo->qD[i+1] = qcD1;
+		}
+	}
+	else if (direction == SWEEP_RIGHT_TO_LEFT)
+	{
+		for (i = mpo->L - 2; i >= 0; i--)
+		{
+			// bond quantum numbers after compression
+			qnumber_t *qcD1;
+			ti[i] = CompressMPOTensors(&mpo->A[i], &mpo->A[i+1], mpo->qD[i], mpo->qD[i+1], mpo->qD[i+2], mpo->qd[0], mpo->qd[1], SVD_DISTR_LEFT, tol, maxD, renormalize, &qcD1);
+			MKL_free(mpo->qD[i+1]);
+			mpo->qD[i+1] = qcD1;
+		}
+	}
+	else
+	{
+		// invalid direction
+		assert(false);
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Form all combinations (outer product) of quantum numbers
 ///
 static void CombineQuantumNumbers(const size_t m, const size_t n, const qnumber_t *restrict q0, const qnumber_t *restrict q1, qnumber_t *restrict qC)
