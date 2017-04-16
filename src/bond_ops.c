@@ -634,18 +634,57 @@ trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
 	assert(A1->ndim == 2);
 	assert(A0->dim[1] == A1->dim[0]);
 
-	// TODO: could use quantum number information to speed up matrix product
-	tensor_t A;
-	MultiplyTensor(A0, A1, 1, &A);
-	DeleteTensor(A0);
-	DeleteTensor(A1);
+	const int perm[2] = { 1, 0 };
 
-	// avoid "unused parameter" warning
-	(void *)q1;
+	// form QR decomposition of A0, to reduce SVD dimensions
+	tensor_t Q0, R0;
+	qnumber_t *qi0;
+	{
+		QRDecomposition(A0, q0, q1, &Q0, &R0, &qi0);
+		DeleteTensor(A0);
+	}
 
-	trunc_info_t ti = SplitMatrix(&A, q0, q2, svd_distr, tol, maxD, renormalize, A0, A1, q1compr);
+	// form QR decomposition of A1, to reduce SVD dimensions;
+	// A1 = L1.Q1
+	tensor_t Q1, L1;
+	qnumber_t *qi1;
+	{
+		// A1^T
+		tensor_t A1T;
+		TransposeTensor(perm, A1, &A1T);
+		DeleteTensor(A1);
 
-	DeleteTensor(&A);
+		tensor_t QT1, RT1;
+		QRDecomposition(&A1T, q2, q1, &QT1, &RT1, &qi1);
+		DeleteTensor(&A1T);
+
+		TransposeTensor(perm, &QT1, &Q1);
+		DeleteTensor(&QT1);
+
+		TransposeTensor(perm, &RT1, &L1);
+		DeleteTensor(&RT1);
+	}
+
+	// R0.L1
+	tensor_t RLprod;
+	MultiplyTensor(&R0, &L1, 1, &RLprod);
+	DeleteTensor(&R0);
+	DeleteTensor(&L1);
+
+	// split product of triangular matrices
+	trunc_info_t ti = SplitMatrix(&RLprod, qi0, qi1, svd_distr, tol, maxD, renormalize, &R0, &L1, q1compr);
+	DeleteTensor(&RLprod);
+
+	// multiply by unitary Q matrices, to restore original matrices
+	MultiplyTensor(&Q0, &R0, 1, A0);
+	MultiplyTensor(&L1, &Q1, 1, A1);
+
+	MKL_free(qi0);
+	MKL_free(qi1);
+	DeleteTensor(&Q0);
+	DeleteTensor(&R0);
+	DeleteTensor(&Q1);
+	DeleteTensor(&L1);
 
 	return ti;
 }
