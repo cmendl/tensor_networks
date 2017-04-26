@@ -23,10 +23,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[      1064,         20]
-NotebookDataLength[     48313,       1703]
-NotebookOptionsPosition[     43412,       1514]
-NotebookOutlinePosition[     43755,       1529]
-CellTagsIndexPosition[     43712,       1526]
+NotebookDataLength[     49024,       1728]
+NotebookOptionsPosition[     44084,       1538]
+NotebookOutlinePosition[     44427,       1553]
+CellTagsIndexPosition[     44384,       1550]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -1313,8 +1313,8 @@ Cell[BoxData[
 Cell[BoxData[
  RowBox[{"{", 
   RowBox[{
-  "0.23451696014869725`", ",", "0.6491749263403473`", ",", 
-   "0.8094400094789076`", ",", "32.20308763933812`"}], "}"}]], "Output"]
+  "0.23451696014869733`", ",", "0.6491749263403489`", ",", 
+   "0.8094400094789079`", ",", "32.20308763933812`"}], "}"}]], "Output"]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -1384,54 +1384,6 @@ Cell[BoxData[
 Cell[CellGroupData[{
 
 Cell[BoxData[
- RowBox[{
-  RowBox[{"(*", " ", 
-   RowBox[{"reference", " ", "calculation"}], " ", "*)"}], 
-  "\[IndentingNewLine]", 
-  RowBox[{
-   RowBox[{
-    RowBox[{
-     RowBox[{"{", 
-      RowBox[{
-       SubscriptBox["P", 
-        RowBox[{"0", ",", "1", ",", "ref"}]], ",", 
-       SubscriptBox["qP", 
-        RowBox[{"0", ",", "ref"}]], ",", 
-       SubscriptBox["qP", 
-        RowBox[{"2", ",", "ref"}]]}], "}"}], "=", 
-     RowBox[{"MPOComposition", "[", 
-      RowBox[{
-       RowBox[{"{", 
-        RowBox[{
-         RowBox[{"MPOMergeTensors", "[", 
-          RowBox[{
-           SubscriptBox["C", "0"], ",", 
-           SubscriptBox["C", "1"]}], "]"}], ",", 
-         SubscriptBox["qC", "0"], ",", 
-         SubscriptBox["qC", "2"]}], "}"}], ",", 
-       RowBox[{"{", 
-        RowBox[{
-         RowBox[{"MPOMergeTensors", "[", 
-          RowBox[{
-           SubscriptBox["D", "0"], ",", 
-           SubscriptBox["D", "1"]}], "]"}], ",", 
-         SubscriptBox["qD", "0"], ",", 
-         SubscriptBox["qD", "2"]}], "}"}]}], "]"}]}], ";"}], 
-   "\[IndentingNewLine]", 
-   RowBox[{"Dimensions", "/@", "%"}]}]}]], "Input"],
-
-Cell[BoxData[
- RowBox[{"{", 
-  RowBox[{
-   RowBox[{"{", 
-    RowBox[{"20", ",", "20", ",", "30", ",", "42"}], "}"}], ",", 
-   RowBox[{"{", "30", "}"}], ",", 
-   RowBox[{"{", "42", "}"}]}], "}"}]], "Output"]
-}, Open  ]],
-
-Cell[CellGroupData[{
-
-Cell[BoxData[
  RowBox[{"Dimensions", "[", 
   RowBox[{"MPOMergeTensors", "[", 
    RowBox[{
@@ -1457,6 +1409,74 @@ Cell[BoxData[
   RowBox[{"20", ",", "20", ",", "6", ",", "6"}], "}"}]], "Output"]
 }, Open  ]],
 
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"reference", " ", "calculation"}], " ", "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["P", 
+        RowBox[{"0", ",", "ref"}]], ",", 
+       SubscriptBox["qP", 
+        RowBox[{"0", ",", "ref"}]], ",", 
+       SubscriptBox["qP", 
+        RowBox[{"1", ",", "ref"}]]}], "}"}], "=", 
+     RowBox[{"MPOComposition", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         SubscriptBox["C", "0"], ",", 
+         SubscriptBox["qC", "0"], ",", 
+         SubscriptBox["qC", "1"]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{
+         SubscriptBox["D", "0"], ",", 
+         SubscriptBox["qD", "0"], ",", 
+         SubscriptBox["qD", "1"]}], "}"}]}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       SubscriptBox["P", 
+        RowBox[{"1", ",", "ref"}]], ",", 
+       SubscriptBox["qP", 
+        RowBox[{"1", ",", "ref", ",", "alt"}]], ",", 
+       SubscriptBox["qP", 
+        RowBox[{"2", ",", "ref"}]]}], "}"}], "=", 
+     RowBox[{"MPOComposition", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         SubscriptBox["C", "1"], ",", 
+         SubscriptBox["qC", "1"], ",", 
+         SubscriptBox["qC", "2"]}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{
+         SubscriptBox["D", "1"], ",", 
+         SubscriptBox["qD", "1"], ",", 
+         SubscriptBox["qD", "2"]}], "}"}]}], "]"}]}], ";"}]}]}]], "Input"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"consistency", " ", "check"}], " ", "*)"}], "\[IndentingNewLine]", 
+  RowBox[{"Norm", "[", 
+   RowBox[{
+    SubscriptBox["qP", 
+     RowBox[{"1", ",", "ref"}]], "-", 
+    SubscriptBox["qP", 
+     RowBox[{"1", ",", "ref", ",", "alt"}]]}], "]"}]}]], "Input"],
+
+Cell[BoxData["0"], "Output"]
+}, Open  ]],
+
 Cell[CellGroupData[{
 
 Cell[BoxData[
@@ -1478,11 +1498,15 @@ Cell[BoxData[
           SubscriptBox["\[Sigma]", 
            RowBox[{"P", ",", "val"}]], "]"}]}], ",", 
         SubscriptBox["P", "1"]}], "]"}], "-", 
-      SubscriptBox["P", 
-       RowBox[{"0", ",", "1", ",", "ref"}]]}], "]"}], ",", "\[Infinity]"}], 
+      RowBox[{"MPOMergeTensors", "[", 
+       RowBox[{
+        SubscriptBox["P", 
+         RowBox[{"0", ",", "ref"}]], ",", 
+        SubscriptBox["P", 
+         RowBox[{"1", ",", "ref"}]]}], "]"}]}], "]"}], ",", "\[Infinity]"}], 
    "]"}]}]], "Input"],
 
-Cell[BoxData["3.167663967383141`*^-14"], "Output"]
+Cell[BoxData["3.2241849594813`*^-14"], "Output"]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -1696,25 +1720,26 @@ Cell[39282, 1361, 131, 3, 52, "Input"],
 Cell[39416, 1366, 566, 14, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[40019, 1385, 1128, 35, 75, "Input"],
-Cell[41150, 1422, 206, 6, 31, "Output"]
+Cell[40019, 1385, 177, 5, 31, "Input"],
+Cell[40199, 1392, 95, 2, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[41393, 1433, 177, 5, 31, "Input"],
-Cell[41573, 1440, 95, 2, 31, "Output"]
+Cell[40331, 1399, 177, 5, 31, "Input"],
+Cell[40511, 1406, 95, 2, 31, "Output"]
+}, Open  ]],
+Cell[40621, 1411, 1536, 50, 76, "Input"],
+Cell[CellGroupData[{
+Cell[42182, 1465, 313, 9, 54, "Input"],
+Cell[42498, 1476, 28, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[41705, 1447, 177, 5, 31, "Input"],
-Cell[41885, 1454, 95, 2, 31, "Output"]
+Cell[42563, 1481, 825, 25, 52, "Input"],
+Cell[43391, 1508, 48, 0, 31, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[42017, 1461, 697, 21, 52, "Input"],
-Cell[42717, 1484, 50, 0, 31, "Output"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[42804, 1489, 506, 16, 76, "Input"],
-Cell[43313, 1507, 28, 0, 31, "Output"],
-Cell[43344, 1509, 28, 0, 31, "Output"]
+Cell[43476, 1513, 506, 16, 76, "Input"],
+Cell[43985, 1531, 28, 0, 31, "Output"],
+Cell[44016, 1533, 28, 0, 31, "Output"]
 }, Open  ]]
 }, Open  ]]
 }, Open  ]]
@@ -1724,4 +1749,4 @@ Cell[43344, 1509, 28, 0, 31, "Output"]
 
 (* End of internal cache information *)
 
-(* NotebookSignature FwDcWjCsRulV1Dw5QnDxs5Ru *)
+(* NotebookSignature 3w0YV57rpyIstDwzMCxjmvx9 *)

@@ -213,10 +213,17 @@ MPOComposition[{A_,qA0_,qA1_},{B_,qB0_,qB1_}]:=Module[{C,q0,q1},
 	{C,q0,q1}]
 MPOComposition[A_,B_,C_]:=MPOComposition[MPOComposition[A,B],C]
 
-(* Composition of MPO pairs (A0,A1) with pairs (B0,B1) along physical dimension;
-   assuming that physical quantum numbers remain fixed *)
-MPOPairComposition[A0_,A1_,B0_,B1_,{qd0_,qd1_},tol_:0]:=MPOCompressTensors[MPOComposition[A0,B0],MPOComposition[A1,B1],{qd0,qd1},tol]
-MPOPairComposition[A0_,A1_,B0_,B1_,C0_,C1_,{qd0_,qd1_},tol_:0]:=MPOCompressTensors[MPOComposition[A0,B0,C0],MPOComposition[A1,B1,C1],{qd0,qd1},tol]
+(* Composition of MPO pairs (A0,A1) with pairs (B0,B1) along physical dimension,
+   assuming that physical quantum numbers remain fixed;
+   optimal order of contraction could be different depending on physical and virtual bond dimensions *)
+MPOPairComposition[{A0_,qA0_,qA1_},{A1_,qA1_,qA2_},{B0_,qB0_,qB1_},{B1_,qB1_,qB2_},{qd0_,qd1_},tol_:0]:=MPOSplitTensor[MPOComposition[
+	{MPOMergeTensors[A0,A1],qA0,qA2},
+	{MPOMergeTensors[B0,B1],qB0,qB2}],{qd0,qd1},tol]
+(* Composition of MPO pairs (A0,A1), (B0,B1) and (C0,C1) along physical dimension *)
+MPOPairComposition[{A0_,qA0_,qA1_},{A1_,qA1_,qA2_},{B0_,qB0_,qB1_},{B1_,qB1_,qB2_},{C0_,qC0_,qC1_},{C1_,qC1_,qC2_},{qd0_,qd1_},tol_:0]:=MPOSplitTensor[MPOComposition[
+	{MPOMergeTensors[A0,A1],qA0,qA2},
+	{MPOMergeTensors[B0,B1],qB0,qB2},
+	{MPOMergeTensors[C0,C1],qC0,qC2}],{qd0,qd1},tol]
 
 (* Distribute singular values to the left or right tensors *)
 MPODistributeSingularValuesLeft [{A0_,qA0_,qA1_},{A1_,qA1_,qA2_},S_]:={{A0.DiagonalMatrix[S],      qA0,qA1},{A1,                                                                  qA1,qA2}}
