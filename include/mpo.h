@@ -130,58 +130,28 @@ sweep_dir_t;
 
 trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restrict qA0, const qnumber_t *restrict qA2,
 	const size_t d0, const size_t d1, const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params,
 	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond);
 
 
 trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
 	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params,
 	qnumber_t *restrict *qA1compr);
 
 
-void CompressMPO(mpo_t *restrict mpo, const sweep_dir_t direction, const double tol, const size_t maxD, const bool renormalize, trunc_info_t *restrict ti);
+void CompressMPO(mpo_t *restrict mpo, const sweep_dir_t direction, const bond_op_params_t *restrict params, trunc_info_t *restrict ti);
 
 
 //________________________________________________________________________________________________________________________
 //
 
 
-trunc_info_t ComposeMPOTensorPairs(
-	const tensor_t *restrict A0, const tensor_t *restrict A1, const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
-	const tensor_t *restrict B0, const tensor_t *restrict B1, const qnumber_t *restrict qB0, const qnumber_t *restrict qB1, const qnumber_t *restrict qB2,
-	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
-	tensor_t *restrict R0, tensor_t *restrict R1, qnumber_t *restrict *qR0, qnumber_t *restrict *qR1, qnumber_t *restrict *qR2);
+void ComposeMPOTensors(const tensor_t *restrict A, const tensor_t *restrict B, tensor_t *restrict ret);
 
 
 void MPOComposition(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict ret);
-
-
-//________________________________________________________________________________________________________________________
-//
-
-
-void ApplySingleSiteTopOperator(tensor_t *restrict A, const tensor_t *restrict opT);
-
-void ApplySingleSiteBottomOperator(tensor_t *restrict A, const tensor_t *restrict opB);
-
-
-trunc_info_t ApplyTwoSiteOperator(tensor_t *restrict A0, tensor_t *restrict A1, const tensor_t *restrict opT, const tensor_t *restrict opB, const svd_distr_t svd_distr, const double tol, const size_t maxD);
-
-trunc_info_t ApplyTwoSiteTopOperator(tensor_t *restrict A0, tensor_t *restrict A1, const tensor_t *restrict opT, const svd_distr_t svd_distr, const double tol, const size_t maxD);
-
-trunc_info_t ApplyTwoSiteBottomOperator(tensor_t *restrict A0, tensor_t *restrict A1, const tensor_t *restrict opB, const svd_distr_t svd_distr, const double tol, const size_t maxD);
-
-
-//________________________________________________________________________________________________________________________
-//
-
-
-trunc_info_t OrthonormalizeMPOTensorPair(tensor_t *restrict A0, tensor_t *restrict A1, const svd_distr_t svd_distr, const double tol, const size_t maxD);
-
-trunc_info_t OrthonormalizeMPO(const double tol, const size_t maxD, mpo_t *restrict mpo);
 
 
 

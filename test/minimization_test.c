@@ -93,13 +93,12 @@ int MinimizationTest()
 		{
 			// two-site local optimization
 
-			// tolerance
-			const double tol = 1e-15;
+			bond_op_params_t params;
+			params.tol  = 1e-15;        // tolerance
+			params.maxD = 64;           // largest virtual bond dimension
+			params.renormalize = false; // whether to renormalize singular values
 
-			// largest virtual bond dimension
-			const size_t maxD = 64;
-
-			printf("Using two-site local optimization with tolerance %g...\n", tol);
+			printf("Using two-site local optimization with tolerance %g...\n", params.tol);
 
 			CopyMPS(&psi0, &psi);
 
@@ -109,7 +108,7 @@ int MinimizationTest()
 			// entropy associated with each virtual bond
 			double *entropy = (double *)MKL_malloc((L-1) * sizeof(double), MEM_DATA_ALIGN);
 
-			CalculateGroundStateLocalTwosite(&mpoH, maxiter, tol, maxD, entropy, en_min, &psi);
+			CalculateGroundStateLocalTwosite(&mpoH, maxiter, &params, entropy, en_min, &psi);
 			E0 = en_min[maxiter-1];
 
 			// display von Neumann entanglement entropy

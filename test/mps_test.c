@@ -12,7 +12,7 @@
 ///
 /// \brief Check whether solely entries corresponding to matching quantum numbers are non-zero
 ///
-static double BlockStructureError(const tensor_t *A, const qnumber_t *restrict qd, const qnumber_t *restrict qD0, const qnumber_t *restrict qD1)
+static double MPSBlockStructureError(const tensor_t *A, const qnumber_t *restrict qd, const qnumber_t *restrict qD0, const qnumber_t *restrict qD1)
 {
 	assert(A->ndim == 3);
 
@@ -389,11 +389,15 @@ int MPSTest()
 			// split G2 into two tensors
 			tensor_t G0, G1;
 			qnumber_t *qG1;
-			trunc_info_t ti = SplitMPSTensor(&G2, qG0, qG2, d0, d1, qd0, qd1, SVD_DISTR_SQRT, 0.0, INT32_MAX, false, &G0, &G1, &qG1);
+			bond_op_params_t params;
+			params.tol  = 0;
+			params.maxD = INT32_MAX;
+			params.renormalize = false;
+			trunc_info_t ti = SplitMPSTensor(&G2, qG0, qG2, d0, d1, qd0, qd1, SVD_DISTR_SQRT, &params, &G0, &G1, &qG1);
 
 			// block structure error
-			err = fmax(err, BlockStructureError(&G0, qd0, qG0, qG1));
-			err = fmax(err, BlockStructureError(&G1, qd1, qG1, qG2));
+			err = fmax(err, MPSBlockStructureError(&G0, qd0, qG0, qG1));
+			err = fmax(err, MPSBlockStructureError(&G1, qd1, qG1, qG2));
 
 			// check bond quantum numbers
 			const size_t D_ref = 37;
@@ -447,11 +451,15 @@ int MPSTest()
 			// split G2 into two tensors again, but now using a tolerance cut-off for the bond dimension
 			tensor_t G0, G1;
 			qnumber_t *qG1;
-			trunc_info_t ti = SplitMPSTensor(&G2, qG0, qG2, d0, d1, qd0, qd1, SVD_DISTR_SQRT, 0.08, INT32_MAX, false, &G0, &G1, &qG1);
+			bond_op_params_t params;
+			params.tol  = 0.08;
+			params.maxD = INT32_MAX;
+			params.renormalize = false;
+			trunc_info_t ti = SplitMPSTensor(&G2, qG0, qG2, d0, d1, qd0, qd1, SVD_DISTR_SQRT, &params, &G0, &G1, &qG1);
 
 			// block structure error
-			err = fmax(err, BlockStructureError(&G0, qd0, qG0, qG1));
-			err = fmax(err, BlockStructureError(&G1, qd1, qG1, qG2));
+			err = fmax(err, MPSBlockStructureError(&G0, qd0, qG0, qG1));
+			err = fmax(err, MPSBlockStructureError(&G1, qd1, qG1, qG2));
 
 			// check bond quantum numbers
 			const size_t D_ref = 25;
@@ -554,12 +562,16 @@ int MPSTest()
 
 		// bond quantum numbers after compression
 		qnumber_t *qcK1;
-		trunc_info_t ti = CompressMPSTensors(&K0, &K1, qK0, qK1, qK2, qd0, qd1, SVD_DISTR_SQRT, 0.02, INT32_MAX, false, &qcK1);
+		bond_op_params_t params;
+		params.tol  = 0.02;
+		params.maxD = INT32_MAX;
+		params.renormalize = false;
+		trunc_info_t ti = CompressMPSTensors(&K0, &K1, qK0, qK1, qK2, qd0, qd1, SVD_DISTR_SQRT, &params, &qcK1);
 		MKL_free(qK1);
 
 		// block structure error
-		err = fmax(err, BlockStructureError(&K0, qd0, qK0, qcK1));
-		err = fmax(err, BlockStructureError(&K1, qd1, qcK1, qK2));
+		err = fmax(err, MPSBlockStructureError(&K0, qd0, qK0, qcK1));
+		err = fmax(err, MPSBlockStructureError(&K1, qd1, qcK1, qK2));
 
 		// check bond quantum numbers
 		const size_t D_ref = 6;

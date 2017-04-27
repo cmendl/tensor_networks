@@ -32,6 +32,48 @@ static int makedir(const char *path)
 
 
 //________________________________________________________________________________________________________________________
+///
+/// \brief Local MPO update by single-site operator 'opT' from the top
+///
+static void ApplySingleSiteTopOperator(const tensor_t *restrict opT, tensor_t *restrict A)
+{
+	assert(A->ndim == 4);
+
+	tensor_t t;
+	MoveTensorData(A, &t);
+	// result of multiplication again stored in 'A'
+	MultiplyTensor(opT, &t, 1, A);
+	DeleteTensor(&t);
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Local MPO update by single-site operator 'opB' from the bottom
+///
+static void ApplySingleSiteBottomOperator(const tensor_t *restrict opB, tensor_t *restrict A)
+{
+	assert(A->ndim == 4);
+
+	tensor_t s, t;
+
+	// transpose incoming physical dimension to the back
+	const int perm0[4] = { 0, 3, 1, 2 };
+	TransposeTensor(perm0, A, &s);
+	DeleteTensor(A);
+
+	// apply operator
+	MultiplyTensor(&s, opB, 1, &t);
+	DeleteTensor(&s);
+
+	// restore ordering of dimensions
+	const int perm1[4] = { 0, 2, 3, 1 };
+	TransposeTensor(perm1, &t, A);
+	DeleteTensor(&t);
+}
+
+
+//________________________________________________________________________________________________________________________
 //
 
 
@@ -106,6 +148,12 @@ int main(int argc, char *argv[])
 	// physical dimension, equal to the maximal occupancy per site + 1
 	const size_t d = params.d;
 
+	// bond operation parameters
+	bond_op_params_t bond_op_params;
+	bond_op_params.tol  = params.tol;
+	bond_op_params.maxD = params.maxD;
+	bond_op_params.renormalize = true;
+
 	// bosonic creation operator
 	tensor_t bd;
 	{
@@ -168,7 +216,7 @@ int main(int argc, char *argv[])
 		double *tol_eff_beta = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
 
 		// perform imaginary time evolution; using "normalization" to keep A[0] matrix entries of order 1
-		EvolveMPOStrang(&dyn, nsteps, params.tol, params.maxD, true, &exp_betaH, tol_eff_beta);
+		EvolveMPOStrang(&dyn, nsteps, &bond_op_params, true, &exp_betaH, tol_eff_beta);
 
 		// record virtual bond dimensions
 		size_t *D_beta = (size_t *)MKL_malloc((L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
@@ -244,8 +292,8 @@ int main(int argc, char *argv[])
 	mpo_t XA, XB;
 	CopyMPO(&exp_betaH, &XA);
 	CreateIdentityMPO(L, d, &XB);
-	ApplySingleSiteBottomOperator(&XA.A[j_site], &bd);  //     creation operator at site j
-	ApplySingleSiteBottomOperator(&XB.A[j_site], &b);   // annihilation operator at site j ('top' or 'bottom' irrelevant here since 'XB' starts as identity)
+	ApplySingleSiteBottomOperator(&bd, &XA.A[j_site]);  //     creation operator at site j
+	ApplySingleSiteBottomOperator(&b,  &XB.A[j_site]);  // annihilation operator at site j ('top' or 'bottom' irrelevant here since 'XB' starts as identity)
 
 	// compute dynamics data for time evolution
 	dynamics_data_t dyn_time;
@@ -310,8 +358,8 @@ int main(int argc, char *argv[])
 			}
 
 			// single step
-			EvolveLiouvilleMPOPRK(&dyn_time, 1, true, params.tol, params.maxD, &XA, &tol_eff_A[nstart*(L - 1)]);
-			EvolveLiouvilleMPOPRK(&dyn_time, 1, true, params.tol, params.maxD, &XB, &tol_eff_B[nstart*(L - 1)]);
+			EvolveLiouvilleMPOPRK(&dyn_time, 1, true, &bond_op_params, &XA, &tol_eff_A[nstart*(L - 1)]);
+			EvolveLiouvilleMPOPRK(&dyn_time, 1, true, &bond_op_params, &XB, &tol_eff_B[nstart*(L - 1)]);
 
 			nstart++;
 		}
@@ -334,8 +382,8 @@ int main(int argc, char *argv[])
 			CopyTensor(&XA.A[i_site], &XAi);
 			CopyTensor(&XB.A[i_site], &XBi);
 
-			ApplySingleSiteBottomOperator(&XA.A[i_site], &bd);  //     creation operator at site i
-			ApplySingleSiteBottomOperator(&XB.A[i_site], &b);   // annihilation operator at site i
+			ApplySingleSiteBottomOperator(&bd, &XA.A[i_site]);  //     creation operator at site i
+			ApplySingleSiteBottomOperator(&b,  &XB.A[i_site]);  // annihilation operator at site i
 
 			otoc1[n] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
 
@@ -345,8 +393,8 @@ int main(int argc, char *argv[])
 			CopyTensor(&XAi, &XA.A[i_site]);
 			CopyTensor(&XBi, &XB.A[i_site]);
 
-			ApplySingleSiteBottomOperator(&XA.A[i_site], &b);   // annihilation operator at site i
-			ApplySingleSiteBottomOperator(&XB.A[i_site], &bd);  //     creation operator at site i
+			ApplySingleSiteBottomOperator(&b,  &XA.A[i_site]);  // annihilation operator at site i
+			ApplySingleSiteBottomOperator(&bd, &XB.A[i_site]);  //     creation operator at site i
 
 			otoc2[n] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
 			   gf[n] = ComplexScale(1/Zbeta, MPOTrace(&XA));
@@ -390,8 +438,8 @@ int main(int argc, char *argv[])
 		}
 
 		// single step
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, true, params.tol, params.maxD, &XA, &tol_eff_A[n*(L - 1)]);
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, true, params.tol, params.maxD, &XB, &tol_eff_B[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, true, &bond_op_params, &XA, &tol_eff_A[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, true, &bond_op_params, &XB, &tol_eff_B[n*(L - 1)]);
 	}
 
 	duprintf("At t = %g:\n", params.tmax);

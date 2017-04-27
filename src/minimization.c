@@ -204,7 +204,7 @@ void CalculateGroundStateLocalSinglesite(const mpo_t *restrict H, const int maxi
 ///     The density-matrix renormalization group in the age of matrix product states
 ///     Annals of Physics 326, 96-192 (2011)
 ///
-void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter, const double tol, const size_t maxD, double *restrict entropy, double *restrict en_min, mps_t *restrict psi)
+void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter, const bond_op_params_t *restrict bond_op_params, double *restrict entropy, double *restrict en_min, mps_t *restrict psi)
 {
 	const int L = H->L;
 
@@ -283,7 +283,7 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 			qnumber_t *qD0 = (qnumber_t *)MKL_calloc(A_opt.dim[1], sizeof(qnumber_t), MEM_DATA_ALIGN);
 			qnumber_t *qD2 = (qnumber_t *)MKL_calloc(A_opt.dim[2], sizeof(qnumber_t), MEM_DATA_ALIGN);
 			qnumber_t *qbond;
-			SplitMPSTensor(&A_opt, qD0, qD2, d, d, qd, qd, SVD_DISTR_RIGHT, tol, maxD, false, &psi->A[i], &psi->A[i+1], &qbond);
+			SplitMPSTensor(&A_opt, qD0, qD2, d, d, qd, qd, SVD_DISTR_RIGHT, bond_op_params, &psi->A[i], &psi->A[i+1], &qbond);
 			MKL_free(qbond);
 			MKL_free(qD2);
 			MKL_free(qD0);
@@ -316,7 +316,7 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 			qnumber_t *qD0 = (qnumber_t *)MKL_calloc(A_opt.dim[1], sizeof(qnumber_t), MEM_DATA_ALIGN);
 			qnumber_t *qD2 = (qnumber_t *)MKL_calloc(A_opt.dim[2], sizeof(qnumber_t), MEM_DATA_ALIGN);
 			qnumber_t *qbond;
-			trunc_info_t ti = SplitMPSTensor(&A_opt, qD0, qD2, d, d, qd, qd, SVD_DISTR_LEFT, tol, maxD, false, &psi->A[i-1], &psi->A[i], &qbond);
+			trunc_info_t ti = SplitMPSTensor(&A_opt, qD0, qD2, d, d, qd, qd, SVD_DISTR_LEFT, bond_op_params, &psi->A[i-1], &psi->A[i], &qbond);
 			MKL_free(qbond);
 			MKL_free(qD2);
 			MKL_free(qD0);

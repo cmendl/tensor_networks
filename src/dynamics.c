@@ -2,6 +2,7 @@
 /// \brief Time evolution (real and imaginary) of matrix product operators
 
 #include "dynamics.h"
+#include "complex.h"
 #include "util.h"
 #include <mkl.h>
 
@@ -45,89 +46,71 @@ void DeleteDynamicsData(dynamics_data_t *dyn)
 //________________________________________________________________________________________________________________________
 ///
 /// \brief Apply two-site operators 'opT' from the top and 'opB' from the bottom to even or odd bonds only, and orthonormalize complementary bonds;
-/// 'opT' and 'opB' must point to arrays of length 'L - 1'
+/// 'opT' and 'opB' must point to arrays of length 'L - 1' (ignored if NULL pointers)
 ///
-static inline void EvenOddUpdate(const tensor_t *restrict opT, const tensor_t *restrict opB, const int parity, const sweep_dir_t direction, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff)
+static void EvenOddUpdate(const tensor_t *restrict opT, const tensor_t *restrict opB, const int parity, const sweep_dir_t direction, const bond_op_params_t *restrict params, mpo_t *restrict mpo, double *restrict tol_eff)
 {
+	int istart, istop, iinc;
+	svd_distr_t distr;
 	if (direction == SWEEP_LEFT_TO_RIGHT)
 	{
-		int i;
-		for (i = 0; i < mpo->L - 1; i++)
-		{
-			trunc_info_t ti;
-			if (((i - parity) & 1) == 0) {
-				ti = ApplyTwoSiteOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], &opB[i], SVD_DISTR_RIGHT, tol, maxD);
-			}
-			else {
-				ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_RIGHT, tol, maxD);
-			}
-			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
-		}
+		istart = 0;
+		istop  = mpo->L - 1;
+		iinc   = 1;
+		distr  = SVD_DISTR_RIGHT;
 	}
 	else if (direction == SWEEP_RIGHT_TO_LEFT)
 	{
-		int i;
-		for (i = mpo->L - 2; i >= 0; i--)
-		{
-			trunc_info_t ti;
-			if (((i - parity) & 1) == 0) {
-				ti = ApplyTwoSiteOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], &opB[i], SVD_DISTR_LEFT, tol, maxD);
-			}
-			else {
-				ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_LEFT, tol, maxD);
-			}
-			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
-		}
+		istart = mpo->L - 2;
+		istop  = -1;
+		iinc   = -1;
+		distr  = SVD_DISTR_LEFT;
 	}
 	else
 	{
 		// invalid direction
 		assert(false);
 	}
-}
 
+	int i;
+	for (i = istart; i != istop; i += iinc)
+	{
+		trunc_info_t ti;
+		if (((i - parity) & 1) == 0)
+		{
+			tensor_t A;
+			MergeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], &A);
+			DeleteTensor(&mpo->A[i]);
+			DeleteTensor(&mpo->A[i+1]);
+			MKL_free(mpo->qD[i+1]);
 
-//________________________________________________________________________________________________________________________
-///
-/// \brief Apply two-site operators 'opT' from the top to even or odd bonds only, and orthonormalize complementary bonds;
-/// 'opT' must point to an array of length 'L - 1'
-///
-static inline void EvenOddTopUpdate(const tensor_t *restrict opT, const int parity, const sweep_dir_t direction, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff)
-{
-	if (direction == SWEEP_LEFT_TO_RIGHT)
-	{
-		int i;
-		for (i = 0; i < mpo->L - 1; i++)
-		{
-			trunc_info_t ti;
-			if (((i - parity) & 1) == 0) {
-				ti = ApplyTwoSiteTopOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], SVD_DISTR_RIGHT, tol, maxD);
+			if (opT != NULL)
+			{
+				tensor_t M;
+				MoveTensorData(&A, &M);
+				ComposeMPOTensors(&opT[i], &M, &A);
+				DeleteTensor(&M);
 			}
-			else {
-				ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_RIGHT, tol, maxD);
+
+			if (opB != NULL)
+			{
+				tensor_t M;
+				MoveTensorData(&A, &M);
+				ComposeMPOTensors(&M, &opB[i], &A);
+				DeleteTensor(&M);
 			}
-			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
+
+			ti = SplitMPOTensor(&A, mpo->qD[i], mpo->qD[i+2], mpo->d[0], mpo->d[0], mpo->qd[0], mpo->qd[0], distr, params, &mpo->A[i], &mpo->A[i+1], &mpo->qD[i+1]);
+			DeleteTensor(&A);
 		}
-	}
-	else if (direction == SWEEP_RIGHT_TO_LEFT)
-	{
-		int i;
-		for (i = mpo->L - 2; i >= 0; i--)
+		else
 		{
-			trunc_info_t ti;
-			if (((i - parity) & 1) == 0) {
-				ti = ApplyTwoSiteTopOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], SVD_DISTR_LEFT, tol, maxD);
-			}
-			else {
-				ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_LEFT, tol, maxD);
-			}
-			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
+			qnumber_t *qDi1_new;
+			ti = CompressMPOTensors(&mpo->A[i], &mpo->A[i+1], mpo->qD[i], mpo->qD[i+1], mpo->qD[i+2], mpo->qd[0], mpo->qd[0], distr, params, &qDi1_new);
+			MKL_free(mpo->qD[i+1]);
+			mpo->qD[i+1] = qDi1_new;
 		}
-	}
-	else
-	{
-		// invalid direction
-		assert(false);
+		tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
 	}
 }
 
@@ -136,29 +119,27 @@ static inline void EvenOddTopUpdate(const tensor_t *restrict opT, const int pari
 ///
 /// \brief Apply two-site operators 'opT' from the top and 'opB' from the bottom; 'opT' and 'opB' must point to arrays of length 'L - 1'
 ///
-static inline double LatticeTwoSiteSweep(const tensor_t *restrict opT, const tensor_t *restrict opB, const sweep_dir_t direction, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff)
+static double LatticeTwoSiteSweep(const tensor_t *restrict opT, const tensor_t *restrict opB, const sweep_dir_t direction, const bond_op_params_t *restrict params, mpo_t *restrict mpo, double *restrict tol_eff)
 {
+	assert(mpo->d[0] == mpo->d[1]);
+
 	double nsigma = 0;
 
+	int istart, istop, iinc;
+	svd_distr_t distr;
 	if (direction == SWEEP_LEFT_TO_RIGHT)
 	{
-		int i;
-		for (i = 0; i < mpo->L - 1; i++)
-		{
-			trunc_info_t ti = ApplyTwoSiteOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], &opB[i], SVD_DISTR_RIGHT, tol, maxD);
-			nsigma = ti.nsigma;
-			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
-		}
+		istart = 0;
+		istop  = mpo->L - 1;
+		iinc   = 1;
+		distr  = SVD_DISTR_RIGHT;
 	}
 	else if (direction == SWEEP_RIGHT_TO_LEFT)
 	{
-		int i;
-		for (i = mpo->L - 2; i >= 0; i--)
-		{
-			trunc_info_t ti = ApplyTwoSiteOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], &opB[i], SVD_DISTR_LEFT, tol, maxD);
-			nsigma = ti.nsigma;
-			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
-		}
+		istart = mpo->L - 2;
+		istop  = -1;
+		iinc   = -1;
+		distr  = SVD_DISTR_LEFT;
 	}
 	else
 	{
@@ -166,42 +147,36 @@ static inline double LatticeTwoSiteSweep(const tensor_t *restrict opT, const ten
 		assert(false);
 	}
 
-	return nsigma;
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Apply two-site operators 'opT' sequentially from the top; 'opT' must point to an array of length 'L - 1'
-///
-static inline double LatticeTwoSiteTopSweep(const tensor_t *restrict opT, const sweep_dir_t direction, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff)
-{
-	double nsigma = 0;
-
-	if (direction == SWEEP_LEFT_TO_RIGHT)
+	int i;
+	for (i = istart; i != istop; i += iinc)
 	{
-		int i;
-		for (i = 0; i < mpo->L - 1; i++)
+		tensor_t A;
+		MergeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], &A);
+		DeleteTensor(&mpo->A[i]);
+		DeleteTensor(&mpo->A[i+1]);
+		MKL_free(mpo->qD[i+1]);
+
+		if (opT != NULL)
 		{
-			trunc_info_t ti = ApplyTwoSiteTopOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], SVD_DISTR_RIGHT, tol, maxD);
-			nsigma = ti.nsigma;
-			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
+			tensor_t M;
+			MoveTensorData(&A, &M);
+			ComposeMPOTensors(&opT[i], &M, &A);
+			DeleteTensor(&M);
 		}
-	}
-	else if (direction == SWEEP_RIGHT_TO_LEFT)
-	{
-		int i;
-		for (i = mpo->L - 2; i >= 0; i--)
+
+		if (opB != NULL)
 		{
-			trunc_info_t ti = ApplyTwoSiteTopOperator(&mpo->A[i], &mpo->A[i+1], &opT[i], SVD_DISTR_LEFT, tol, maxD);
-			nsigma = ti.nsigma;
-			tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
+			tensor_t M;
+			MoveTensorData(&A, &M);
+			ComposeMPOTensors(&M, &opB[i], &A);
+			DeleteTensor(&M);
 		}
-	}
-	else
-	{
-		// invalid direction
-		assert(false);
+
+		trunc_info_t ti = SplitMPOTensor(&A, mpo->qD[i], mpo->qD[i+2], mpo->d[0], mpo->d[0], mpo->qd[0], mpo->qd[0], distr, params, &mpo->A[i], &mpo->A[i+1], &mpo->qD[i+1]);
+		DeleteTensor(&A);
+
+		nsigma = ti.nsigma;
+		tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
 	}
 
 	return nsigma;
@@ -214,42 +189,24 @@ static inline double LatticeTwoSiteTopSweep(const tensor_t *restrict opT, const 
 ///
 void ComputeDynamicsDataStrang(const int L, const MKL_Complex16 dt, const size_t d2, const double **h, dynamics_data_t *restrict dyn)
 {
-	int i;
+	int i, j;
 	assert(d2 > 0);
 
 	AllocateDynamicsData(L, 4, dt, dyn);
 
-	const size_t dim[2] = { d2, d2 };
+	// dummy virtual bonds
+	const size_t dim[4] = { d2, d2, 1, 1 };
 
-	// first type: exp(-dt h)
-	for (i = 0; i < L - 1; i++)
-	{
-		AllocateTensor(2, dim, &dyn->exp_h[i]);
-		MatrixExp(d2, dt, h[i], dyn->exp_h[i].data);
-	}
+	// four versions
+	const MKL_Complex16 dt_steps[4] = { dt, ComplexScale(0.5, dt), ComplexScale(-1, dt), ComplexScale(-0.5, dt) };
 
-	// second type: exp(-dt/2 h)
-	const MKL_Complex16 dt_half = { dt.real/2, dt.imag/2 };
-	for (i = 0; i < L - 1; i++)
+	for (j = 0; j < 4; j++)
 	{
-		AllocateTensor(2, dim, &dyn->exp_h[(L - 1) + i]);
-		MatrixExp(d2, dt_half, h[i], dyn->exp_h[(L - 1) + i].data);
-	}
-
-	// third type: exp(dt h)
-	const MKL_Complex16 neg_dt = { -dt.real, -dt.imag };
-	for (i = 0; i < L - 1; i++)
-	{
-		AllocateTensor(2, dim, &dyn->exp_h[2*(L - 1) + i]);
-		MatrixExp(d2, neg_dt, h[i], dyn->exp_h[2*(L - 1) + i].data);
-	}
-
-	// fourth type: exp(dt/2 h)
-	const MKL_Complex16 neg_dt_half = { -dt.real/2, -dt.imag/2 };
-	for (i = 0; i < L - 1; i++)
-	{
-		AllocateTensor(2, dim, &dyn->exp_h[3*(L - 1) + i]);
-		MatrixExp(d2, neg_dt_half, h[i], dyn->exp_h[3*(L - 1) + i].data);
+		for (i = 0; i < L - 1; i++)
+		{
+			AllocateTensor(4, dim, &dyn->exp_h[i + j*(L - 1)]);
+			MatrixExp(d2, dt_steps[j], h[i], dyn->exp_h[i + j*(L - 1)].data);
+		}
 	}
 }
 
@@ -263,7 +220,7 @@ void ComputeDynamicsDataStrang(const int L, const MKL_Complex16 dt, const size_t
 ///     Real-time evolution using the density matrix renormalization group
 ///     Phys. Rev. Lett. 93, 076401 (2004)
 ///
-void EvolveMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, const double tol, const size_t maxD, const bool normalize, mpo_t *restrict mpo, double *restrict tol_eff)
+void EvolveMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, const bond_op_params_t *restrict params, const bool normalize, mpo_t *restrict mpo, double *restrict tol_eff)
 {
 	const int L = mpo->L;
 
@@ -274,8 +231,8 @@ void EvolveMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, cons
 	int n;
 	for (n = 0; n < nsteps; n++)
 	{
-		                LatticeTwoSiteTopSweep(&dyn->exp_h[L-1], SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);
-		double nsigma = LatticeTwoSiteTopSweep(&dyn->exp_h[L-1], SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);
+		                LatticeTwoSiteSweep(&dyn->exp_h[L-1], NULL, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);
+		double nsigma = LatticeTwoSiteSweep(&dyn->exp_h[L-1], NULL, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);
 
 		if (normalize)
 		{
@@ -296,7 +253,7 @@ void EvolveMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, cons
 ///     Real-time evolution using the density matrix renormalization group
 ///     Phys. Rev. Lett. 93, 076401 (2004)
 ///
-void EvolveLiouvilleMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, const double tol, const size_t maxD, const bool normalize, mpo_t *restrict mpo, double *restrict tol_eff)
+void EvolveLiouvilleMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, const bond_op_params_t *restrict params, const bool normalize, mpo_t *restrict mpo, double *restrict tol_eff)
 {
 	const int L = mpo->L;
 
@@ -307,8 +264,8 @@ void EvolveLiouvilleMPOStrang(const dynamics_data_t *restrict dyn, const int nst
 	int n;
 	for (n = 0; n < nsteps; n++)
 	{
-		                LatticeTwoSiteSweep(&dyn->exp_h[L-1], &dyn->exp_h[3*(L-1)], SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);
-		double nsigma = LatticeTwoSiteSweep(&dyn->exp_h[L-1], &dyn->exp_h[3*(L-1)], SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);
+		                LatticeTwoSiteSweep(&dyn->exp_h[L-1], &dyn->exp_h[3*(L-1)], SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);
+		double nsigma = LatticeTwoSiteSweep(&dyn->exp_h[L-1], &dyn->exp_h[3*(L-1)], SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);
 
 		if (normalize)
 		{
@@ -350,7 +307,8 @@ void ComputeDynamicsDataPRK(const int L, const MKL_Complex16 dt, const size_t d2
 
 	AllocateDynamicsData(L, 14, dt, dyn);
 
-	const size_t dim[2] = { d2, d2 };
+	// dummy virtual bonds
+	const size_t dim[4] = { d2, d2, 1, 1 };
 
 	// 'a' coefficients
 	for (j = 0; j < 4; j++)
@@ -359,12 +317,12 @@ void ComputeDynamicsDataPRK(const int L, const MKL_Complex16 dt, const size_t d2
 		{
 			// a[j]*dt
 			const MKL_Complex16 adt = { coeff_a[j]*dt.real, coeff_a[j]*dt.imag };
-			AllocateTensor(2, dim,  &dyn->exp_h[i + (L-1)*2*j]);
+			AllocateTensor(4, dim,  &dyn->exp_h[i + (L-1)*2*j]);
 			MatrixExp(d2, adt, h[i], dyn->exp_h[i + (L-1)*2*j].data);
 
 			// -a[j]*dt
 			const MKL_Complex16 nadt = { -coeff_a[j]*dt.real, -coeff_a[j]*dt.imag };
-			AllocateTensor(2, dim,   &dyn->exp_h[i + (L-1)*(2*j+1)]);
+			AllocateTensor(4, dim,   &dyn->exp_h[i + (L-1)*(2*j+1)]);
 			MatrixExp(d2, nadt, h[i], dyn->exp_h[i + (L-1)*(2*j+1)].data);
 		}
 	}
@@ -376,12 +334,12 @@ void ComputeDynamicsDataPRK(const int L, const MKL_Complex16 dt, const size_t d2
 		{
 			// b[j]*dt
 			const MKL_Complex16 bdt = { coeff_b[j]*dt.real, coeff_b[j]*dt.imag };
-			AllocateTensor(2, dim,  &dyn->exp_h[i + (L-1)*2*(j+4)]);
+			AllocateTensor(4, dim,  &dyn->exp_h[i + (L-1)*2*(j+4)]);
 			MatrixExp(d2, bdt, h[i], dyn->exp_h[i + (L-1)*2*(j+4)].data);
 
 			// -b[j]*dt
 			const MKL_Complex16 nbdt = { -coeff_b[j]*dt.real, -coeff_b[j]*dt.imag };
-			AllocateTensor(2, dim,   &dyn->exp_h[i + (L-1)*(2*(j+4)+1)]);
+			AllocateTensor(4, dim,   &dyn->exp_h[i + (L-1)*(2*(j+4)+1)]);
 			MatrixExp(d2, nbdt, h[i], dyn->exp_h[i + (L-1)*(2*(j+4)+1)].data);
 		}
 	}
@@ -392,7 +350,7 @@ void ComputeDynamicsDataPRK(const int L, const MKL_Complex16 dt, const size_t d2
 ///
 /// \brief Perform a partitioned Runge-Kutta (PRK) splitting evolution of the form exp(-i t H) X with X the MPO
 ///
-void EvolveMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff)
+void EvolveMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const bond_op_params_t *restrict params, mpo_t *restrict mpo, double *restrict tol_eff)
 {
 	const int L = mpo->L;
 
@@ -407,19 +365,19 @@ void EvolveMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps, const b
 	int n;
 	for (n = 0; n < nsteps; n++)
 	{
-		EvenOddTopUpdate(&dyn->exp_h[( 0+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[0]
-		EvenOddTopUpdate(&dyn->exp_h[( 8+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[0]
-		EvenOddTopUpdate(&dyn->exp_h[( 2+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[1]
-		EvenOddTopUpdate(&dyn->exp_h[(10+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[1]
-		EvenOddTopUpdate(&dyn->exp_h[( 4+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[2]
-		EvenOddTopUpdate(&dyn->exp_h[(12+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[2]
-		EvenOddTopUpdate(&dyn->exp_h[( 6+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[3]
-		EvenOddTopUpdate(&dyn->exp_h[(12+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[2]
-		EvenOddTopUpdate(&dyn->exp_h[( 4+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[2]
-		EvenOddTopUpdate(&dyn->exp_h[(10+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[1]
-		EvenOddTopUpdate(&dyn->exp_h[( 2+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[1]
-		EvenOddTopUpdate(&dyn->exp_h[( 8+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[0]
-		EvenOddTopUpdate(&dyn->exp_h[( 0+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[0]
+		EvenOddUpdate(&dyn->exp_h[( 0+offset)*(L-1)], NULL, 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[0]
+		EvenOddUpdate(&dyn->exp_h[( 8+offset)*(L-1)], NULL, 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[0]
+		EvenOddUpdate(&dyn->exp_h[( 2+offset)*(L-1)], NULL, 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[1]
+		EvenOddUpdate(&dyn->exp_h[(10+offset)*(L-1)], NULL, 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[1]
+		EvenOddUpdate(&dyn->exp_h[( 4+offset)*(L-1)], NULL, 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[2]
+		EvenOddUpdate(&dyn->exp_h[(12+offset)*(L-1)], NULL, 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[2]
+		EvenOddUpdate(&dyn->exp_h[( 6+offset)*(L-1)], NULL, 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[3]
+		EvenOddUpdate(&dyn->exp_h[(12+offset)*(L-1)], NULL, 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[2]
+		EvenOddUpdate(&dyn->exp_h[( 4+offset)*(L-1)], NULL, 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[2]
+		EvenOddUpdate(&dyn->exp_h[(10+offset)*(L-1)], NULL, 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[1]
+		EvenOddUpdate(&dyn->exp_h[( 2+offset)*(L-1)], NULL, 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[1]
+		EvenOddUpdate(&dyn->exp_h[( 8+offset)*(L-1)], NULL, 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[0]
+		EvenOddUpdate(&dyn->exp_h[( 0+offset)*(L-1)], NULL, 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[0]
 	}
 }
 
@@ -428,7 +386,7 @@ void EvolveMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps, const b
 ///
 /// \brief Perform a partitioned Runge-Kutta (PRK) splitting Liouville evolution of the form exp(-i t H) X exp(i t H) with X the MPO
 ///
-void EvolveLiouvilleMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff)
+void EvolveLiouvilleMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const bond_op_params_t *restrict params, mpo_t *restrict mpo, double *restrict tol_eff)
 {
 	const int L = mpo->L;
 
@@ -444,159 +402,18 @@ void EvolveLiouvilleMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps
 	int n;
 	for (n = 0; n < nsteps; n++)
 	{
-		EvenOddUpdate(&dyn->exp_h[( 0+offsetF)*(L-1)], &dyn->exp_h[( 0+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[0]
-		EvenOddUpdate(&dyn->exp_h[( 8+offsetF)*(L-1)], &dyn->exp_h[( 8+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[0]
-		EvenOddUpdate(&dyn->exp_h[( 2+offsetF)*(L-1)], &dyn->exp_h[( 2+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[1]
-		EvenOddUpdate(&dyn->exp_h[(10+offsetF)*(L-1)], &dyn->exp_h[(10+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[1]
-		EvenOddUpdate(&dyn->exp_h[( 4+offsetF)*(L-1)], &dyn->exp_h[( 4+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[2]
-		EvenOddUpdate(&dyn->exp_h[(12+offsetF)*(L-1)], &dyn->exp_h[(12+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[2]
-		EvenOddUpdate(&dyn->exp_h[( 6+offsetF)*(L-1)], &dyn->exp_h[( 6+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[3]
-		EvenOddUpdate(&dyn->exp_h[(12+offsetF)*(L-1)], &dyn->exp_h[(12+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[2]
-		EvenOddUpdate(&dyn->exp_h[( 4+offsetF)*(L-1)], &dyn->exp_h[( 4+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[2]
-		EvenOddUpdate(&dyn->exp_h[(10+offsetF)*(L-1)], &dyn->exp_h[(10+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[1]
-		EvenOddUpdate(&dyn->exp_h[( 2+offsetF)*(L-1)], &dyn->exp_h[( 2+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[1]
-		EvenOddUpdate(&dyn->exp_h[( 8+offsetF)*(L-1)], &dyn->exp_h[( 8+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[0]
-		EvenOddUpdate(&dyn->exp_h[( 0+offsetF)*(L-1)], &dyn->exp_h[( 0+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[0]
-	}
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Compute the evolution dynamics data required for operator splitting
-/// using the fourth-order symplectic Runge-Kutta-Nystrom method SRKN^b_6
-///
-/// Reference:
-///     Sergio Blanes and Per C. Moan.
-///     Practical symplectic partitioned Runge-Kutta and Runge-Kutta-Nystrom methods.
-///     J. Comput. Appl. Math. 142, 313-330 (2002)
-///
-void ComputeDynamicsDataSRKNb6(const int L, const MKL_Complex16 dt, const size_t d2, const double **h, dynamics_data_t *restrict dyn)
-{
-	int i, j;
-	assert(d2 > 0);
-
-	const double coeff_a[3] = {
-		 0.245298957184271,
-		 0.604872665711080,
-		-0.350171622895351      // 0.5 - (a[0] + a[1])
-	};
-
-	const double coeff_b[4] = {
-		 0.08298440641740515,
-		 0.396309801498368,
-		-0.03905630492234859,
-		 0.11952419401315084    // 1 - 2*(b[0] + b[1] + b[2])
-	};
-
-	AllocateDynamicsData(L, 14, dt, dyn);
-
-	const size_t dim[2] = { d2, d2 };
-
-	// 'a' coefficients
-	for (j = 0; j < 3; j++)
-	{
-		for (i = 0; i < L - 1; i++)
-		{
-			// a[j]*dt
-			const MKL_Complex16 adt = { coeff_a[j]*dt.real, coeff_a[j]*dt.imag };
-			AllocateTensor(2, dim,  &dyn->exp_h[i + (L-1)*2*j]);
-			MatrixExp(d2, adt, h[i], dyn->exp_h[i + (L-1)*2*j].data);
-
-			// -a[j]*dt
-			const MKL_Complex16 nadt = { -coeff_a[j]*dt.real, -coeff_a[j]*dt.imag };
-			AllocateTensor(2, dim,   &dyn->exp_h[i + (L-1)*(2*j+1)]);
-			MatrixExp(d2, nadt, h[i], dyn->exp_h[i + (L-1)*(2*j+1)].data);
-		}
-	}
-
-	// 'b' coefficients
-	for (j = 0; j < 4; j++)
-	{
-		for (i = 0; i < L - 1; i++)
-		{
-			// b[j]*dt
-			const MKL_Complex16 bdt = { coeff_b[j]*dt.real, coeff_b[j]*dt.imag };
-			AllocateTensor(2, dim,  &dyn->exp_h[i + (L-1)*2*(j+3)]);
-			MatrixExp(d2, bdt, h[i], dyn->exp_h[i + (L-1)*2*(j+3)].data);
-
-			// -b[j]*dt
-			const MKL_Complex16 nbdt = { -coeff_b[j]*dt.real, -coeff_b[j]*dt.imag };
-			AllocateTensor(2, dim,   &dyn->exp_h[i + (L-1)*(2*(j+3)+1)]);
-			MatrixExp(d2, nbdt, h[i], dyn->exp_h[i + (L-1)*(2*(j+3)+1)].data);
-		}
-	}
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Perform a SRKN^b_6 splitting evolution of the form exp(-i t H) X with X the MPO
-///
-void EvolveMPOSRKNb6(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff)
-{
-	const int L = mpo->L;
-
-	assert(dyn->L == L);
-	assert(dyn->m == 14);
-	assert(mpo->d[0] == mpo->d[1]);
-
-	// TODO: can combine first and last sub-step into one sub-step
-
-	const int offset = (forward ? 0 : 1);
-
-	int n;
-	for (n = 0; n < nsteps; n++)
-	{
-		EvenOddTopUpdate(&dyn->exp_h[( 6+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[0]
-		EvenOddTopUpdate(&dyn->exp_h[( 0+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[0]
-		EvenOddTopUpdate(&dyn->exp_h[( 8+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[1]
-		EvenOddTopUpdate(&dyn->exp_h[( 2+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[1]
-		EvenOddTopUpdate(&dyn->exp_h[(10+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[2]
-		EvenOddTopUpdate(&dyn->exp_h[( 4+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[2]
-		EvenOddTopUpdate(&dyn->exp_h[(12+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[3]
-		EvenOddTopUpdate(&dyn->exp_h[( 4+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[2]
-		EvenOddTopUpdate(&dyn->exp_h[(10+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[2]
-		EvenOddTopUpdate(&dyn->exp_h[( 2+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[1]
-		EvenOddTopUpdate(&dyn->exp_h[( 8+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[1]
-		EvenOddTopUpdate(&dyn->exp_h[( 0+offset)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // a[0]
-		EvenOddTopUpdate(&dyn->exp_h[( 6+offset)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]);    // b[0]
-	}
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Perform a SRKN^b_6 splitting Liouville evolution of the form exp(-i t H) X exp(i t H) with X the MPO
-///
-void EvolveLiouvilleMPOSRKNb6(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff)
-{
-	const int L = mpo->L;
-
-	assert(dyn->L == L);
-	assert(dyn->m == 14);
-	assert(mpo->d[0] == mpo->d[1]);
-
-	// TODO: can combine first and last sub-step into one sub-step
-
-	const int offsetF = (forward ? 0 : 1);
-	const int offsetB = (forward ? 1 : 0);
-
-	int n;
-	for (n = 0; n < nsteps; n++)
-	{
-		EvenOddUpdate(&dyn->exp_h[( 6+offsetF)*(L-1)], &dyn->exp_h[( 6+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[0]
-		EvenOddUpdate(&dyn->exp_h[( 0+offsetF)*(L-1)], &dyn->exp_h[( 0+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[0]
-		EvenOddUpdate(&dyn->exp_h[( 8+offsetF)*(L-1)], &dyn->exp_h[( 8+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[1]
-		EvenOddUpdate(&dyn->exp_h[( 2+offsetF)*(L-1)], &dyn->exp_h[( 2+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[1]
-		EvenOddUpdate(&dyn->exp_h[(10+offsetF)*(L-1)], &dyn->exp_h[(10+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[2]
-		EvenOddUpdate(&dyn->exp_h[( 4+offsetF)*(L-1)], &dyn->exp_h[( 4+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[2]
-		EvenOddUpdate(&dyn->exp_h[(12+offsetF)*(L-1)], &dyn->exp_h[(12+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[3]
-		EvenOddUpdate(&dyn->exp_h[( 4+offsetF)*(L-1)], &dyn->exp_h[( 4+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[2]
-		EvenOddUpdate(&dyn->exp_h[(10+offsetF)*(L-1)], &dyn->exp_h[(10+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[2]
-		EvenOddUpdate(&dyn->exp_h[( 2+offsetF)*(L-1)], &dyn->exp_h[( 2+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[1]
-		EvenOddUpdate(&dyn->exp_h[( 8+offsetF)*(L-1)], &dyn->exp_h[( 8+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[1]
-		EvenOddUpdate(&dyn->exp_h[( 0+offsetF)*(L-1)], &dyn->exp_h[( 0+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // a[0]
-		EvenOddUpdate(&dyn->exp_h[( 6+offsetF)*(L-1)], &dyn->exp_h[( 6+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, tol, maxD, mpo, &tol_eff[n*(L-1)]); // b[0]
+		EvenOddUpdate(&dyn->exp_h[( 0+offsetF)*(L-1)], &dyn->exp_h[( 0+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[0]
+		EvenOddUpdate(&dyn->exp_h[( 8+offsetF)*(L-1)], &dyn->exp_h[( 8+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[0]
+		EvenOddUpdate(&dyn->exp_h[( 2+offsetF)*(L-1)], &dyn->exp_h[( 2+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[1]
+		EvenOddUpdate(&dyn->exp_h[(10+offsetF)*(L-1)], &dyn->exp_h[(10+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[1]
+		EvenOddUpdate(&dyn->exp_h[( 4+offsetF)*(L-1)], &dyn->exp_h[( 4+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[2]
+		EvenOddUpdate(&dyn->exp_h[(12+offsetF)*(L-1)], &dyn->exp_h[(12+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[2]
+		EvenOddUpdate(&dyn->exp_h[( 6+offsetF)*(L-1)], &dyn->exp_h[( 6+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[3]
+		EvenOddUpdate(&dyn->exp_h[(12+offsetF)*(L-1)], &dyn->exp_h[(12+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[2]
+		EvenOddUpdate(&dyn->exp_h[( 4+offsetF)*(L-1)], &dyn->exp_h[( 4+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[2]
+		EvenOddUpdate(&dyn->exp_h[(10+offsetF)*(L-1)], &dyn->exp_h[(10+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[1]
+		EvenOddUpdate(&dyn->exp_h[( 2+offsetF)*(L-1)], &dyn->exp_h[( 2+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[1]
+		EvenOddUpdate(&dyn->exp_h[( 8+offsetF)*(L-1)], &dyn->exp_h[( 8+offsetB)*(L-1)], 1, SWEEP_RIGHT_TO_LEFT, params, mpo, &tol_eff[n*(L-1)]);    // b[0]
+		EvenOddUpdate(&dyn->exp_h[( 0+offsetF)*(L-1)], &dyn->exp_h[( 0+offsetB)*(L-1)], 0, SWEEP_LEFT_TO_RIGHT, params, mpo, &tol_eff[n*(L-1)]);    // a[0]
 	}
 }

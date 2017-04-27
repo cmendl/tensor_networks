@@ -234,7 +234,7 @@ MPODistributeSingularValues["right"]:=MPODistributeSingularValuesRight
 MPODistributeSingularValues["sqrt"] :=MPODistributeSingularValuesSqrt
 
 
-(* Matrix exponential and time evolution *)
+(* Time evolution *)
 
 MPOLatticeTwoSiteTopSweep[A_List,op_List,qd_,direction_,tol_]:=Module[{B=A,j},
 	If[direction==1,
@@ -266,6 +266,35 @@ MPOEvenOddTopUpdate[A_List,op_List,qd_,jstart_,svdDistr_,tol_]:=Module[{B=A},
 
 MPOEvenOddUpdate[A_List,opT_List,opB_List,qd_,jstart_,svdDistr_,tol_]:=Module[{B=A},
 	Table[{B[[j]],B[[j+1]]}=MPODistributeSingularValues[svdDistr]@@MPOPairComposition[opT[[j,1]],opT[[j,2]],A[[j]],A[[j+1]],opB[[j,1]],opB[[j,2]],{qd,qd},tol],{j,jstart,Length[A]-1,2}];B]
+
+MPOPRKStep[A_List,expdtHa_List,expdtHb_List,qd_,tol_]:=Fold[
+	MPOEvenOddTopUpdate[#1,If[OddQ[#2],expdtHa[[(#2+1)/2]],expdtHb[[#2/2]]],qd,Mod[#2,2,1],"sqrt",tol]&,
+	A,Range[13]]
+
+MPOPRKLiouvilleStep[A_List,expdtHa_List,expdtHb_List,qd_,tol_]:=Fold[
+	MPOEvenOddUpdate[#1,
+		If[OddQ[#2],expdtHa[[(#2+1)/2,1]],expdtHb[[#2/2,1]]],
+		If[OddQ[#2],expdtHa[[(#2+1)/2,2]],expdtHb[[#2/2,2]]],
+		qd,Mod[#2,2,1],"sqrt",tol]&,
+	A,Range[13]]
+
+MPOPRKEvolution[A0_List,h2_List,qd_,t_,0,tol_]:=A0
+MPOPRKEvolution[A0_List,h2_List,qd_,t_,nsteps_,tol_]:=Module[{dt=t/nsteps,expdtHa,expdtHb,
+	ca={0.0792036964311957,0.353172906049774,-0.0420650803577195,0.21937695575349958,-0.0420650803577195,0.353172906049774,0.0792036964311957},
+	cb={0.209515106613362,-0.143851773179818,0.434336666566456,0.434336666566456,-0.143851773179818,0.209515106613362}},
+	(* represent matrix exponential of local two-site operators as MPOs *)
+	expdtHa=Outer[MPODistributeSingularValuesSqrt@@MPOSplitTensor[{ArrayReshape[MatrixExp[-dt #1 #2],Join[Dimensions[#2],{1,1}]],{0},{0}},{qd,qd}]&,ca,h2,1];
+	expdtHb=Outer[MPODistributeSingularValuesSqrt@@MPOSplitTensor[{ArrayReshape[MatrixExp[-dt #1 #2],Join[Dimensions[#2],{1,1}]],{0},{0}},{qd,qd}]&,cb,h2,1];
+	Nest[MPOPRKStep[#,expdtHa,expdtHb,qd,tol]&,A0,nsteps]]
+
+MPOPRKLiouvilleEvolution[A0_List,h2_List,qd_,t_,0,tol_]:=A0
+MPOPRKLiouvilleEvolution[A0_List,h2_List,qd_,t_,nsteps_,tol_]:=Module[{dt=t/nsteps,expdtHa,expdtHb,
+	ca={0.0792036964311957,0.353172906049774,-0.0420650803577195,0.21937695575349958,-0.0420650803577195,0.353172906049774,0.0792036964311957},
+	cb={0.209515106613362,-0.143851773179818,0.434336666566456,0.434336666566456,-0.143851773179818,0.209515106613362}},
+	(* represent matrix exponential of local two-site operators as MPOs *)
+	expdtHa=Outer[MPODistributeSingularValuesSqrt@@MPOSplitTensor[{ArrayReshape[MatrixExp[-dt #1 #2 #3],Join[Dimensions[#3],{1,1}]],{0},{0}},{qd,qd}]&,ca,{1,-1},h2,1];
+	expdtHb=Outer[MPODistributeSingularValuesSqrt@@MPOSplitTensor[{ArrayReshape[MatrixExp[-dt #1 #2 #3],Join[Dimensions[#3],{1,1}]],{0},{0}},{qd,qd}]&,cb,{1,-1},h2,1];
+	Nest[MPOPRKLiouvilleStep[#,expdtHa,expdtHb,qd,tol]&,A0,nsteps]]
 
 MPOSRKNb6Step[A_List,expdtHa_List,expdtHb_List,qd_,tol_]:=Fold[
 	MPOEvenOddTopUpdate[#1,If[OddQ[#2],expdtHb[[(#2+1)/2]],expdtHa[[#2/2]]],qd,Mod[#2,2,1],"sqrt",tol]&,

@@ -71,14 +71,14 @@ void MergeMPSFull(const mps_t *restrict mps, tensor_t *restrict A);
 
 trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restrict qA0, const qnumber_t *restrict qA2,
 	const size_t d0, const size_t d1, const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params,
 	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond);
 
 
 trunc_info_t CompressMPSTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
 	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params,
 	qnumber_t *restrict *qA1compr);
 
 

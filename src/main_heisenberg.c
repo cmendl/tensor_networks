@@ -32,6 +32,48 @@ static int makedir(const char *path)
 
 
 //________________________________________________________________________________________________________________________
+///
+/// \brief Local MPO update by single-site operator 'opT' from the top
+///
+static void ApplySingleSiteTopOperator(const tensor_t *restrict opT, tensor_t *restrict A)
+{
+	assert(A->ndim == 4);
+
+	tensor_t t;
+	MoveTensorData(A, &t);
+	// result of multiplication again stored in 'A'
+	MultiplyTensor(opT, &t, 1, A);
+	DeleteTensor(&t);
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Local MPO update by single-site operator 'opB' from the bottom
+///
+static void ApplySingleSiteBottomOperator(const tensor_t *restrict opB, tensor_t *restrict A)
+{
+	assert(A->ndim == 4);
+
+	tensor_t s, t;
+
+	// transpose incoming physical dimension to the back
+	const int perm0[4] = { 0, 3, 1, 2 };
+	TransposeTensor(perm0, A, &s);
+	DeleteTensor(A);
+
+	// apply operator
+	MultiplyTensor(&s, opB, 1, &t);
+	DeleteTensor(&s);
+
+	// restore ordering of dimensions
+	const int perm1[4] = { 0, 2, 3, 1 };
+	TransposeTensor(perm1, &t, A);
+	DeleteTensor(&t);
+}
+
+
+//________________________________________________________________________________________________________________________
 //
 
 
@@ -104,6 +146,12 @@ int main(int argc, char *argv[])
 	// number of lattice sites
 	const int L = params.L;
 
+	// bond operation parameters
+	bond_op_params_t bond_op_params;
+	bond_op_params.tol  = params.tol;
+	bond_op_params.maxD = params.maxD;
+	bond_op_params.renormalize = true;
+
 	// ladder operators
 	tensor_t Sup, Sdn;
 	{
@@ -148,7 +196,7 @@ int main(int argc, char *argv[])
 		double *tol_eff_beta = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
 
 		// perform evolution
-		EvolveMPOStrang(&dyn, nsteps, params.tol, params.maxD, true, &rho_beta, tol_eff_beta);
+		EvolveMPOStrang(&dyn, nsteps, &bond_op_params, true, &rho_beta, tol_eff_beta);
 
 		// save effective tolerance to disk
 		sprintf(filename, "%s/heisenberg_L%i_tol_eff_beta.dat", argv[4], L);
@@ -165,8 +213,8 @@ int main(int argc, char *argv[])
 	mpo_t XA, XB;
 	CopyMPO(&rho_beta, &XA);
 	CopyMPO(&rho_beta, &XB);
-	ApplySingleSiteTopOperator(   &XA.A[jA], &Sup); // apply ladder-up operator from the top at site 'jA'
-	ApplySingleSiteBottomOperator(&XB.A[jB], &Sup); // apply ladder-up operator from the bottom at site 'jB'
+	ApplySingleSiteTopOperator(   &Sup, &XA.A[jA]); // apply ladder-up operator from the top at site 'jA'
+	ApplySingleSiteBottomOperator(&Sup, &XB.A[jB]); // apply ladder-up operator from the bottom at site 'jB'
 
 	// compute dynamics data for time evolution
 	dynamics_data_t dyn_time;
@@ -204,8 +252,8 @@ int main(int argc, char *argv[])
 		duprintf("time step %i / %i\n", n + 1, nsteps);
 
 		// single step
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XA, &tol_eff_A[n*(L - 1)]);
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XB, &tol_eff_B[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  &bond_op_params, &XA, &tol_eff_A[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, &bond_op_params, &XB, &tol_eff_B[n*(L - 1)]);
 
 		chi[n + 1] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
 

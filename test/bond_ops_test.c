@@ -9,7 +9,7 @@
 ///
 /// \brief Check whether solely entries corresponding to matching quantum numbers are non-zero
 ///
-static double BlockStructureError(const tensor_t *A, const qnumber_t *restrict q0, const qnumber_t *restrict q1)
+static double MatrixBlockStructureError(const tensor_t *A, const qnumber_t *restrict q0, const qnumber_t *restrict q1)
 {
 	assert(A->ndim == 2);
 
@@ -138,9 +138,11 @@ int BondOperationsTest()
 			tensor_t A0, A1;
 			qnumber_t *qbond;
 
-			const double tol = 0.025;
-			const size_t maxD = 256;
-			trunc_info_t ti = SplitMatrix(&A, q0, q1, svd_distr, tol, maxD, false, &A0, &A1, &qbond);
+			bond_op_params_t params;
+			params.tol  = 0.025;
+			params.maxD = 256;
+			params.renormalize = false;
+			trunc_info_t ti = SplitMatrix(&A, q0, q1, svd_distr, &params, &A0, &A1, &qbond);
 
 			if (A0.dim[0] != A.dim[0] || A0.dim[1] != D_ref || A1.dim[0] != D_ref || A1.dim[1] != A.dim[1])
 			{
@@ -163,8 +165,8 @@ int BondOperationsTest()
 			}
 
 			// block structure error
-			err = fmax(err, BlockStructureError(&A0, q0, qbond));
-			err = fmax(err, BlockStructureError(&A1, qbond, q1));
+			err = fmax(err, MatrixBlockStructureError(&A0, q0, qbond));
+			err = fmax(err, MatrixBlockStructureError(&A1, qbond, q1));
 
 			// norm and Neumann entropy of retained singular values
 			err = fmax(err, fabs(ti.nsigma  -  nsigma_ref));
@@ -187,8 +189,8 @@ int BondOperationsTest()
 		QRDecomposition(&A, q0, q1, &Q, &R, &qinterm);
 
 		// block structure error
-		err = fmax(err, BlockStructureError(&Q, q0, qinterm));
-		err = fmax(err, BlockStructureError(&R, qinterm, q1));
+		err = fmax(err, MatrixBlockStructureError(&Q, q0, qinterm));
+		err = fmax(err, MatrixBlockStructureError(&R, qinterm, q1));
 
 		// recompute original matrix and compare
 		tensor_t QR;

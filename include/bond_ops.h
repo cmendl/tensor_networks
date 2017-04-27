@@ -36,6 +36,19 @@ trunc_info_t;
 
 
 //________________________________________________________________________________________________________________________
+///
+/// \brief Bond operation parameters
+///
+typedef struct
+{
+	double tol;         //!< tolerance (truncation weight)
+	size_t maxD;        //!< largest allowed virtual bond dimension
+	bool renormalize;   //!< whether to renormalize the retained singular values
+}
+bond_op_params_t;
+
+
+//________________________________________________________________________________________________________________________
 //
 
 
@@ -57,13 +70,13 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 
 
 trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q0, const qnumber_t *restrict q1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params,
 	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond);
 
 
 trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
 	const qnumber_t *restrict q0, const qnumber_t *restrict q1, const qnumber_t *restrict q2,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize, qnumber_t *restrict *q1compr);
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params, qnumber_t *restrict *q1compr);
 
 
 

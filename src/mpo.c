@@ -690,11 +690,11 @@ void MPOAdd(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict Z)
 ///
 trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restrict qA0, const qnumber_t *restrict qA2,
 	const size_t d0, const size_t d1, const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params,
 	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond)
 {
-	assert(tol >= 0);
-	assert(maxD > 0);
+	assert(params->tol >= 0);
+	assert(params->maxD > 0);
 	assert(A->ndim == 4);
 	assert(A->dim[0] == d0*d1);
 	assert(A->dim[1] == d0*d1);
@@ -764,7 +764,7 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 	tensor_t A1t;
 
 	// actually perform splitting
-	trunc_info_t ti = SplitMatrix(&Ar, q0, q2, svd_distr, tol, maxD, renormalize, A0, &A1t, qbond);
+	trunc_info_t ti = SplitMatrix(&Ar, q0, q2, svd_distr, params, A0, &A1t, qbond);
 	assert(A0->ndim == 2 && A0->dim[0] == d0 * d0 * A->dim[2]);
 	assert(A1t.ndim == 2 && A1t.dim[1] == d1 * d1 * A->dim[3]);
 	assert(A0->dim[1] == A1t.dim[0]);
@@ -814,7 +814,7 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
 	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params,
 	qnumber_t *restrict *qA1compr)
 {
 	assert(A0->ndim == 4);
@@ -874,7 +874,7 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 		ReshapeTensor(2, dim, &A1t);
 	}
 
-	trunc_info_t ti = CompressVirtualBonds(A0, &A1t, q0, qA1, q2, svd_distr, tol, maxD, renormalize, qA1compr);
+	trunc_info_t ti = CompressVirtualBonds(A0, &A1t, q0, qA1, q2, svd_distr, params, qA1compr);
 
 	// reshape (and transpose) A0 and A1 back to restore original physical dimensions
 	// A0
@@ -903,7 +903,7 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 ///
 /// \brief Compress all virtual bonds of a MPO
 ///
-void CompressMPO(mpo_t *restrict mpo, const sweep_dir_t direction, const double tol, const size_t maxD, const bool renormalize, trunc_info_t *restrict ti)
+void CompressMPO(mpo_t *restrict mpo, const sweep_dir_t direction, const bond_op_params_t *restrict params, trunc_info_t *restrict ti)
 {
 	// TODO: only need to "compress" single tensors for MPO in canonical form
 
@@ -915,7 +915,7 @@ void CompressMPO(mpo_t *restrict mpo, const sweep_dir_t direction, const double 
 		{
 			// bond quantum numbers after compression
 			qnumber_t *qcD1;
-			ti[i] = CompressMPOTensors(&mpo->A[i], &mpo->A[i+1], mpo->qD[i], mpo->qD[i+1], mpo->qD[i+2], mpo->qd[0], mpo->qd[1], SVD_DISTR_RIGHT, tol, maxD, renormalize, &qcD1);
+			ti[i] = CompressMPOTensors(&mpo->A[i], &mpo->A[i+1], mpo->qD[i], mpo->qD[i+1], mpo->qD[i+2], mpo->qd[0], mpo->qd[1], SVD_DISTR_RIGHT, params, &qcD1);
 			MKL_free(mpo->qD[i+1]);
 			mpo->qD[i+1] = qcD1;
 		}
@@ -926,7 +926,7 @@ void CompressMPO(mpo_t *restrict mpo, const sweep_dir_t direction, const double 
 		{
 			// bond quantum numbers after compression
 			qnumber_t *qcD1;
-			ti[i] = CompressMPOTensors(&mpo->A[i], &mpo->A[i+1], mpo->qD[i], mpo->qD[i+1], mpo->qD[i+2], mpo->qd[0], mpo->qd[1], SVD_DISTR_LEFT, tol, maxD, renormalize, &qcD1);
+			ti[i] = CompressMPOTensors(&mpo->A[i], &mpo->A[i+1], mpo->qD[i], mpo->qD[i+1], mpo->qD[i+2], mpo->qd[0], mpo->qd[1], SVD_DISTR_LEFT, params, &qcD1);
 			MKL_free(mpo->qD[i+1]);
 			mpo->qD[i+1] = qcD1;
 		}
@@ -961,7 +961,7 @@ static void CombineQuantumNumbers(const size_t m, const size_t n, const qnumber_
 ///
 /// \brief Composition of local MPO tensors 'A' and 'B' along physical dimension
 ///
-static void ComposeMPOTensors(const tensor_t *restrict A, const tensor_t *restrict B, tensor_t *restrict ret)
+void ComposeMPOTensors(const tensor_t *restrict A, const tensor_t *restrict B, tensor_t *restrict ret)
 {
 	assert(A->ndim == 4);
 	assert(B->ndim == 4);
@@ -988,38 +988,6 @@ static void ComposeMPOTensors(const tensor_t *restrict A, const tensor_t *restri
 		const size_t dim[4] = { ret->dim[0], ret->dim[1], ret->dim[2]*ret->dim[3], ret->dim[4]*ret->dim[5] };
 		ReshapeTensor(4, dim, ret);
 	}
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Composition of local MPO tensor pairs 'A0, A1' and 'B0, B1' along physical dimension
-///
-trunc_info_t ComposeMPOTensorPairs(
-	const tensor_t *restrict A0, const tensor_t *restrict A1, const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
-	const tensor_t *restrict B0, const tensor_t *restrict B1, const qnumber_t *restrict qB0, const qnumber_t *restrict qB1, const qnumber_t *restrict qB2,
-	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
-	tensor_t *restrict R0, tensor_t *restrict R1, qnumber_t *restrict *qR0, qnumber_t *restrict *qR1, qnumber_t *restrict *qR2)
-{
-	ComposeMPOTensors(A0, B0, R0);
-	ComposeMPOTensors(A1, B1, R1);
-
-	// compute corresponding quantum numbers of virtual bonds
-	assert(A0->dim[3] == A1->dim[2]);
-	assert(B0->dim[3] == B1->dim[2]);
-	qnumber_t *qR1t;
-	(*qR0) = (qnumber_t *)MKL_malloc(A0->dim[2]*B0->dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	  qR1t = (qnumber_t *)MKL_malloc(A0->dim[3]*B0->dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	(*qR2) = (qnumber_t *)MKL_malloc(A1->dim[3]*B1->dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	CombineQuantumNumbers(A0->dim[2], B0->dim[2], qA0, qB0, (*qR0));
-	CombineQuantumNumbers(A0->dim[3], B0->dim[3], qA1, qB1,   qR1t);
-	CombineQuantumNumbers(A1->dim[3], B1->dim[3], qA2, qB2, (*qR2));
-
-	trunc_info_t ti = CompressMPOTensors(R0, R1, (*qR0), qR1t, (*qR2), qd0, qd1, svd_distr, tol, maxD, renormalize, qR1);
-	MKL_free(qR1t);
-
-	return ti;
 }
 
 
@@ -1067,329 +1035,4 @@ void MPOComposition(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *res
 		ret->qD[L] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
 		CombineQuantumNumbers(X->A[L-1].dim[3], Y->A[L-1].dim[3], X->qD[L], Y->qD[L], ret->qD[L]);
 	}
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Local MPO update by single-site operator 'opT' from the top
-///
-void ApplySingleSiteTopOperator(tensor_t *restrict A, const tensor_t *restrict opT)
-{
-	assert(A->ndim == 4);
-
-	tensor_t t;
-	MoveTensorData(A, &t);
-	// result of multiplication again stored in 'A'
-	MultiplyTensor(opT, &t, 1, A);
-	DeleteTensor(&t);
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Local MPO update by single-site operator 'opB' from the bottom
-///
-void ApplySingleSiteBottomOperator(tensor_t *restrict A, const tensor_t *restrict opB)
-{
-	assert(A->ndim == 4);
-
-	tensor_t s, t;
-
-	// transpose incoming physical dimension to the back
-	const int perm0[4] = { 0, 3, 1, 2 };
-	TransposeTensor(perm0, A, &s);
-	DeleteTensor(A);
-
-	// apply operator
-	MultiplyTensor(&s, opB, 1, &t);
-	DeleteTensor(&s);
-
-	// restore ordering of dimensions
-	const int perm1[4] = { 0, 2, 3, 1 };
-	TransposeTensor(perm1, &t, A);
-	DeleteTensor(&t);
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Local MPO update by two-site operator 'opT' from the top and 'opB' from the bottom
-///
-/// \return effective tolerance (truncation weight), can be larger than 'tol' if bond dimension is truncated by 'maxD'
-///
-trunc_info_t ApplyTwoSiteOperator(tensor_t *restrict A0, tensor_t *restrict A1, const tensor_t *restrict opT, const tensor_t *restrict opB, const svd_distr_t svd_distr, const double tol, const size_t maxD)
-{
-	assert(tol >= 0);
-	assert(maxD > 0);
-	assert(A0->ndim == 4);
-	assert(A1->ndim == 4);
-
-	trunc_info_t ti;
-	ti.tol_eff = tol;
-
-	tensor_t s, t;
-
-	// combine A0 and A1 by contracting the shared bond
-	{
-		const int perm[4] = { 1, 2, 0, 3 };
-		TransposeTensor(perm, A1, &t);
-		MultiplyTensor(A0, &t, 1, &s);
-		DeleteTensor(&t);
-		// input tensors will be re-populated later
-		DeleteTensor(A0);
-		DeleteTensor(A1);
-	}
-
-	// store dimensions of combined A0 and A1
-	assert(s.ndim == 6);
-	const size_t dim[6] = { s.dim[0], s.dim[1], s.dim[2], s.dim[3], s.dim[4], s.dim[5] };
-
-	// apply operator opT to leading physical dimensions and opB to trailing physical dimensions
-	if (!(opT == NULL && opB == NULL))
-	{
-		// bring outgoing physical dimensions to the front and incoming physical dimensions to the back
-		const int perm0[6] = { 0, 4, 2, 1, 5, 3 };
-		TransposeTensor(perm0, &s, &t);
-		DeleteTensor(&s);
-
-		assert(t.ndim == 6);
-		const size_t dim0[4] = { t.dim[0]*t.dim[1], t.dim[2], t.dim[3], t.dim[4]*t.dim[5] };
-		ReshapeTensor(4, dim0, &t);
-		MultiplyTensor(opT, &t, 1, &s);
-		DeleteTensor(&t);
-		MultiplyTensor(&s, opB, 1, &t);
-		DeleteTensor(&s);
-		const size_t dim1[6] = { dim[0], dim[3], dim[2], dim[5], dim[1], dim[4] };
-		ReshapeTensor(6, dim1, &t);
-
-		// revert reordering of physical dimensions
-		const int perm1[6] = { 0, 3, 2, 5, 1, 4 };
-		TransposeTensor(perm1, &t, A0);
-		DeleteTensor(&t);
-	}
-	else
-	{
-		// shortcut to skip application of operators
-		MoveTensorData(&s, A0);
-	}
-
-	// use SVD to separate the two sites again
-	{
-		// overwrite 'A0' by the 'U' matrix
-		const size_t m = dim[0]*dim[1]*dim[2];
-		const size_t n = dim[3]*dim[4]*dim[5];
-		size_t k = (m <= n ? m : n);    // min(m, n)
-		const size_t dim_mn[2] = { m, n };
-		ReshapeTensor(2, dim_mn, A0);
-		double *sigma = MKL_malloc(k * sizeof(double), MEM_DATA_ALIGN);
-		double *superb = MKL_malloc((k - 1) * sizeof(double), MEM_DATA_ALIGN);
-		const size_t dim_kn[2] = { k, n };
-		AllocateTensor(2, dim_kn, &s);
-		int info = LAPACKE_zgesvd(LAPACK_COL_MAJOR, 'O', 'S', (lapack_int)m, (lapack_int)n, A0->data, (lapack_int)m, sigma, NULL, (lapack_int)m, s.data, (lapack_int)k, superb);
-		if (info != 0) {
-			duprintf("Call of LAPACK function 'zgesvd()' in 'ApplyTwoSiteOperator()' failed, return value: %i\n", info);
-			exit(-1);
-		}
-
-		// truncate small singular values
-		double sigma_sq_sum = 0;
-		size_t i;
-		for (i = k; i > 0; i--) {
-			sigma_sq_sum += square(sigma[i - 1]);
-		}
-		double sigma_sq_acc = 0;
-		for (i = k; i > 0; i--) {
-			sigma_sq_acc += square(sigma[i - 1]);
-			if (sigma_sq_acc / sigma_sq_sum > tol) {
-				break;
-			}
-		}
-		if (i > maxD)
-		{
-			//duprintf("warning: cutting number of singular values from %zu to %zu in 'ApplyTwoSiteOperator()\n", i, maxD);
-			//duprintf("    total number of singular values: %zu\n", k);
-			//duprintf("    tolerance: %g\n", tol);
-			//duprintf("    largest overall singular value:   %g\n", sigma[0]);
-			//duprintf("    smallest retained singular value: %g\n", sigma[maxD - 1]);
-			//duprintf("    largest cut singular value:       %g\n", sigma[maxD]);
-			//duprintf("    smallest cut singular value:      %g\n", sigma[i - 1]);
-
-			// determine effective tolerance
-			sigma_sq_acc = 0;
-			for (i = k; i > maxD; i--)
-			{
-				sigma_sq_acc += square(sigma[i - 1]);
-			}
-			ti.tol_eff = sigma_sq_acc / sigma_sq_sum;
-
-			assert(i == maxD);
-		}
-		else if (i < 1)
-		{
-			i = 1;
-		}
-		// new truncated bond dimension
-		k = i;
-
-		// record norm and von Neumann entropy of retained singular values
-		{
-			ti.nsigma = Norm(k, sigma);
-
-			// normalized singular values
-			double *sigma_nrm = MKL_malloc(k * sizeof(double), MEM_DATA_ALIGN);
-			size_t j;
-			for (j = 0; j < k; j++)
-			{
-				sigma_nrm[j] = sigma[j] / ti.nsigma;
-			}
-
-			ti.entropy = VonNeumannEntropy(k, sigma_nrm);
-
-			MKL_free(sigma_nrm);
-		}
-
-		// adjust dimension corresponding to truncated bond and distribute singular values
-		A0->dim[1] = k;
-		const int perm2[2] = { 1, 0 };
-		TransposeTensor(perm2, &s, &t);
-		DeleteTensor(&s);
-		t.dim[1] = k;
-		if (svd_distr == SVD_DISTR_LEFT)
-		{
-			// distribute singular values to 'U' matrices from SVD
-			for (i = 0; i < k; i++)
-			{
-				cblas_dscal((MKL_INT)(2*m), sigma[i], (double *)&A0->data[m*i], 1);
-			}
-		}
-		else if (svd_distr == SVD_DISTR_RIGHT)
-		{
-			// distribute singular values to the 'V' matrices from SVD
-			for (i = 0; i < k; i++)
-			{
-				cblas_dscal((MKL_INT)(2*n), sigma[i], (double *)&t.data[n*i], 1);
-			}
-		}
-		else if (svd_distr == SVD_DISTR_SQRT)
-		{
-			// distribute square root of singular values to both 'U' and 'V' matrices from SVD
-			for (i = 0; i < k; i++)
-			{
-				const double sqrt_sigma = sqrt(sigma[i]);
-				cblas_dscal((MKL_INT)(2*m), sqrt_sigma, (double *)&A0->data[m*i], 1);
-				cblas_dscal((MKL_INT)(2*n), sqrt_sigma, (double *)  &t.data[n*i], 1);
-			}
-		}
-		else
-		{
-			// invalid option
-			assert(false);
-		}
-		MKL_free(superb);
-		MKL_free(sigma);
-
-		// restore original dimensions (except that shared bond dimension might have changed)
-		const size_t dim0[4] = { dim[0], dim[1], dim[2], k };
-		ReshapeTensor(4, dim0, A0);
-		const size_t dim1[4] = { dim[3], dim[4], dim[5], k };
-		ReshapeTensor(4, dim1, &t);
-		// reorder virtual bond dimension
-		const int perm4[4] = { 0, 1, 3, 2 };
-		TransposeTensor(perm4, &t, A1);
-		DeleteTensor(&t);
-	}
-
-	return ti;
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Local MPO update by two-site operator 'opT' from the top
-///
-trunc_info_t ApplyTwoSiteTopOperator(tensor_t *restrict A0, tensor_t *restrict A1, const tensor_t *restrict opT, const svd_distr_t svd_distr, const double tol, const size_t maxD)
-{
-	assert(A0->ndim == 4);
-	assert(A1->ndim == 4);
-
-	// set 'opB' to the identity
-	tensor_t opB;
-	const size_t d2 = A0->dim[1]*A1->dim[1];
-	const size_t dim[2] = { d2, d2 };
-	AllocateTensor(2, dim, &opB);
-	IdentityTensor(&opB);
-
-	trunc_info_t ti = ApplyTwoSiteOperator(A0, A1, opT, &opB, svd_distr, tol, maxD);
-	
-	DeleteTensor(&opB);
-
-	return ti;
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Local MPO update by two-site operator 'opB' from the bottom
-///
-trunc_info_t ApplyTwoSiteBottomOperator(tensor_t *restrict A0, tensor_t *restrict A1, const tensor_t *restrict opB, const svd_distr_t svd_distr, const double tol, const size_t maxD)
-{
-	assert(A0->ndim == 4);
-	assert(A1->ndim == 4);
-
-	// set 'opT' to the identity
-	tensor_t opT;
-	const size_t d2 = A0->dim[0]*A1->dim[0];
-	const size_t dim[2] = { d2, d2 };
-	AllocateTensor(2, dim, &opT);
-	IdentityTensor(&opT);
-
-	trunc_info_t ti = ApplyTwoSiteOperator(A0, A1, &opT, opB, svd_distr, tol, maxD);
-
-	DeleteTensor(&opT);
-
-	return ti;
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Orthonormalize neighboring tensors and truncate bond dimensions using tolerance 'tol'
-///
-trunc_info_t OrthonormalizeMPOTensorPair(tensor_t *restrict A0, tensor_t *restrict A1, const svd_distr_t svd_distr, const double tol, const size_t maxD)
-{
-	assert(A0->ndim == 4);
-	assert(A1->ndim == 4);
-
-	trunc_info_t ti = ApplyTwoSiteOperator(A0, A1, NULL, NULL, svd_distr, tol, maxD);
-
-	return ti;
-}
-
-
-//________________________________________________________________________________________________________________________
-///
-/// \brief Orthonormalize the tensors in a MPO
-///
-trunc_info_t OrthonormalizeMPO(const double tol, const size_t maxD, mpo_t *restrict mpo)
-{
-	int i;
-
-	// TODO: record largest effective tolerance instead?
-	trunc_info_t ti;
-
-	// sweep from left to right
-	for (i = 0; i < mpo->L - 1; i++)
-	{
-		ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_RIGHT, tol, maxD);
-	}
-
-	// sweep from right to left
-	for (i = mpo->L - 2; i >= 0; i--)
-	{
-		ti = OrthonormalizeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], SVD_DISTR_LEFT, tol, maxD);
-	}
-
-	// truncation information from last tensor pair orthonormalization
-	return ti;
 }

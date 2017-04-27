@@ -122,6 +122,22 @@ static void ConstructOperatorSumMPO(const int L, const int i0, const int i1, con
 
 
 //________________________________________________________________________________________________________________________
+///
+/// \brief Local MPO update by single-site operator 'opT' from the top
+///
+static void ApplySingleSiteTopOperator(const tensor_t *restrict opT, tensor_t *restrict A)
+{
+	assert(A->ndim == 4);
+
+	tensor_t t;
+	MoveTensorData(A, &t);
+	// result of multiplication again stored in 'A'
+	MultiplyTensor(opT, &t, 1, A);
+	DeleteTensor(&t);
+}
+
+
+//________________________________________________________________________________________________________________________
 //
 
 
@@ -205,6 +221,12 @@ int main(int argc, char *argv[])
 	// number of lattice sites
 	const int L = params.L;
 
+	// bond operation parameters
+	bond_op_params_t bond_op_params;
+	bond_op_params.tol  = params.tol;
+	bond_op_params.maxD = params.maxD;
+	bond_op_params.renormalize = true;
+
 	// Pauli matrices
 	tensor_t sigma_x, sigma_y, sigma_z;
 	{
@@ -276,7 +298,7 @@ int main(int argc, char *argv[])
 		double *tol_eff_beta = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
 
 		// perform imaginary time evolution; using "normalization" to keep A[0] matrix entries of order 1
-		EvolveMPOStrang(&dyn, nsteps, params.tol, params.maxD, true, &exp_betaH, tol_eff_beta);
+		EvolveMPOStrang(&dyn, nsteps, &bond_op_params, true, &exp_betaH, tol_eff_beta);
 
 		// record virtual bond dimensions
 		size_t *D_beta = (size_t *)MKL_malloc((L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
@@ -305,8 +327,8 @@ int main(int argc, char *argv[])
 		int i;
 		for (i = 0; i < L; i++)
 		{
-			// apply number operator at site i
-			ApplySingleSiteTopOperator(&exp_betaH_n.A[i], &sigma_z);
+			// apply sigma_z at site i
+			ApplySingleSiteTopOperator(&sigma_z, &exp_betaH_n.A[i]);
 
 			magnetization[i] = ComplexReal(MPOTrace(&exp_betaH_n)) / Zbeta;
 
@@ -407,7 +429,7 @@ int main(int argc, char *argv[])
 			}
 
 			// single step; "forward" and "backward" are reversed in Heisenberg picture
-			EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XW, &tol_eff_W[nstart*(L - 1)]);
+			EvolveLiouvilleMPOPRK(&dyn_time, 1, false, &bond_op_params, &XW, &tol_eff_W[nstart*(L - 1)]);
 
 			nstart++;
 		}
@@ -479,7 +501,7 @@ int main(int argc, char *argv[])
 		}
 
 		// single step; "forward" and "backward" are reversed in Heisenberg picture
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XW, &tol_eff_W[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, &bond_op_params, &XW, &tol_eff_W[n*(L - 1)]);
 	}
 
 	duprintf("At t = %g:\n", params.tmax);

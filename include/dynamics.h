@@ -9,12 +9,12 @@
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Precomputed data for a simulation time step
+/// \brief Precomputed data for a simulation time step (using even-odd bond splitting)
 ///
 typedef struct
 {
 	tensor_t *exp_h;        //!< matrix exponentials of local two-site Hamiltonian terms, array of size (L - 1)*n
-	MKL_Complex16 dt;       //!< time step (allowed to be complex in general)
+	MKL_Complex16 dt;       //!< time step (can be complex in general)
 	int L;                  //!< lattice size
 	int m;                  //!< number of exponential versions (for example for different fractions of the time step)
 }
@@ -33,9 +33,9 @@ void DeleteDynamicsData(dynamics_data_t *dyn);
 void ComputeDynamicsDataStrang(const int L, const MKL_Complex16 dt, const size_t d2, const double **h, dynamics_data_t *restrict dyn);
 
 
-void EvolveMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, const double tol, const size_t maxD, const bool normalize, mpo_t *restrict mpo, double *restrict tol_eff);
+void EvolveMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, const bond_op_params_t *restrict params, const bool normalize, mpo_t *restrict mpo, double *restrict tol_eff);
 
-void EvolveLiouvilleMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, const double tol, const size_t maxD, const bool normalize, mpo_t *restrict mpo, double *restrict tol_eff);
+void EvolveLiouvilleMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, const bond_op_params_t *restrict params, const bool normalize, mpo_t *restrict mpo, double *restrict tol_eff);
 
 
 //________________________________________________________________________________________________________________________
@@ -45,21 +45,9 @@ void EvolveLiouvilleMPOStrang(const dynamics_data_t *restrict dyn, const int nst
 void ComputeDynamicsDataPRK(const int L, const MKL_Complex16 dt, const size_t d2, const double **h, dynamics_data_t *restrict dyn);
 
 
-void EvolveMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff);
+void EvolveMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const bond_op_params_t *restrict params, mpo_t *restrict mpo, double *restrict tol_eff);
 
-void EvolveLiouvilleMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff);
-
-
-//________________________________________________________________________________________________________________________
-//
-
-
-void ComputeDynamicsDataSRKNb6(const int L, const MKL_Complex16 dt, const size_t d2, const double **h, dynamics_data_t *restrict dyn);
-
-
-void EvolveMPOSRKNb6(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff);
-
-void EvolveLiouvilleMPOSRKNb6(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const double tol, const size_t maxD, mpo_t *restrict mpo, double *restrict tol_eff);
+void EvolveLiouvilleMPOPRK(const dynamics_data_t *restrict dyn, const int nsteps, const bool forward, const bond_op_params_t *restrict params, mpo_t *restrict mpo, double *restrict tol_eff);
 
 
 

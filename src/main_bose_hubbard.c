@@ -31,6 +31,46 @@ static int makedir(const char *path)
 #endif
 
 
+//________________________________________________________________________________________________________________________
+///
+/// \brief Local MPO update by single-site operator 'opT' from the top
+///
+static void ApplySingleSiteTopOperator(const tensor_t *restrict opT, tensor_t *restrict A)
+{
+	assert(A->ndim == 4);
+
+	tensor_t t;
+	MoveTensorData(A, &t);
+	// result of multiplication again stored in 'A'
+	MultiplyTensor(opT, &t, 1, A);
+	DeleteTensor(&t);
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Local MPO update by single-site operator 'opB' from the bottom
+///
+static void ApplySingleSiteBottomOperator(const tensor_t *restrict opB, tensor_t *restrict A)
+{
+	assert(A->ndim == 4);
+
+	tensor_t s, t;
+
+	// transpose incoming physical dimension to the back
+	const int perm0[4] = { 0, 3, 1, 2 };
+	TransposeTensor(perm0, A, &s);
+	DeleteTensor(A);
+
+	// apply operator
+	MultiplyTensor(&s, opB, 1, &t);
+	DeleteTensor(&s);
+
+	// restore ordering of dimensions
+	const int perm1[4] = { 0, 2, 3, 1 };
+	TransposeTensor(perm1, &t, A);
+	DeleteTensor(&t);
+}
 
 
 //________________________________________________________________________________________________________________________
@@ -108,6 +148,19 @@ int main(int argc, char *argv[])
 	// physical dimension, equal to the maximal occupancy per site + 1
 	const size_t d = params.d;
 
+	// bond operation parameters
+	bond_op_params_t bond_op_params;
+	bond_op_params.tol  = params.tol;
+	bond_op_params.maxD = params.maxD;
+	bond_op_params.renormalize = true;
+
+	// physical quantum numbers
+	qnumber_t *qd = (qnumber_t *)MKL_malloc(d * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	for (j = 0; j < d; j++)
+	{
+		qd[j] = j;
+	}
+
 	// number operator
 	tensor_t bn;
 	{
@@ -131,6 +184,8 @@ int main(int argc, char *argv[])
 	{
 		// initialize rho_beta by the identity operation
 		CreateIdentityMPO(L, d, &rho_beta);
+		memcpy(rho_beta.qd[0], qd, d*sizeof(qnumber_t));
+		memcpy(rho_beta.qd[1], qd, d*sizeof(qnumber_t));
 
 		const int nsteps = (int)round(0.5*params.beta / params.dbeta);
 		if (fabs(2*nsteps*params.dbeta/params.beta - 1) > 1e-14)
@@ -149,7 +204,7 @@ int main(int argc, char *argv[])
 		double *tol_eff_beta = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
 
 		// perform imaginary time evolution
-		EvolveMPOStrang(&dyn, nsteps, params.tol, params.maxD, true, &rho_beta, tol_eff_beta);
+		EvolveMPOStrang(&dyn, nsteps, &bond_op_params, true, &rho_beta, tol_eff_beta);
 
 		// record virtual bond dimensions
 		size_t *D_beta = (size_t *)MKL_malloc((L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
@@ -180,8 +235,8 @@ int main(int argc, char *argv[])
 	mpo_t XA, XB;
 	CopyMPO(&rho_beta, &XA);
 	CopyMPO(&rho_beta, &XB);
-	ApplySingleSiteTopOperator(   &XA.A[jA], &bn);  // apply number operator from the top at site 'jA'
-	ApplySingleSiteBottomOperator(&XB.A[jB], &bn);  // apply number operator from the bottom at site 'jB'
+	ApplySingleSiteTopOperator(   &bn, &XA.A[jA]);  // apply number operator from the top at site 'jA'
+	ApplySingleSiteBottomOperator(&bn, &XB.A[jB]);  // apply number operator from the bottom at site 'jB'
 
 	// compute dynamics data for time evolution
 	dynamics_data_t dyn_time;
@@ -246,8 +301,8 @@ int main(int argc, char *argv[])
 			}
 
 			// single step
-			EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XA, &tol_eff_A[nstart*(L - 1)]);
-			EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XB, &tol_eff_B[nstart*(L - 1)]);
+			EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  &bond_op_params, &XA, &tol_eff_A[nstart*(L - 1)]);
+			EvolveLiouvilleMPOPRK(&dyn_time, 1, false, &bond_op_params, &XB, &tol_eff_B[nstart*(L - 1)]);
 
 			nstart++;
 		}
@@ -300,8 +355,8 @@ int main(int argc, char *argv[])
 		}
 
 		// single step
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  params.tol, params.maxD, &XA, &tol_eff_A[n*(L - 1)]);
-		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, params.tol, params.maxD, &XB, &tol_eff_B[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, true,  &bond_op_params, &XA, &tol_eff_A[n*(L - 1)]);
+		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, &bond_op_params, &XB, &tol_eff_B[n*(L - 1)]);
 	}
 
 	const MKL_Complex16 chi_cum = ComplexSubtract(chi[nsteps], ComplexMultiply(chiA[nsteps], chiB[nsteps]));
@@ -338,6 +393,7 @@ int main(int argc, char *argv[])
 	DeleteLocalHamiltonianOperators(L, h);
 	MKL_free(h);
 	DeleteTensor(&bn);
+	MKL_free(qd);
 
 	MKL_Free_Buffers();
 

@@ -256,6 +256,8 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 	// special case: all singular values zero
 	if (sqsum == 0)
 	{
+		MKL_free(s_sort);
+
 		(*indtr) = NULL;
 		(*ntr)   = 0;
 
@@ -350,7 +352,7 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 /// \brief Split a matrix 'A' by singular value decompositions,
 /// taking quantum numbers 'q0' and 'q2' of first and second dimension into account
 ///
-trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q0, const qnumber_t *restrict q1, const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize, tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond)
+trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q0, const qnumber_t *restrict q1, const svd_distr_t svd_distr, const bond_op_params_t *restrict params, tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond)
 {
 	// must be a regular matrix
 	assert(A->ndim == 2);
@@ -373,7 +375,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		(*qbond) = (qnumber_t *)MKL_calloc(1, sizeof(qnumber_t), MEM_DATA_ALIGN);
 
 		trunc_info_t ti = { 0 };
-		ti.tol_eff = tol;
+		ti.tol_eff = params->tol;
 		return ti;
 	}
 
@@ -487,8 +489,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 	// obtain truncated bond indices
 	size_t *indtr;
 	size_t Dtrunc;
-	trunc_info_t ti = TruncatedBondIndices(D, S, tol, maxD, &indtr, &Dtrunc);
-	assert(Dtrunc <= maxD);
+	trunc_info_t ti = TruncatedBondIndices(D, S, params->tol, params->maxD, &indtr, &Dtrunc);
+	assert(Dtrunc <= params->maxD);
 
 	if (Dtrunc == 0)
 	{
@@ -513,7 +515,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		return ti;
 	}
 
-	if (renormalize)
+	if (params->renormalize)
 	{
 		// norm of all singular values
 		const double nsigma = Norm(D, S);
@@ -525,6 +527,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		{
 			S[indtr[i]] *= scale;
 		}
+
+		ti.nsigma = nsigma;
 	}
 
 	// extract truncated bond submatrices of T0 and T1 and store them in A0 and A1, respectively
@@ -628,7 +632,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 ///
 trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
 	const qnumber_t *restrict q0, const qnumber_t *restrict q1, const qnumber_t *restrict q2,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize, qnumber_t *restrict *q1compr)
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params, qnumber_t *restrict *q1compr)
 {
 	assert(A0->ndim == 2);
 	assert(A1->ndim == 2);
@@ -643,7 +647,7 @@ trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
 		DeleteTensor(A0);
 		DeleteTensor(A1);
 
-		trunc_info_t ti = SplitMatrix(&A, q0, q2, svd_distr, tol, maxD, renormalize, A0, A1, q1compr);
+		trunc_info_t ti = SplitMatrix(&A, q0, q2, svd_distr, params, A0, A1, q1compr);
 
 		DeleteTensor(&A);
 
@@ -689,7 +693,7 @@ trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
 		DeleteTensor(&L1);
 
 		// split product of triangular matrices
-		trunc_info_t ti = SplitMatrix(&RLprod, qi0, qi1, svd_distr, tol, maxD, renormalize, &R0, &L1, q1compr);
+		trunc_info_t ti = SplitMatrix(&RLprod, qi0, qi1, svd_distr, params, &R0, &L1, q1compr);
 		DeleteTensor(&RLprod);
 
 		// multiply by unitary Q matrices, to restore original matrices

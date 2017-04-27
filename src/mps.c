@@ -508,11 +508,11 @@ void MergeMPSFull(const mps_t *restrict mps, tensor_t *restrict A)
 ///
 trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restrict qA0, const qnumber_t *restrict qA2,
 	const size_t d0, const size_t d1, const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params,
 	tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond)
 {
-	assert(tol >= 0);
-	assert(maxD > 0);
+	assert(params->tol >= 0);
+	assert(params->maxD > 0);
 	assert(A->ndim == 3);
 	assert(A->dim[0] == d0*d1);
 
@@ -575,7 +575,7 @@ trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restric
 	tensor_t A1t;
 
 	// actually perform splitting
-	trunc_info_t ti = SplitMatrix(&Ar, q0, q2, svd_distr, tol, maxD, renormalize, A0, &A1t, qbond);
+	trunc_info_t ti = SplitMatrix(&Ar, q0, q2, svd_distr, params, A0, &A1t, qbond);
 	assert(A0->ndim == 2 && A0->dim[0] == d0 * A->dim[1]);
 	assert(A1t.ndim == 2 && A1t.dim[1] == d1 * A->dim[2]);
 	assert(A0->dim[1] == A1t.dim[0]);
@@ -621,7 +621,7 @@ trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restric
 trunc_info_t CompressMPSTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	const qnumber_t *restrict qA0, const qnumber_t *restrict qA1, const qnumber_t *restrict qA2,
 	const qnumber_t *restrict qd0, const qnumber_t *restrict qd1,
-	const svd_distr_t svd_distr, const double tol, const size_t maxD, const bool renormalize,
+	const svd_distr_t svd_distr, const bond_op_params_t *restrict params,
 	qnumber_t *restrict *qA1compr)
 {
 	assert(A0->ndim == 3);
@@ -672,7 +672,7 @@ trunc_info_t CompressMPSTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 		ReshapeTensor(2, dim, &A1t);
 	}
 
-	trunc_info_t ti = CompressVirtualBonds(A0, &A1t, q0, qA1, q2, svd_distr, tol, maxD, renormalize, qA1compr);
+	trunc_info_t ti = CompressVirtualBonds(A0, &A1t, q0, qA1, q2, svd_distr, params, qA1compr);
 
 	// reshape (and transpose) A0 and A1 back to restore original physical dimensions
 	// A0
