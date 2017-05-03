@@ -294,10 +294,22 @@ int main(int argc, char *argv[])
 			const size_t dim[2] = { d, d };
 			AllocateMPO(L, dim, &D_XA[nstart*(L + 1)], &XA);
 			AllocateMPO(L, dim, &D_XB[nstart*(L + 1)], &XB);
+			// copy physical quantum numbers
+			memcpy(XA.qd[0], qd, d*sizeof(qnumber_t));
+			memcpy(XA.qd[1], qd, d*sizeof(qnumber_t));
+			memcpy(XB.qd[0], qd, d*sizeof(qnumber_t));
+			memcpy(XB.qd[1], qd, d*sizeof(qnumber_t));
+			// read tensor data from disk
 			for (i = 0; i < L; i++)
 			{
 				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/A%i.dat", argv[4], L, d - 1, i); status = ReadData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]));  if (status < 0) { return status; }
 				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/A%i.dat", argv[4], L, d - 1, i); status = ReadData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]));  if (status < 0) { return status; }
+			}
+			// read virtual bond quantum numbers from disk
+			for (i = 0; i < L + 1; i++)
+			{
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/qD%i.dat", argv[4], L, d - 1, i); status = ReadData(filename, XA.qD[i], sizeof(qnumber_t), D_XA[i + nstart*(L + 1)]);  if (status < 0) { return status; }
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/qD%i.dat", argv[4], L, d - 1, i); status = ReadData(filename, XB.qD[i], sizeof(qnumber_t), D_XB[i + nstart*(L + 1)]);  if (status < 0) { return status; }
 			}
 
 			// single step
@@ -339,10 +351,18 @@ int main(int argc, char *argv[])
 		}
 		if (params.save_tensors)
 		{
+			// save tensor data to disk
 			for (i = 0; i < L; i++)
 			{
 				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/A%i.dat", argv[4], L, d - 1, i); WriteData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]), false);
 				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/A%i.dat", argv[4], L, d - 1, i); WriteData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]), false);
+			}
+
+			// save virtual bond quantum numbers to disk
+			for (i = 0; i < L + 1; i++)
+			{
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/qD%i.dat", argv[4], L, d - 1, i); status = WriteData(filename, XA.qD[i], sizeof(qnumber_t), D_XA[i + n*(L + 1)], false);
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/qD%i.dat", argv[4], L, d - 1, i); status = WriteData(filename, XB.qD[i], sizeof(qnumber_t), D_XB[i + n*(L + 1)], false);
 			}
 		}
 
