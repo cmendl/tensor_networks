@@ -349,6 +349,133 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Split a matrix 'A' by singular value decomposition
+///
+static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr_t svd_distr, const bond_op_params_t *restrict params, tensor_t *restrict A0, tensor_t *restrict A1)
+{
+	const size_t m = A->dim[0];
+	const size_t n = A->dim[1];
+
+	CopyTensor(A, A0);
+
+	// overwrite 'A0' by the 'U' matrix
+	size_t k = (m <= n ? m : n);    // min(m, n)
+	double *sigma = MKL_malloc(k * sizeof(double), MEM_DATA_ALIGN);
+	double *superb = MKL_malloc((k - 1) * sizeof(double), MEM_DATA_ALIGN);
+	const size_t dim_kn[2] = { k, n };
+	tensor_t Vt;
+	AllocateTensor(2, dim_kn, &Vt);
+	int info = LAPACKE_zgesvd(LAPACK_COL_MAJOR, 'O', 'S', (lapack_int)m, (lapack_int)n, A0->data, (lapack_int)m, sigma, NULL, (lapack_int)m, Vt.data, (lapack_int)k, superb);
+	if (info != 0) {
+		duprintf("Call of LAPACK function 'zgesvd()' in 'SplitMatrix()' failed, return value: %i\n", info);
+		exit(-1);
+	}
+
+	size_t i;
+
+	// obtain indices of retained singular values
+	trunc_info_t ti;
+	{
+		// 'k' gets overwritten by number of retained singular values
+		size_t *indtr;
+		ti = TruncatedBondIndices(k, sigma, params->tol, params->maxD, &indtr, &k);
+		assert(k <= params->maxD);
+
+		#ifdef _DEBUG
+		// ensure that indices select first 'k' singular values
+		for (i = 0; i < k; i++)
+		{
+			assert(indtr[i] == i);
+		}
+		#endif
+
+		MKL_free(indtr);
+	}
+
+	if (k == 0)
+	{
+		// use dummy bond dimension 1 with all entries set to zero
+
+		const size_t dimA0[2] = { A->dim[0], 1 };
+		const size_t dimA1[2] = { 1, A->dim[1] };
+		AllocateTensor(2, dimA0, A0);
+		AllocateTensor(2, dimA1, A1);
+
+		// clean up
+		DeleteTensor(&Vt);
+		MKL_free(superb);
+		MKL_free(sigma);
+
+		return ti;
+	}
+
+	if (params->renormalize)
+	{
+		// norm of all singular values
+		const double nsigma = Norm(Vt.dim[0], sigma);
+
+		// rescale retained singular values
+		assert(ti.nsigma > 0);
+		const double scale = nsigma / ti.nsigma;
+		for (i = 0; i < k; i++)
+		{
+			sigma[i] *= scale;
+		}
+
+		ti.nsigma = nsigma;
+	}
+
+	// adjust dimension corresponding to truncated bond and distribute singular values
+	A0->dim[1] = k;
+	const int perm2[2] = { 1, 0 };
+	tensor_t V;
+	TransposeTensor(perm2, &Vt, &V);
+	DeleteTensor(&Vt);
+	V.dim[1] = k;
+	if (svd_distr == SVD_DISTR_LEFT)
+	{
+		// distribute singular values to 'U' matrices from SVD
+		for (i = 0; i < k; i++)
+		{
+			cblas_dscal((MKL_INT)(2*m), sigma[i], (double *)&A0->data[m*i], 1);
+		}
+	}
+	else if (svd_distr == SVD_DISTR_RIGHT)
+	{
+		// distribute singular values to the 'V' matrices from SVD
+		for (i = 0; i < k; i++)
+		{
+			cblas_dscal((MKL_INT)(2*n), sigma[i], (double *)&V.data[n*i], 1);
+		}
+	}
+	else if (svd_distr == SVD_DISTR_SQRT)
+	{
+		// distribute square root of singular values to both 'U' and 'V' matrices from SVD
+		for (i = 0; i < k; i++)
+		{
+			const double sqrt_sigma = sqrt(sigma[i]);
+			cblas_dscal((MKL_INT)(2*m), sqrt_sigma, (double *)&A0->data[m*i], 1);
+			cblas_dscal((MKL_INT)(2*n), sqrt_sigma, (double *)  &V.data[n*i], 1);
+		}
+	}
+	else
+	{
+		// invalid option
+		assert(false);
+	}
+	MKL_free(superb);
+	MKL_free(sigma);
+
+	// transpose 'V' matrix and store result in 'A1'
+	TransposeTensor(perm2, &V, A1);
+	DeleteTensor(&V);
+
+	return ti;
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Split a matrix 'A' by singular value decompositions,
 /// taking quantum numbers 'q0' and 'q2' of first and second dimension into account
 ///
@@ -360,7 +487,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 	// find common quantum numbers
 	qnumber_t *qis;
 	size_t nis;
-	IntersectQuantumNumbers(q0, A->dim[0], q1, A->dim[1], &qis, &nis);
+	const bool single_qm = IntersectQuantumNumbers(q0, A->dim[0], q1, A->dim[1], &qis, &nis);
 
 	if (nis == 0)
 	{
@@ -376,6 +503,26 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 
 		trunc_info_t ti = { 0 };
 		ti.tol_eff = params->tol;
+		return ti;
+	}
+
+	if (single_qm)
+	{
+		// special case: just a single quantum number
+
+		MKL_free(qis);
+
+		trunc_info_t ti = SplitMatrixBasic(A, svd_distr, params, A0, A1);
+		assert(A0->dim[1] == A1->dim[0]);
+
+		// fill bond quantum numbers with the single common quantum number
+		(*qbond) = (qnumber_t *)MKL_malloc(A0->dim[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		size_t i;
+		for (i = 0; i < A0->dim[1]; i++)
+		{
+			(*qbond)[i] = q0[0];
+		}
+
 		return ti;
 	}
 

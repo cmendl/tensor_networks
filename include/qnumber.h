@@ -5,6 +5,7 @@
 #define QNUMBER_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 
 //________________________________________________________________________________________________________________________
@@ -50,7 +51,7 @@ inline qnumber_t NegateQuantumNumber(const qnumber_t q)
 //
 
 
-void IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, const qnumber_t *restrict q1, const size_t n1, qnumber_t *restrict *qis, size_t *nis);
+bool IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, const qnumber_t *restrict q1, const size_t n1, qnumber_t *restrict *qis, size_t *nis);
 
 
 
