@@ -246,7 +246,7 @@ int main(int argc, char *argv[])
 		for (i = 0; i < L; i++)
 		{
 			// apply number operator at site i
-			ApplySingleSiteTopOperator(&exp_betaH_n.A[i], &bn);
+			ApplySingleSiteTopOperator(&bn, &exp_betaH_n.A[i]);
 
 			density[i] = ComplexReal(MPOTrace(&exp_betaH_n)) / Zbeta;
 
