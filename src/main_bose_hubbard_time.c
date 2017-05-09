@@ -189,7 +189,6 @@ int main(int argc, char *argv[])
 		AllocateMPO(L, dim, D, &rho_beta);
 		memcpy(rho_beta.qd[0], qd, d*sizeof(qnumber_t));
 		memcpy(rho_beta.qd[1], qd, d*sizeof(qnumber_t));
-		MKL_free(D);
 
 		for (i = 0; i < L; i++)
 		{
@@ -211,6 +210,8 @@ int main(int argc, char *argv[])
 				return -3;
 			}
 		}
+
+		MKL_free(D);
 	}
 
 	// record Frobenius norm of rho_beta
