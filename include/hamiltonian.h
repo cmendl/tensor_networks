@@ -13,6 +13,8 @@ void ConstructLocalIsingOperators(const int L, const double J, const double hext
 
 void ConstructLocalBoseHubbardOperators(const int L, const size_t M, const double t, const double U, const double mu, double **h);
 
+void ConstructLocalHubbardOperators(const int L, const double t, const double U, const double mu, double **h);
+
 
 void DeleteLocalHamiltonianOperators(const int L, double **h);
 
@@ -33,6 +35,8 @@ void ConstructHeisenbergMPO(const int L, const double J, const double Jz, const 
 void ConstructIsingMPO(const int L, const double J, const double hext, const double gext, mpo_t *H);
 
 void ConstructBoseHubbardMPO(const int L, const size_t M, const double t, const double U, const double mu, mpo_t *H);
+
+void ConstructHubbardMPO(const int L, const double t, const double U, const double mu, mpo_t *H);
 
 
 

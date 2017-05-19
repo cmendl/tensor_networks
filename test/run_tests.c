@@ -21,6 +21,7 @@ int LanczosTest();
 int HamiltonianHeisenbergTest();
 int HamiltonianIsingTest();
 int HamiltonianBoseHubbardTest();
+int HamiltonianHubbardTest();
 int MinimizationTest();
 int DynamicsTest();
 int PEPSTest();
@@ -34,7 +35,7 @@ int main()
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	#endif
 
-	test_function_t tests[] = { QuantumNumberTest, BondOperationsTest, MatrixExpTest, TensorTest, MPSTest, MPOTest, OperationTest, LanczosTest, HamiltonianHeisenbergTest, HamiltonianIsingTest, HamiltonianBoseHubbardTest, MinimizationTest, DynamicsTest, PEPSTest, PEPSTest2 };
+	test_function_t tests[] = { QuantumNumberTest, BondOperationsTest, MatrixExpTest, TensorTest, MPSTest, MPOTest, OperationTest, LanczosTest, HamiltonianHeisenbergTest, HamiltonianIsingTest, HamiltonianBoseHubbardTest, HamiltonianHubbardTest, MinimizationTest, DynamicsTest, PEPSTest, PEPSTest2 };
 
 	bool pass = true;
 

@@ -1,7 +1,44 @@
 #include "hamiltonian.h"
+#include "complex.h"
 #include "util.h"
 #include <mkl.h>
 #include <stdio.h>
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Check whether solely entries corresponding to matching quantum numbers are non-zero
+///
+static double MPOBlockStructureError(const tensor_t *A, const qnumber_t *restrict qd[2], const qnumber_t *restrict qD0, const qnumber_t *restrict qD1)
+{
+	assert(A->ndim == 4);
+
+	double err = 0;
+
+	size_t i, j, k, l;
+	for (l = 0; l < A->dim[3]; l++)
+	{
+		for (k = 0; k < A->dim[2]; k++)
+		{
+			for (j = 0; j < A->dim[1]; j++)
+			{
+				for (i = 0; i < A->dim[0]; i++)
+				{
+					if (qd[0][i] + qD0[k] != qd[1][j] + qD1[l])
+					{
+						err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*(k + A->dim[2]*l))]);
+					}
+				}
+			}
+		}
+	}
+
+	return err;
+}
+
+
+//________________________________________________________________________________________________________________________
+//
 
 
 int HamiltonianBoseHubbardTest()
@@ -15,7 +52,7 @@ int HamiltonianBoseHubbardTest()
 	printf("Testing Bose-Hubbard Hamiltonian construction...\n");
 
 	// dimensions
-	const int L = 7;		// number of lattice sites
+	const int L = 7;        // number of lattice sites
 	const size_t d = 5;     // M + 1, with 'M' the maximal occupancy per site
 	// Hamiltonian parameters
 	const double t  = 0.7;
@@ -62,6 +99,12 @@ int HamiltonianBoseHubbardTest()
 		err = fmax(err, UniformDistance(2*num, (double *)mpoH.A[i].data, (double *)W_ref_i));
 
 		MKL_free(W_ref_i);
+	}
+
+	// test block structure
+	for (i = 0; i < L; i++)
+	{
+		err = fmax(err, MPOBlockStructureError(&mpoH.A[i], (const qnumber_t *restrict *)mpoH.qd, mpoH.qD[i], mpoH.qD[i+1]));
 	}
 
 	printf("Largest error: %g\n", err);

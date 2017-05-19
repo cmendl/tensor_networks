@@ -1,5 +1,5 @@
 SRCFILES = qnumber.o mps.o mpo.o operation.o bond_ops.o lanczos.o hamiltonian.o minimization.o dynamics.o peps.o tensor.o util.o sim_params.o dupio.o
-TSTFILES = qnumber_test.o matrix_exp_test.o bond_ops_test.o mps_test.o mpo_test.o operation_test.o lanczos_test.o hamiltonian_heisenberg_test.o hamiltonian_ising_test.o hamiltonian_bose_hubbard_test.o minimization_test.o dynamics_test.o peps_test.o peps_test2.o tensor_test.o
+TSTFILES = qnumber_test.o matrix_exp_test.o bond_ops_test.o mps_test.o mpo_test.o operation_test.o lanczos_test.o hamiltonian_heisenberg_test.o hamiltonian_ising_test.o hamiltonian_bose_hubbard_test.o hamiltonian_hubbard_test.o minimization_test.o dynamics_test.o peps_test.o peps_test2.o tensor_test.o
 
 # use Intel compiler
 CC = icc
@@ -74,6 +74,9 @@ hamiltonian_ising_test.o: test/hamiltonian_ising_test.c
 	${CC} -c -I../include ${CCOPTS} $<
 
 hamiltonian_bose_hubbard_test.o: test/hamiltonian_bose_hubbard_test.c
+	${CC} -c -I../include ${CCOPTS} $<
+
+hamiltonian_hubbard_test.o: test/hamiltonian_hubbard_test.c
 	${CC} -c -I../include ${CCOPTS} $<
 
 minimization_test.o: test/minimization_test.c
