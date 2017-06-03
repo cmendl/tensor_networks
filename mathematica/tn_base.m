@@ -234,6 +234,43 @@ MPODistributeSingularValues["right"]:=MPODistributeSingularValuesRight
 MPODistributeSingularValues["sqrt"] :=MPODistributeSingularValuesSqrt
 
 
+(* MPO construction based on operator chains *)
+
+OpChainRightIndex[op_]:=First[op]+Length[op[[2]]]-1
+
+(* Construct a MPO representation of a sum of "operator chains" op_i \[CircleTimes] op_{i+1} \[CircleTimes] \[Ellipsis] \[CircleTimes] op_{i+n};
+   each entry of 'opchains' must be of the form {i,{op_i,op_{i+1},\[Ellipsis],op_{i+n}},qD},
+   with qD the virtual bond quantum numbers between sites {i,i+1}, \[Ellipsis], {i+n-1,i+n} *)
+MPOFromOpChains[d_,L_,opchains_List]:=Module[{
+	opc=SortBy[opchains,{OpChainRightIndex[#],Length[#[[2]]]}&],
+	maxidxS,slotidx,opslots,W,i,j,qD},
+	(* right-pad first operator chain with identity matrices (for trailing identity operations in each chain) *)
+	opc[[1]]={First[opc[[1]]],PadRight[opc[[1,2]],L-(First[opc[[1]]]-1),{IdentityMatrix[d]}],PadRight[opc[[1,3]],L-First[opc[[1]]],0]};
+	(* find operator chain with largest starting index *)
+	maxidxS=First[Ordering[opc,-1,First[#1]<First[#2]&]];
+	(* left-pad this operator chain with identity matrices (for leading identity operations in each chain) *)
+	opc[[maxidxS]]={1,PadLeft[opc[[maxidxS,2]],OpChainRightIndex[opc[[maxidxS]]],{IdentityMatrix[d]}],PadLeft[opc[[maxidxS,3]],OpChainRightIndex[opc[[maxidxS]]]-1,0]};
+	(* allocate virtual bond slots between operators for each operator chain *)
+	slotidx=Join[{1},ConstantArray[0,L-1],{1}];
+	opslots=Function[op,Append[Table[++slotidx[[(*starts at 2*)First[op]+i]],{i,Length[op[[2]]]-1}],1(*append slot 1 for trailing identity matrices*)]]/@opc;
+	(* allocate and fill MPO tensors, and assign virtual bond quantum numbers *)
+	W=Table[ConstantArray[0,{slotidx[[j]],slotidx[[j+1]],d,d}],{j,L}];
+	qD=Table[ConstantArray[0,slotidx[[j]]],{j,L+1}];
+	For[j=1,j<=Length[opc],j++,
+		For[i=1,i<=Length[opc[[j,2]]],i++,
+			(* add to W (instead of simply assigning) to handle sum of single-site operators without dedicated bond slots *)
+			W[[First[opc[[j]]]+i-1,If[i==1,If[First[opc[[j]]]==1,1,opslots[[maxidxS,First[opc[[j]]]-1]]],(*i>1*)opslots[[j,i-1]]],opslots[[j,i]]]]+=opc[[j,2,i]]
+		];
+		(* virtual bond quantum numbers *)
+		For[i=1,i<Length[opc[[j,2]]],i++,
+			qD[[(*starts at 2*)First[opc[[j]]]+i,opslots[[j,i]]]]=opc[[j,3,i]];
+		];
+	];
+	W=Transpose[#,{3,4,1,2}]&/@W;
+	(* attach virtual bond quantum numbers to MPO tensors *)
+	Table[{W[[j]],qD[[j]],qD[[j+1]]},{j,L}]]
+
+
 (* Time evolution *)
 
 MPOLatticeTwoSiteTopSweep[A_List,op_List,qd_,direction_,tol_]:=Module[{B=A,j},
