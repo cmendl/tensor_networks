@@ -154,5 +154,28 @@ void ComposeMPOTensors(const tensor_t *restrict A, const tensor_t *restrict B, t
 void MPOComposition(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict ret);
 
 
+//________________________________________________________________________________________________________________________
+///
+/// \brief Operator chain op_i x op_{i+1} x ... x op_{i+n-1}
+///
+typedef struct
+{
+	tensor_t *op;       //!< operators op_i; array of length n
+	qnumber_t *qD;      //!< quantum numbers of virtual bonds between operators; array of length n-1
+	size_t d;           //!< physical dimension of each site
+	int n;              //!< number of operators
+	int i;              //!< starting index
+}
+opchain_t;
+
+
+void AllocateOpchain(const size_t d, const int n, const int i, opchain_t *restrict opchain);
+
+void DeleteOpchain(opchain_t *opchain);
+
+
+void MPOFromOpChains(const int L, const size_t d, const int nopc, const opchain_t *restrict opchains, mpo_t *restrict mpo);
+
+
 
 #endif

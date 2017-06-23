@@ -1036,3 +1036,267 @@ void MPOComposition(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *res
 		CombineQuantumNumbers(X->A[L-1].dim[3], Y->A[L-1].dim[3], X->qD[L], Y->qD[L], ret->qD[L]);
 	}
 }
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Allocate an operator chain
+///
+void AllocateOpchain(const size_t d, const int n, const int i, opchain_t *restrict opchain)
+{
+	opchain->d = d;
+	opchain->n = n;
+	opchain->i = i;
+
+	opchain->op = (tensor_t *)MKL_calloc(n, sizeof(tensor_t), MEM_DATA_ALIGN);
+
+	int j;
+	for (j = 0; j < n; j++)
+	{
+		const size_t dim[2] = { d, d };
+		AllocateTensor(2, dim, &opchain->op[j]);
+	}
+
+	// initialize quantum numbers with zeros
+	opchain->qD = (qnumber_t *)MKL_calloc(n - 1, sizeof(qnumber_t), MEM_DATA_ALIGN);
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Delete an operator chain (free memory)
+///
+void DeleteOpchain(opchain_t *opchain)
+{
+	MKL_free(opchain->qD);
+
+	int j;
+	for (j = 0; j < opchain->n; j++)
+	{
+		DeleteTensor(&opchain->op[j]);
+	}
+	MKL_free(opchain->op);
+
+	opchain->n = 0;
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Site index of rightmost operator
+///
+static inline int OpChainRightIndex(const opchain_t *opc)
+{
+	assert(opc->i + opc->n - 1 >= 0);
+	return opc->i + opc->n - 1;
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Comparison function used by 'qsort'
+///
+static int CompareOpChains(const void *p1, const void *p2)
+{
+	const opchain_t *x = (opchain_t *)p1;
+	const opchain_t *y = (opchain_t *)p2;
+
+	const int jx = OpChainRightIndex(x);
+	const int jy = OpChainRightIndex(y);
+
+	if (jx < jy)
+	{
+		return -1;
+	}
+	else if (jy < jx)
+	{
+		return 1;
+	}
+	else
+	{
+		if (x->n < y->n)
+		{
+			return -1;
+		}
+		else if (y->n < x->n)
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Construct a MPO representation of a sum of operator chains
+///
+void MPOFromOpChains(const int L, const size_t d, const int nopc, const opchain_t *restrict opchains, mpo_t *restrict mpo)
+{
+	assert(L >= 1);
+	assert(d >= 1);
+	assert(nopc >= 1);
+
+	const size_t d2[2] = { d, d };
+
+	int j, k;
+
+	// sort operator chains by rightmost site index (keeping pointers for sorted copy)
+	opchain_t *opc = MKL_malloc(nopc * sizeof(opchain_t), MEM_DATA_ALIGN);
+	memcpy(opc, opchains, nopc * sizeof(opchain_t));
+	qsort(opc, nopc, sizeof(opchain_t), CompareOpChains);
+
+	// right-pad first operator chain with identity matrices (required for trailing identity operations in each chain)
+	{
+		const tensor_t *op_ref = opc[0].op;
+		opc[0].op = (tensor_t *)MKL_calloc(L - opc[0].i, sizeof(tensor_t), MEM_DATA_ALIGN);
+		// copy original operators
+		for (j = 0; j < opc[0].n; j++)
+		{
+			CopyTensor(&op_ref[j], &opc[0].op[j]);
+		}
+		// pad identity operators
+		for (j = opc[0].n; j < L - opc[0].i; j++)
+		{
+			AllocateTensor(2, d2, &opc[0].op[j]);
+			IdentityTensor(&opc[0].op[j]);
+		}
+
+		const qnumber_t *qD_ref = opc[0].qD;
+		opc[0].qD = (qnumber_t *)MKL_calloc(L - opc[0].i - 1, sizeof(qnumber_t), MEM_DATA_ALIGN);
+		// copy original quantum numbers
+		memcpy(opc[0].qD, qD_ref, (opc[0].n - 1) * sizeof(qnumber_t));
+		// trailing quantum numbers are zero
+
+		// update number of operators after padding identities
+		opc[0].n = L - opc[0].i;
+	}
+
+	// find operator chain with largest starting index
+	int maxidxS = OpChainRightIndex(&opc[0]);
+	for (j = 1; j < nopc; j++)
+	{
+		if (OpChainRightIndex(&opc[j]) > OpChainRightIndex(&opc[maxidxS]))
+		{
+			maxidxS = j;
+		}
+	}
+	// left-pad this operator chain with identity matrices (for leading identity operations in each chain)
+	{
+		const int n_new = OpChainRightIndex(&opc[maxidxS]) + 1;
+
+		const tensor_t *op_ref = opc[maxidxS].op;
+		opc[maxidxS].op = (tensor_t *)MKL_calloc(n_new, sizeof(tensor_t), MEM_DATA_ALIGN);
+		// copy original operators
+		for (j = 0; j < opc[maxidxS].n; j++)
+		{
+			CopyTensor(&op_ref[j], &opc[maxidxS].op[opc[maxidxS].i + j]);
+		}
+		// pad identity operators
+		for (j = 0; j < opc[maxidxS].i; j++)
+		{
+			AllocateTensor(2, d2, &opc[maxidxS].op[j]);
+			IdentityTensor(&opc[maxidxS].op[j]);
+		}
+
+		const qnumber_t *qD_ref = opc[maxidxS].qD;
+		opc[maxidxS].qD = (qnumber_t *)MKL_calloc(n_new - 1, sizeof(qnumber_t), MEM_DATA_ALIGN);
+		// copy original quantum numbers
+		memcpy(&opc[maxidxS].qD[opc[maxidxS].i], qD_ref, (opc[maxidxS].n - 1) * sizeof(qnumber_t));
+		// leading quantum numbers are zero
+
+		// update number of operators after padding identities
+		opc[maxidxS].n = n_new;
+		// starts on the left
+		opc[maxidxS].i = 0;
+	}
+
+	// allocate virtual bond slots between operators for each operator chain
+	size_t *D = MKL_calloc(L + 1, sizeof(size_t), MEM_DATA_ALIGN);
+	D[0] = 1;
+	D[L] = 1;
+	size_t **opslots = MKL_calloc(nopc, sizeof(size_t *), MEM_DATA_ALIGN);
+	for (j = 0; j < nopc; j++)
+	{
+		opslots[j] = MKL_calloc(opc[j].n, sizeof(size_t), MEM_DATA_ALIGN);
+
+		for (k = 0; k < opc[j].n - 1; k++)
+		{
+			opslots[j][k] = D[opc[j].i + k + 1]++;
+		}
+		// append slot 0 for trailing identity matrices
+		opslots[j][opc[j].n - 1] = 0;
+	}
+	// consistency check
+	for (j = 0; j < L + 1; j++)
+	{
+		assert(D[j] >= 1);
+	}
+	assert(D[0] == 1);
+	assert(D[L] == 1);
+
+	// allocate and fill MPO tensors, and assign virtual bond quantum numbers
+	AllocateMPO(L, d2, D, mpo);
+	for (j = 0; j < nopc; j++)
+	{
+		for (k = 0; k < opc[j].n; k++)
+		{
+			assert(opc[j].op[k].ndim == 2 && opc[j].op[k].dim[0] == d && opc[j].op[k].dim[1] == d);
+
+			// find bond indices ("slots") for current local operator
+			size_t m;
+			if (k == 0)
+			{
+				if (opc[j].i == 0)
+				{
+					m = 0;
+				}
+				else
+				{
+					// connect to leading identities
+					m = opslots[maxidxS][opc[j].i - 1];
+				}
+			}
+			else
+			{
+				m = opslots[j][k - 1];
+			}
+			assert(m < D[opc[j].i + k]);
+			assert(opslots[j][k] < D[opc[j].i + k + 1]);
+
+			// add to MPO tensor (instead of simply assigning) to handle sum of single-site operators without dedicated bond slots
+			const MKL_Complex16 one = { 1, 0 };
+			cblas_zaxpy(d*d, &one, opc[j].op[k].data, 1, &mpo->A[opc[j].i + k].data[(m + D[opc[j].i + k]*opslots[j][k])*d*d], 1);
+		}
+
+		for (k = 0; k < opc[j].n - 1; k++)
+		{
+			assert(opslots[j][k] < D[opc[j].i + k + 1]);
+			mpo->qD[opc[j].i + k + 1][opslots[j][k]] = opc[j].qD[k];
+		}
+	}
+
+	// clean up
+	for (j = 0; j < nopc; j++)
+	{
+		MKL_free(opslots[j]);
+	}
+	MKL_free(opslots);
+	MKL_free(D);
+	for (j = 0; j < opc[maxidxS].n; j++)
+	{
+		DeleteTensor(&opc[maxidxS].op[j]);
+	}
+	for (j = 0; j < opc[0].n; j++)
+	{
+		DeleteTensor(&opc[0].op[j]);
+	}
+	MKL_free(opc[maxidxS].op);
+	MKL_free(opc[maxidxS].qD);
+	MKL_free(opc[0].op);
+	MKL_free(opc[0].qD);
+	MKL_free(opc);
+}

@@ -50,7 +50,7 @@ MKL_Complex16 OperatorAverage(const mps_t *restrict psi, const mpo_t *restrict o
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Compute all partial contractions from the left; L must point to an array of (uninitialized) tensors of length L at input
+/// \brief Compute all partial contractions from the left; BL must point to an array of (uninitialized) tensors of length L at input
 ///
 void ComputeLeftOperatorBlocks(const mps_t *restrict psi, const mpo_t *restrict op, tensor_t *restrict BL)
 {
@@ -79,7 +79,7 @@ void ComputeLeftOperatorBlocks(const mps_t *restrict psi, const mpo_t *restrict 
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Compute all partial contractions from the right; R must point to an array of (uninitialized) tensors of length L at input
+/// \brief Compute all partial contractions from the right; BR must point to an array of (uninitialized) tensors of length L at input
 ///
 void ComputeRightOperatorBlocks(const mps_t *restrict psi, const mpo_t *restrict op, tensor_t *restrict BR)
 {

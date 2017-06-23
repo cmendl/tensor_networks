@@ -716,6 +716,115 @@ int MPOTest()
 		DeleteMPO(&ZX);
 	}
 
+	// construct MPO representation of a sum of operator chains
+	{
+		const size_t d = 4;
+		const int nopc = 10;
+
+		// physical quantum numbers
+		const qnumber_t qd[4] = { 1, 0, -2, 0 };
+
+		// load operator chains from disk
+		opchain_t *opchains = (opchain_t *)MKL_calloc(nopc, sizeof(opchain_t), MEM_DATA_ALIGN);
+		{
+			int *length = (int *)MKL_malloc(nopc * sizeof(int), MEM_DATA_ALIGN);
+			int *start  = (int *)MKL_malloc(nopc * sizeof(int), MEM_DATA_ALIGN);
+			status = ReadData("../test/mpo_test_opc_length.dat", length, sizeof(int), nopc);    if (status < 0) { return status; }
+			status = ReadData("../test/mpo_test_opc_start.dat",  start,  sizeof(int), nopc);    if (status < 0) { return status; }
+
+			int j;
+			for (j = 0; j < nopc; j++)
+			{
+				AllocateOpchain(d, length[j], start[j], &opchains[j]);
+
+				int k;
+				for (k = 0; k < length[j]; k++)
+				{
+					char filename[1024];
+					sprintf(filename, "../test/mpo_test_opc%i_%i.dat", j, k);
+					status = ReadData(filename, opchains[j].op[k].data, sizeof(MKL_Complex16), NumTensorElements(&opchains[j].op[k]));
+					if (status < 0) { return status; }
+				}
+
+				char filename[1024];
+				sprintf(filename, "../test/mpo_test_opc%i_qD.dat", j);
+				status = ReadData(filename, opchains[j].qD, sizeof(qnumber_t), opchains[j].n - 1);
+				if (status < 0) { return status; }
+			}
+
+			MKL_free(start);
+			MKL_free(length);
+		}
+
+		// construct MPO representation
+		mpo_t W;
+		MPOFromOpChains(L, d, nopc, opchains, &W);
+		memcpy(W.qd[0], qd, d*sizeof(qnumber_t));
+		memcpy(W.qd[1], qd, d*sizeof(qnumber_t));
+
+		// load reference MPO from disk
+		mpo_t W_ref;
+		{
+			const size_t d2[] = { d, d };
+			const size_t D[]  = { 1, 4, 4, 6, 5, 1 };
+			AllocateMPO(L, d2, D, &W_ref);
+
+			for (i = 0; i < L; i++)
+			{
+				char filename[1024];
+				sprintf(filename, "../test/mpo_test_W%i.dat", i);
+				status = ReadData(filename, W_ref.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&W_ref.A[i]));
+				if (status < 0) { return status; }
+			}
+
+			for (i = 0; i < L + 1; i++)
+			{
+				char filename[1024];
+				sprintf(filename, "../test/mpo_test_qW%i.dat", i);
+				status = ReadData(filename, W_ref.qD[i], sizeof(qnumber_t), D[i]);
+				if (status < 0) { return status; }
+			}
+		}
+
+		for (i = 0; i < L; i++)
+		{
+			err = fmax(err, MPOBlockStructureError(&W.A[i], (const qnumber_t *restrict *)W.qd, W.qD[i], W.qD[i+1]));
+		}
+
+		// compare matrix entries
+		for (i = 0; i < L; i++)
+		{
+			if (W.A[i].dim[0] != W_ref.A[i].dim[0] || W.A[i].dim[1] != W_ref.A[i].dim[1] || W.A[i].dim[2] != W_ref.A[i].dim[2] || W.A[i].dim[3] != W_ref.A[i].dim[3])
+			{
+				err = fmax(err, 1);
+			}
+			else
+			{
+				// largest entrywise error
+				err = fmax(err, UniformDistance(2*NumTensorElements(&W_ref.A[i]), (double *)W.A[i].data, (double *)W_ref.A[i].data));
+			}
+		}
+		// check virtual bond quantum numbers
+		for (i = 0; i < L + 1; i++)
+		{
+			const size_t D = MPOBondDim(&W_ref, i);
+			size_t j;
+			for (j = 0; j < D; j++) {
+				err = fmax(err, (double)abs(W.qD[i][j] - W_ref.qD[i][j]));
+			}
+		}
+
+		// clean up
+		DeleteMPO(&W_ref);
+		DeleteMPO(&W);
+		int j;
+		for (j = 0; j < nopc; j++)
+		{
+			DeleteOpchain(&opchains[j]);
+		}
+		MKL_free(opchains);
+	}
+
 	printf("Largest error: %g\n", err);
 
 	// clean up

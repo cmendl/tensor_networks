@@ -238,13 +238,13 @@ MPODistributeSingularValues["sqrt"] :=MPODistributeSingularValuesSqrt
 
 OpChainRightIndex[op_]:=First[op]+Length[op[[2]]]-1
 
-(* Construct a MPO representation of a sum of "operator chains" op_i \[CircleTimes] op_{i+1} \[CircleTimes] \[Ellipsis] \[CircleTimes] op_{i+n};
-   each entry of 'opchains' must be of the form {i,{op_i,op_{i+1},\[Ellipsis],op_{i+n}},qD},
-   with qD the virtual bond quantum numbers between sites {i,i+1}, \[Ellipsis], {i+n-1,i+n} *)
+(* Construct a MPO representation of a sum of "operator chains" op_i \[CircleTimes] op_{i+1} \[CircleTimes] \[Ellipsis] \[CircleTimes] op_{i+n-1};
+   each entry of 'opchains' must be of the form {i,{op_i,op_{i+1},\[Ellipsis],op_{i+n-1}},qD},
+   with qD the virtual bond quantum numbers between sites {i,i+1}, \[Ellipsis], {i+n-2,i+n-1} *)
 MPOFromOpChains[d_,L_,opchains_List]:=Module[{
 	opc=SortBy[opchains,{OpChainRightIndex[#],Length[#[[2]]]}&],
 	maxidxS,slotidx,opslots,W,i,j,qD},
-	(* right-pad first operator chain with identity matrices (for trailing identity operations in each chain) *)
+	(* right-pad first operator chain with identity matrices (required for trailing identity operations in each chain) *)
 	opc[[1]]={First[opc[[1]]],PadRight[opc[[1,2]],L-(First[opc[[1]]]-1),{IdentityMatrix[d]}],PadRight[opc[[1,3]],L-First[opc[[1]]],0]};
 	(* find operator chain with largest starting index *)
 	maxidxS=First[Ordering[opc,-1,First[#1]<First[#2]&]];
