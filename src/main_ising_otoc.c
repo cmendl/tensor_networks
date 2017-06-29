@@ -213,6 +213,7 @@ int main(int argc, char *argv[])
 	duprintf("                 time step: %g\n", params.dt);
 	duprintf("             MPO tolerance: %g\n", params.tol);
 	duprintf("max virtual bond dimension: %zu\n", params.maxD);
+	duprintf("               renormalize: %s\n", params.renormalize ? "true" : "false");
 	duprintf(" OTOC operation of W and V: %c\n", op_c);
 	duprintf("   range of OTOC operators: from site %i to %i\n", i0, i1);
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
@@ -225,7 +226,7 @@ int main(int argc, char *argv[])
 	bond_op_params_t bond_op_params;
 	bond_op_params.tol  = params.tol;
 	bond_op_params.maxD = params.maxD;
-	bond_op_params.renormalize = true;
+	bond_op_params.renormalize = params.renormalize;
 
 	// Pauli matrices
 	tensor_t sigma_x, sigma_y, sigma_z;

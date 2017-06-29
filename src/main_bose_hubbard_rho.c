@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
 	duprintf("           delta beta step: %g\n", params.dbeta);
 	duprintf("             MPO tolerance: %g\n", params.tol);
 	duprintf("max virtual bond dimension: %zu\n", params.maxD);
+	duprintf("               renormalize: %s\n", params.renormalize ? "true" : "false");
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
 	duprintf("\n");
 
@@ -92,7 +93,7 @@ int main(int argc, char *argv[])
 	bond_op_params_t bond_op_params;
 	bond_op_params.tol  = params.tol;
 	bond_op_params.maxD = params.maxD;
-	bond_op_params.renormalize = true;
+	bond_op_params.renormalize = params.renormalize;
 
 	// physical quantum numbers
 	qnumber_t *qd = (qnumber_t *)MKL_malloc(d * sizeof(qnumber_t), MEM_DATA_ALIGN);

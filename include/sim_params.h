@@ -42,6 +42,7 @@ typedef struct
 	// matrix product operator approximation parameters
 	double tol;             //!< tolerance
 	size_t maxD;            //!< maximum virtual bond dimension
+	bool renormalize;       //!< whether to renormalize the retained singular values
 
 	bool save_tensors;      //!< whether to save final tensor data to disk
 }

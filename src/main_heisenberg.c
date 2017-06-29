@@ -138,6 +138,7 @@ int main(int argc, char *argv[])
 	duprintf("                 time step: %g\n", params.dt);
 	duprintf("             MPO tolerance: %g\n", params.tol);
 	duprintf("max virtual bond dimension: %zu\n", params.maxD);
+	duprintf("               renormalize: %s\n", params.renormalize ? "true" : "false");
 	duprintf("         'A' operator site: %i\n", jA);
 	duprintf("         'B' operator site: %i\n", jB);
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
@@ -150,7 +151,7 @@ int main(int argc, char *argv[])
 	bond_op_params_t bond_op_params;
 	bond_op_params.tol  = params.tol;
 	bond_op_params.maxD = params.maxD;
-	bond_op_params.renormalize = true;
+	bond_op_params.renormalize = params.renormalize;
 
 	// ladder operators
 	tensor_t Sup, Sdn;
