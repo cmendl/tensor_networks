@@ -5,7 +5,7 @@ TSTFILES = qnumber_test.o matrix_exp_test.o bond_ops_test.o mps_test.o mpo_test.
 CC = icc
 
 # compiler options
-CCOPTS = -Wall -O2 -xHost -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -mkl:parallel
+CCOPTS = -Wall -O2 -xHost -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -DGIT_COMMIT=\"$(shell git describe --always)\" -mkl:parallel
 
 # set these with appropriate libraries for your system
 LIBRARIES = -mkl:parallel -lrt

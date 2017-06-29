@@ -83,6 +83,8 @@ int main(int argc, char *argv[])
 	duprintf("               renormalize: %s\n", params.renormalize ? "true" : "false");
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
 	duprintf("\n");
+	duprintf("Git commit %s\n", GIT_COMMIT);
+	duprintf("\n");
 
 	// number of lattice sites
 	const int L = params.L;
