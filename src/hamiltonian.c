@@ -327,11 +327,11 @@ void ConstructLocalBoseHubbardOperators(const int L, const size_t M, const doubl
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Construct local (fermionic) Hubbard Hamiltonian operators, using Jordan-Wigner transformation
+/// \brief Construct local Fermi-Hubbard Hamiltonian operators, using Jordan-Wigner transformation
 ///
 /// Convention for local site basis is |0>, |up>, |dn>, |up,dn>
 ///
-void ConstructLocalHubbardOperators(const int L, const double t, const double U, const double mu, double **h)
+void ConstructLocalFermiHubbardOperators(const int L, const double t, const double U, const double mu, double **h)
 {
 	assert(L > 1);      // need at least 2 sites
 
@@ -741,9 +741,9 @@ void ConstructBoseHubbardMPO(const int L, const size_t M, const double t, const 
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Contruct matrix product operator representation of fermionic Hubbard Hamiltonian in one dimension with nearest neighbor hopping
+/// \brief Contruct matrix product operator representation of Fermi-Hubbard Hamiltonian in one dimension with nearest neighbor hopping
 ///
-void ConstructHubbardMPO(const int L, const double t, const double U, const double mu, mpo_t *H)
+void ConstructFermiHubbardMPO(const int L, const double t, const double U, const double mu, mpo_t *H)
 {
 	int i;
 

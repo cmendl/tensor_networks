@@ -41,7 +41,7 @@ static double MPOBlockStructureError(const tensor_t *A, const qnumber_t *restric
 //
 
 
-int HamiltonianHubbardTest()
+int HamiltonianFermiHubbardTest()
 {
 	int i;
 	int status;
@@ -49,7 +49,7 @@ int HamiltonianHubbardTest()
 	// maximum error
 	double err = 0;
 
-	printf("Testing fermionic Hubbard Hamiltonian construction...\n");
+	printf("Testing Fermi-Hubbard Hamiltonian construction...\n");
 
 	// number of lattice sites
 	const int L = 5;
@@ -58,9 +58,9 @@ int HamiltonianHubbardTest()
 	const double U  = 2.7;
 	const double mu = 0.3;
 
-	// construct two-site Bose-Hubbard Hamiltonian operators
+	// construct two-site Fermi-Hubbard Hamiltonian operators
 	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
-	ConstructLocalHubbardOperators(L, t, U, mu, h);
+	ConstructLocalFermiHubbardOperators(L, t, U, mu, h);
 
 	// compare with reference
 	for (i = 0; i < L - 1; i++)
@@ -68,7 +68,7 @@ int HamiltonianHubbardTest()
 		// load reference two-site Hamiltonian operators from disk
 		double *h_ref_i = (double *)MKL_malloc(16*16*sizeof(double), MEM_DATA_ALIGN);
 		char filename[1024];
-		sprintf(filename, "../test/hamiltonian_hubbard_test_h%i.dat", i);
+		sprintf(filename, "../test/hamiltonian_fermi_hubbard_test_h%i.dat", i);
 		status = ReadData(filename, h_ref_i, sizeof(double), 16*16);
 		if (status < 0) { return status; }
 
@@ -80,7 +80,7 @@ int HamiltonianHubbardTest()
 
 	// construct matrix product operator representation
 	mpo_t mpoH;
-	ConstructHubbardMPO(L, t, U, mu, &mpoH);
+	ConstructFermiHubbardMPO(L, t, U, mu, &mpoH);
 
 	// compare with reference
 	for (i = 0; i < L; i++)
@@ -90,7 +90,7 @@ int HamiltonianHubbardTest()
 		// load reference 'W' tensor from disk
 		MKL_Complex16 *W_ref_i = (MKL_Complex16 *)MKL_malloc(num * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 		char filename[1024];
-		sprintf(filename, "../test/hamiltonian_hubbard_test_W%i.dat", i);
+		sprintf(filename, "../test/hamiltonian_fermi_hubbard_test_W%i.dat", i);
 		status = ReadData(filename, W_ref_i, sizeof(MKL_Complex16), num);
 		if (status < 0) { return status; }
 
@@ -98,7 +98,6 @@ int HamiltonianHubbardTest()
 		err = fmax(err, UniformDistance(2*num, (double *)mpoH.A[i].data, (double *)W_ref_i));
 
 		MKL_free(W_ref_i);
-
 	}
 
 	// test block structure
