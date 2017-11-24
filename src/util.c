@@ -125,6 +125,42 @@ int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, M
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Set the matrix elements in 'id' to the identity matrix; 'id' must point to a d x d matrix
+///
+void RealIdentityMatrix(const size_t d, double *id)
+{
+	memset(id, 0, d*d * sizeof(double));
+
+	size_t i;
+	for (i = 0; i < d; i++)
+	{
+		id[i + i*d] = 1;
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
+/// \brief Compute the Kronecker product of two real square matrices of dimension d x d, and add to 'ret' (d^2 x d^2 matrix)
+///
+void KroneckerProductRealSquare(const MKL_INT d, const double *restrict A, const double *restrict B, double *restrict ret)
+{
+	assert(d > 0);
+	const MKL_INT d2 = d*d;
+
+	MKL_INT i, j;
+	for (j = 0; j < d; j++)
+	{
+		for (i = 0; i < d; i++)
+		{
+			cblas_dger(CblasColMajor, d, d, 1.0, &A[d*i], 1, &B[d*j], 1, &ret[(i + j*d)*d2], d);
+		}
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Copy a real to a complex matrix, setting imaginary entries to zero
 ///
 void CopyRealToComplexMatrix(const size_t m, const size_t n, const double *restrict A, const size_t lda, MKL_Complex16 *restrict B, const size_t ldb)

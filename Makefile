@@ -11,7 +11,7 @@ CCOPTS = -Wall -O2 -xHost -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -DGIT
 LIBRARIES = -mkl:parallel -lrt
 
 
-all: proj_heisenberg proj_bose_hubbard proj_bose_hubbard_rho proj_bose_hubbard_time proj_bose_hubbard_otoc proj_ising_otoc proj_ising_otoc_comm proj_test
+all: proj_heisenberg proj_bose_hubbard proj_bose_hubbard_rho proj_bose_hubbard_time proj_bose_hubbard_otoc proj_fermi_hubbard_rho proj_fermi_hubbard_time_current proj_ising_otoc proj_ising_otoc_comm proj_test
 
 proj_heisenberg: ${SRCFILES} main_heisenberg.o
 	${CC} ${CCOPTS} -o bin/sim_heisenberg $? ${LIBRARIES}
@@ -27,6 +27,12 @@ proj_bose_hubbard_time: ${SRCFILES} main_bose_hubbard_time.o
 
 proj_bose_hubbard_otoc: ${SRCFILES} main_bose_hubbard_otoc.o
 	${CC} ${CCOPTS} -o bin/sim_bose_hubbard_otoc $? ${LIBRARIES}
+
+proj_fermi_hubbard_rho: ${SRCFILES} main_fermi_hubbard_rho.o
+	${CC} ${CCOPTS} -o bin/sim_fermi_hubbard_rho $? ${LIBRARIES}
+
+proj_fermi_hubbard_time_current: ${SRCFILES} main_fermi_hubbard_time_current.o
+	${CC} ${CCOPTS} -o bin/sim_fermi_hubbard_time_current $? ${LIBRARIES}
 
 proj_ising_otoc: ${SRCFILES} main_ising_otoc.o
 	${CC} ${CCOPTS} -o bin/sim_ising_otoc $? ${LIBRARIES}
