@@ -1,4 +1,4 @@
-#include "hamiltonian.h"
+#include "hamiltonian_ising.h"
 #include "util.h"
 #include <mkl.h>
 #include <stdio.h>
@@ -67,7 +67,7 @@ int HamiltonianIsingTest()
 
 	// clean up
 	DeleteMPO(&mpoH);
-	DeleteLocalHamiltonianOperators(L, h);
+	DeleteLocalIsingOperators(L, h);
 	MKL_free(h);
 
 	return (err < 1e-15 ? 0 : 1);

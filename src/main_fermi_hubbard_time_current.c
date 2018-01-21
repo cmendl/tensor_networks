@@ -1,4 +1,4 @@
-#include "hamiltonian.h"
+#include "hamiltonian_fermi_hubbard.h"
 #include "dynamics.h"
 #include "complex.h"
 #include "sim_params.h"
@@ -7,6 +7,10 @@
 #include <string.h>
 #include <time.h>
 #include <stdio.h>
+
+#if !defined(NQNUMBER) || NQNUMBER != 2
+#error Fermi-Hubbard model requires two quantum numbers (particle number and spin)
+#endif
 
 // for creating directories
 #ifdef _WIN32
@@ -241,8 +245,13 @@ int main(int argc, char *argv[])
 	bond_op_params.maxD = params.maxD;
 	bond_op_params.renormalize = params.renormalize;
 
-	// physical quantum numbers
-	const qnumber_t qd[4] = { 0, 1, 1, 2 };
+	// physical quantum numbers (particle number and spin)
+	const qnumber_t qd[4] = {
+		{ 0,  0 },  // |0>
+		{ 1,  1 },  // |up>
+		{ 1, -1 },  // |dn>
+		{ 2,  0 },  // |up,dn>
+	};
 
 	// local current operator
 	tensor_t J;
@@ -500,7 +509,7 @@ int main(int argc, char *argv[])
 	DeleteDynamicsData(&dyn_time);
 	DeleteMPO(&XB);
 	DeleteMPO(&XA);
-	DeleteLocalHamiltonianOperators(L, h);
+	DeleteLocalFermiHubbardOperators(L, h);
 	MKL_free(h);
 	DeleteMPO(&rho_beta);
 	DeleteTensor(&J);

@@ -1,5 +1,5 @@
 #include "minimization.h"
-#include "hamiltonian.h"
+#include "hamiltonian_heisenberg.h"
 #include "complex.h"
 #include "operation.h"
 #include <mkl.h>

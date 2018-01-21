@@ -1,4 +1,4 @@
-#include "hamiltonian.h"
+#include "hamiltonian_heisenberg.h"
 #include "complex.h"
 #include "util.h"
 #include <mkl.h>
@@ -24,7 +24,7 @@ static double MPOBlockStructureError(const tensor_t *A, const qnumber_t *restric
 			{
 				for (i = 0; i < A->dim[0]; i++)
 				{
-					if (qd[0][i] + qD0[k] != qd[1][j] + qD1[l])
+					if (!EqualQuantumNumbers(AddQuantumNumbers(qd[0][i], qD0[k]), AddQuantumNumbers(qd[1][j], qD1[l])))
 					{
 						err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*(k + A->dim[2]*l))]);
 					}
@@ -112,7 +112,7 @@ int HamiltonianHeisenbergTest()
 
 	// clean up
 	DeleteMPO(&mpoH);
-	DeleteLocalHamiltonianOperators(L, h);
+	DeleteLocalHeisenbergOperators(L, h);
 	MKL_free(h);
 
 	return (err < 1e-15 ? 0 : 1);

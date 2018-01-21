@@ -1,4 +1,4 @@
-#include "hamiltonian.h"
+#include "hamiltonian_bose_hubbard.h"
 #include "dynamics.h"
 #include "complex.h"
 #include "sim_params.h"
@@ -6,6 +6,10 @@
 #include <mkl.h>
 #include <time.h>
 #include <stdio.h>
+
+#if !defined(NQNUMBER) || NQNUMBER != 1
+#error Bose-Hubbard model requires one quantum number (particle number)
+#endif
 
 // for creating directories
 #ifdef _WIN32
@@ -185,7 +189,7 @@ int main(int argc, char *argv[])
 	MKL_free(tol_eff);
 	DeleteDynamicsData(&dyn);
 	DeleteMPO(&rho_beta);
-	DeleteLocalHamiltonianOperators(L, h);
+	DeleteLocalBoseHubbardOperators(L, h);
 	MKL_free(h);
 	DeleteTensor(&bn);
 	MKL_free(qd);

@@ -27,7 +27,7 @@ static double MPOBlockStructureError(const tensor_t *A, const qnumber_t *restric
 			{
 				for (i = 0; i < A->dim[0]; i++)
 				{
-					if (qd[0][i] + qD0[k] != qd[1][j] + qD1[l])
+					if (!EqualQuantumNumbers(AddQuantumNumbers(qd[0][i], qD0[k]), AddQuantumNumbers(qd[1][j], qD1[l])))
 					{
 						err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*(k + A->dim[2]*l))]);
 					}
@@ -392,7 +392,9 @@ int MPOTest()
 			{
 				size_t j;
 				for (j = 0; j < D_ref; j++) {
-					err = fmax(err, (double)abs(qG1[j] - qG1_ref[j]));
+					if (!EqualQuantumNumbers(qG1[j], qG1_ref[j])) {
+						err = fmax(err, 1);
+					}
 				}
 			}
 			MKL_free(qG1_ref);
@@ -456,7 +458,9 @@ int MPOTest()
 			{
 				size_t j;
 				for (j = 0; j < D_ref; j++) {
-					err = fmax(err, (double)abs(qG1[j] - qG1_ref[j]));
+					if (!EqualQuantumNumbers(qG1[j], qG1_ref[j])) {
+						err = fmax(err, 1);
+					}
 				}
 			}
 			MKL_free(qG1_ref);
@@ -557,7 +561,9 @@ int MPOTest()
 		{
 			size_t j;
 			for (j = 0; j < D_ref; j++) {
-				err = fmax(err, (double)abs(qcK1[j] - qcK1_ref[j]));
+				if (!EqualQuantumNumbers(qcK1[j], qcK1_ref[j])) {
+					err = fmax(err, 1);
+				}
 			}
 		}
 		MKL_free(qcK1_ref);
@@ -708,7 +714,9 @@ int MPOTest()
 			const size_t D = MPOBondDim(&ZX_ref, i);
 			size_t j;
 			for (j = 0; j < D; j++) {
-				err = fmax(err, (double)abs(ZX.qD[i][j] - ZX_ref.qD[i][j]));
+				if (!EqualQuantumNumbers(ZX.qD[i][j], ZX_ref.qD[i][j])) {
+					err = fmax(err, 1);
+				}
 			}
 		}
 
@@ -810,7 +818,9 @@ int MPOTest()
 			const size_t D = MPOBondDim(&W_ref, i);
 			size_t j;
 			for (j = 0; j < D; j++) {
-				err = fmax(err, (double)abs(W.qD[i][j] - W_ref.qD[i][j]));
+				if (!EqualQuantumNumbers(W.qD[i][j], W_ref.qD[i][j])) {
+					err = fmax(err, 1);
+				}
 			}
 		}
 

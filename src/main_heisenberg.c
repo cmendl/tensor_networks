@@ -1,4 +1,4 @@
-#include "hamiltonian.h"
+#include "hamiltonian_heisenberg.h"
 #include "dynamics.h"
 #include "complex.h"
 #include "sim_params.h"
@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
 	DeleteMPO(&XB);
 	DeleteMPO(&XA);
 	DeleteMPO(&rho_beta);
-	DeleteLocalHamiltonianOperators(L, h);
+	DeleteLocalHeisenbergOperators(L, h);
 	MKL_free(h);
 	DeleteTensor(&Sdn);
 	DeleteTensor(&Sup);

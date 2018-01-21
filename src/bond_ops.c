@@ -132,7 +132,7 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 		size_t m = 0;
 		for (j = 0; j < A->dim[0]; j++)
 		{
-			if (q0[j] == qis[i])
+			if (EqualQuantumNumbers(q0[j], qis[i]))
 			{
 				i0[m] = j;
 				m++;
@@ -141,7 +141,7 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 		size_t n = 0;
 		for (j = 0; j < A->dim[1]; j++)
 		{
-			if (q1[j] == qis[i])
+			if (EqualQuantumNumbers(q1[j], qis[i]))
 			{
 				i1[n] = j;
 				n++;
@@ -559,7 +559,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		size_t m = 0;
 		for (j = 0; j < A->dim[0]; j++)
 		{
-			if (q0[j] == qis[i])
+			if (EqualQuantumNumbers(q0[j], qis[i]))
 			{
 				i0[m] = j;
 				m++;
@@ -568,7 +568,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		size_t n = 0;
 		for (j = 0; j < A->dim[1]; j++)
 		{
-			if (q1[j] == qis[i])
+			if (EqualQuantumNumbers(q1[j], qis[i]))
 			{
 				i1[n] = j;
 				n++;

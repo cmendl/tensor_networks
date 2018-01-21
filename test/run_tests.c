@@ -2,15 +2,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#if defined(_WIN32) & (defined(DEBUG) | defined(_DEBUG))
-#include <crtdbg.h>
-#endif
-
 
 typedef int (*test_function_t)();
 
 // test function declarations
 int QuantumNumberTest();
+int QuantumNumberTest2();
 int BondOperationsTest();
 int MatrixExpTest();
 int TensorTest();
@@ -30,12 +27,14 @@ int PEPSTest2();
 
 int main()
 {
-	// enable run-time memory check for debug builds
-	#if defined(_WIN32) & (defined(DEBUG) | defined(_DEBUG))
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	#endif
-
-	test_function_t tests[] = { QuantumNumberTest, BondOperationsTest, MatrixExpTest, TensorTest, MPSTest, MPOTest, OperationTest, LanczosTest, HamiltonianHeisenbergTest, HamiltonianIsingTest, HamiltonianBoseHubbardTest, HamiltonianFermiHubbardTest, MinimizationTest, DynamicsTest, PEPSTest, PEPSTest2 };
+	test_function_t tests[] = { MatrixExpTest, TensorTest, OperationTest, LanczosTest,
+		#if NQNUMBER == 1
+		QuantumNumberTest, BondOperationsTest, MPSTest, MPOTest, HamiltonianHeisenbergTest, HamiltonianIsingTest, HamiltonianBoseHubbardTest, MinimizationTest, DynamicsTest,
+		#elif NQNUMBER == 2
+		QuantumNumberTest2, HamiltonianFermiHubbardTest,
+		#endif
+		PEPSTest, PEPSTest2
+	};
 
 	bool pass = true;
 

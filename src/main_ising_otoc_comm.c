@@ -1,4 +1,4 @@
-#include "hamiltonian.h"
+#include "hamiltonian_ising.h"
 #include "dynamics.h"
 #include "complex.h"
 #include "sim_params.h"
@@ -534,7 +534,7 @@ int main(int argc, char *argv[])
 	DeleteDynamicsData(&dyn_time);
 	DeleteMPO(&XW);
 	DeleteMPO(&exp_betaH);
-	DeleteLocalHamiltonianOperators(L, h);
+	DeleteLocalIsingOperators(L, h);
 	MKL_free(h);
 	DeleteMPO(&op);
 	DeleteTensor(&sigma_z);

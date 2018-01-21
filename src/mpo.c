@@ -667,7 +667,7 @@ void MPOAdd(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict Z)
 		else
 		{
 			assert(DX == 1 && DY == 1 && DZ == 1);
-			assert(Y->qD[i][0] == X->qD[i][0]);
+			assert(EqualQuantumNumbers(Y->qD[i][0], X->qD[i][0]));
 		}
 	}
 }
