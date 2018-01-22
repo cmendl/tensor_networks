@@ -41,7 +41,7 @@ qnumber_t;
 ///
 /// \brief Check whether two quantum numbers are equal
 ///
-inline bool EqualQuantumNumbers(const qnumber_t q0, const qnumber_t q1)
+static inline bool EqualQuantumNumbers(const qnumber_t q0, const qnumber_t q1)
 {
 	#if NQNUMBER == 1
 
@@ -59,7 +59,7 @@ inline bool EqualQuantumNumbers(const qnumber_t q0, const qnumber_t q1)
 ///
 /// \brief Add two quantum numbers
 ///
-inline qnumber_t AddQuantumNumbers(const qnumber_t q0, const qnumber_t q1)
+static inline qnumber_t AddQuantumNumbers(const qnumber_t q0, const qnumber_t q1)
 {
 	#if NQNUMBER == 1
 
@@ -81,7 +81,7 @@ inline qnumber_t AddQuantumNumbers(const qnumber_t q0, const qnumber_t q1)
 ///
 /// \brief Subtract two quantum numbers
 ///
-inline qnumber_t SubtractQuantumNumbers(const qnumber_t q0, const qnumber_t q1)
+static inline qnumber_t SubtractQuantumNumbers(const qnumber_t q0, const qnumber_t q1)
 {
 	#if NQNUMBER == 1
 
@@ -103,7 +103,7 @@ inline qnumber_t SubtractQuantumNumbers(const qnumber_t q0, const qnumber_t q1)
 ///
 /// \brief Flip the sign of a quantum number
 ///
-inline qnumber_t NegateQuantumNumber(const qnumber_t q)
+static inline qnumber_t NegateQuantumNumber(const qnumber_t q)
 {
 	#if NQNUMBER == 1
 

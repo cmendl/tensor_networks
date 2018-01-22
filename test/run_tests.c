@@ -27,11 +27,11 @@ int PEPSTest2();
 
 int main()
 {
-	test_function_t tests[] = { MatrixExpTest, TensorTest, OperationTest, LanczosTest,
+	test_function_t tests[] = { MatrixExpTest, TensorTest, LanczosTest,
 		#if NQNUMBER == 1
-		QuantumNumberTest, BondOperationsTest, MPSTest, MPOTest, HamiltonianHeisenbergTest, HamiltonianIsingTest, HamiltonianBoseHubbardTest, MinimizationTest, DynamicsTest,
+		QuantumNumberTest, BondOperationsTest, MPSTest, MPOTest, OperationTest, HamiltonianHeisenbergTest, HamiltonianIsingTest, HamiltonianBoseHubbardTest, MinimizationTest, DynamicsTest,
 		#elif NQNUMBER == 2
-		QuantumNumberTest2, HamiltonianFermiHubbardTest,
+		QuantumNumberTest2, OperationTest, HamiltonianFermiHubbardTest,
 		#endif
 		PEPSTest, PEPSTest2
 	};
