@@ -18,7 +18,7 @@
 /// \param n1 length of 'q1'
 /// \param qis will be filled with intersection of quantum numbers in 'q0' and 'q1', containing every common quantum number only once
 /// \param nis will be set to the length of 'qis'
-/// \return whether all quantum numbers in 'q0' and 'q1' agree
+/// \return whether 'q0' and 'q1' are filled with a single common quantum number
 ///
 /// For efficiency, integer range of quantum numbers should not be too large
 ///
@@ -26,6 +26,7 @@ bool IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, cons
 {
 	if (n0 == 0 || n1 == 0)
 	{
+		// fast return if at least one of the quantum number arrays is empty
 		(*qis) = NULL;
 		(*nis) = 0;
 		return false;
@@ -97,6 +98,18 @@ bool IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, cons
 		}
 	}
 
+	if ((*nis) == 0)
+	{
+		// empty intersection
+
+		// clean up
+		MKL_free(map);
+
+		(*qis) = NULL;
+
+		return false;
+	}
+
 	// collect common quantum numbers
 	(*qis) = (qnumber_t *)MKL_malloc((*nis) * sizeof(qnumber_t), MEM_DATA_ALIGN);
 	size_t n = 0;
@@ -112,9 +125,6 @@ bool IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, cons
 
 	// clean up
 	MKL_free(map);
-
-	// must be more than a single quantum number
-	assert((*nis) > 1);
 
 	return false;
 
@@ -201,6 +211,18 @@ bool IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, cons
 		}
 	}
 
+	if ((*nis) == 0)
+	{
+		// empty intersection
+
+		// clean up
+		MKL_free(map);
+
+		(*qis) = NULL;
+
+		return false;
+	}
+
 	// collect common quantum numbers
 	(*qis) = (qnumber_t *)MKL_malloc((*nis) * sizeof(qnumber_t), MEM_DATA_ALIGN);
 	size_t n = 0;
@@ -221,9 +243,6 @@ bool IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, cons
 
 	// clean up
 	MKL_free(map);
-
-	// must be more than a single quantum number
-	assert((*nis) > 1);
 
 	return false;
 
