@@ -4,6 +4,7 @@
 #include "sim_params.h"
 #include "dupio.h"
 #include <mkl.h>
+#include <memory.h>
 #include <time.h>
 #include <stdio.h>
 
