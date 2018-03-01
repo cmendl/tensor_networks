@@ -282,11 +282,17 @@ int main(int argc, char *argv[])
 	// compute exp(-beta H) as MPO
 	mpo_t exp_betaH;
 	{
-		// initialize exp_betaH by the identity operation
+		// initialize exp_betaH by the scaled identity operation (such that Frobenius norm is 1)
 		CreateIdentityMPO(L, 2, &exp_betaH);
+		const MKL_Complex16 invsqrt2 = { sqrt(0.5), 0 };
+		for (i = 0; i < L; i++)
+		{
+			ScaleTensor(invsqrt2, &exp_betaH.A[i]);
+		}
 
-		const int nsteps = (int)round(params.beta / params.dbeta);
-		if (fabs(nsteps*params.dbeta/params.beta - 1) > 1e-14)
+		// number of imaginary time steps
+		const int nsteps = (params.beta == 0 ? 0 : (int)round(params.beta / params.dbeta));
+		if (nsteps != 0 && fabs(nsteps*params.dbeta/params.beta - 1) > 1e-14)
 		{
 			duprintf("Cannot find an integer 'n' such that n*dbeta == beta, exiting...\n");
 			return -4;

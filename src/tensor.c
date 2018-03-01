@@ -421,6 +421,23 @@ void SubTensor(const tensor_t *restrict t, const size_t *restrict sdim, const si
 
 //________________________________________________________________________________________________________________________
 ///
+/// \brief Scale tensor t by alpha
+///
+void ScaleTensor(const MKL_Complex16 alpha, tensor_t *restrict t)
+{
+	const size_t nelem = NumTensorElements(t);
+	size_t i;
+	for (i = 0; i < nelem; i++)
+	{
+		MKL_Complex16 d = t->data[i];
+		t->data[i].real = alpha.real*d.real - alpha.imag*d.imag;
+		t->data[i].imag = alpha.real*d.imag + alpha.imag*d.real;
+	}
+}
+
+
+//________________________________________________________________________________________________________________________
+///
 /// \brief Scalar multiply and add two tensors: t = alpha*s + t; dimensions of s and t must agree
 ///
 void ScalarMultiplyAddTensor(const MKL_Complex16 alpha, const tensor_t *restrict s, tensor_t *restrict t)

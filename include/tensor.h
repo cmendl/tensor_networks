@@ -88,6 +88,8 @@ void SubTensor(const tensor_t *restrict t, const size_t *restrict sdim, const si
 //
 
 
+void ScaleTensor(const MKL_Complex16 alpha, tensor_t *restrict t);
+
 void ScalarMultiplyAddTensor(const MKL_Complex16 alpha, const tensor_t *restrict s, tensor_t *restrict t);
 
 void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, const int ndim_mult, tensor_t *restrict r);
