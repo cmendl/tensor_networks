@@ -1,7 +1,17 @@
 Tensor networks for quantum simulations
 =======================================
 
-Tensor networks for quantum simulations: matrix product states and operators, projected entangled pair states, ...
+C with Intel MKL, and Mathematica reference implementation
+
+Features:
+- common operations on tensors of arbitrary dimension
+- MPS and MPO structures
+- built-in support for quantum numbers (U(1) symmetries)
+- construction of common Hamiltonians (Ising, Heisenberg, Fermi-Hubbard, Bose-Hubbard) in 1D, by even-odd splitting or as MPO representation; MPO representation from arbitrary operator chain description
+- imaginary and real-time evolution
+- time-dynamical correlation functions and OTOCs at finite temperature
+- one-site and two-site local energy minimization using Lanczos iteration
+- preliminary support for PEPS
 
 Directory structure:
 - mathematica:  standalone Mathematica reference implementation, with the core routines in the `tn_base.m` package
@@ -15,7 +25,7 @@ The Mathematica notebooks can be opened by the free [CDF player](https://www.wol
 
 License
 -------
-Copyright (c) 2013-2017, Christian B. Mendl  
+Copyright (c) 2013-2018, Christian B. Mendl  
 All rights reserved.  
 http://christian.mendl.net
 
