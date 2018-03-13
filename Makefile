@@ -10,14 +10,14 @@ TSTFILES  = matrix_exp_test.o tensor_test.o lanczos_test.o peps_test.o peps_test
 TSTFILES1 = qnumber_test.o bond_ops_test.o mps_test.o mpo_test.o operation_test1.o hamiltonian_heisenberg_test.o hamiltonian_ising_test.o hamiltonian_bose_hubbard_test.o minimization_test.o dynamics_test.o
 TSTFILES2 = qnumber_test2.o operation_test2.o hamiltonian_fermi_hubbard_test.o
 
-# use Intel compiler
+# Intel compiler
 CC = icc
 
 # compiler options
-CCOPTS = -Wall -O2 -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -DGIT_COMMIT=\"$(shell git describe --always)\" -mkl:parallel
+CCOPTS = -Wall -O2 -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -DGIT_COMMIT=\"$(shell git describe --always)\" -qopenmp -mkl:sequential
 
 # set these with appropriate libraries for your system
-LIBRARIES = -mkl:parallel -lrt
+LIBRARIES = -mkl:sequential -lrt
 
 
 all: proj_heisenberg proj_bose_hubbard proj_bose_hubbard_rho proj_bose_hubbard_time proj_bose_hubbard_otoc proj_fermi_hubbard_rho proj_fermi_hubbard_time_current proj_ising_otoc proj_ising_otoc_comm proj_test1 proj_test2

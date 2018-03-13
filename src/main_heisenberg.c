@@ -4,6 +4,9 @@
 #include "sim_params.h"
 #include "dupio.h"
 #include <mkl.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include <time.h>
 #include <stdio.h>
 
@@ -142,6 +145,9 @@ int main(int argc, char *argv[])
 	duprintf("         'A' operator site: %i\n", jA);
 	duprintf("         'B' operator site: %i\n", jB);
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
+	#ifdef _OPENMP
+	duprintf("        OpenMP max threads: %i\n", omp_get_max_threads());
+	#endif
 	duprintf("\n");
 	duprintf("Git commit %s\n", GIT_COMMIT);
 	duprintf("\n");
@@ -174,7 +180,8 @@ int main(int argc, char *argv[])
 	ConstructLocalHeisenbergOperators(L, params.Jx, params.Jy, params.Jz, params.hext, h);
 
 	// start timer
-	const clock_t t_start = clock();
+	const clock_t t_cpu_start = clock();
+	const unsigned long long t_wall_start = GetTimeTicks();
 
 	// compute exp(-\beta H/2) as MPO
 	mpo_t rho_beta;
@@ -273,9 +280,11 @@ int main(int argc, char *argv[])
 
 	duprintf("chi at t = %g: (%g, %g)\n", params.tmax, chi[nsteps].real, chi[nsteps].imag);
 
-	const clock_t t_end = clock();
-	double cpu_time = (double)(t_end - t_start) / CLOCKS_PER_SEC;
-	duprintf("\nFinished simulation, CPU time: %g seconds\n", cpu_time);
+	const clock_t t_cpu_end = clock();
+	const unsigned long long t_wall_end = GetTimeTicks();
+	double cpu_time = (double)(t_cpu_end  - t_cpu_start ) / CLOCKS_PER_SEC;
+	double walltime = (double)(t_wall_end - t_wall_start) / GetTimeResolution();
+	duprintf("\nFinished simulation, CPU time: %g seconds, wall clock time: %g seconds\n", cpu_time, walltime);
 
 	// save results to disk
 	sprintf(filename, "%s/heisenberg_L%i_chi.dat", argv[4], L); WriteData(filename, chi, sizeof(MKL_Complex16), nsteps + 1, false);

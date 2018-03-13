@@ -4,6 +4,9 @@
 #include "sim_params.h"
 #include "dupio.h"
 #include <mkl.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include <time.h>
 #include <stdio.h>
 
@@ -146,6 +149,9 @@ int main(int argc, char *argv[])
 	duprintf("                  'i' site: %i\n", i_site);
 	duprintf("                  'j' site: %i\n", j_site);
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
+	#ifdef _OPENMP
+	duprintf("        OpenMP max threads: %i\n", omp_get_max_threads());
+	#endif
 	duprintf("\n");
 	duprintf("Git commit %s\n", GIT_COMMIT);
 	duprintf("\n");

@@ -4,6 +4,9 @@
 #include "sim_params.h"
 #include "dupio.h"
 #include <mkl.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include <memory.h>
 #include <time.h>
 #include <stdio.h>
@@ -146,6 +149,9 @@ int main(int argc, char *argv[])
 	duprintf("         'A' operator site: %i\n", jA);
 	duprintf("         'B' operator site: %i\n", jB);
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
+	#ifdef _OPENMP
+	duprintf("        OpenMP max threads: %i\n", omp_get_max_threads());
+	#endif
 	duprintf("\n");
 	duprintf("Git commit %s\n", GIT_COMMIT);
 	duprintf("\n");
@@ -231,7 +237,8 @@ int main(int argc, char *argv[])
 	ConstructLocalBoseHubbardOperators(L, d - 1, params.t, params.U, params.mu, h);
 
 	// start timer
-	const clock_t t_start = clock();
+	const clock_t t_cpu_start = clock();
+	const unsigned long long t_wall_start = GetTimeTicks();
 
 	// apply single-site operators 'A' and 'B'
 	mpo_t XA, XB;
@@ -384,9 +391,11 @@ int main(int argc, char *argv[])
 	const MKL_Complex16 chi_cum = ComplexSubtract(chi[nsteps], ComplexMultiply(chiA[nsteps], chiB[nsteps]));
 	duprintf("chi at t = %g: (%g, %g), corresponding cumulant: (%g, %g)\n", params.tmax, chi[nsteps].real, chi[nsteps].imag, chi_cum.real, chi_cum.imag);
 
-	const clock_t t_end = clock();
-	double cpu_time = (double)(t_end - t_start) / CLOCKS_PER_SEC;
-	duprintf("\nFinished simulation, CPU time: %g seconds\n", cpu_time);
+	const clock_t t_cpu_end = clock();
+	const unsigned long long t_wall_end = GetTimeTicks();
+	double cpu_time = (double)(t_cpu_end  - t_cpu_start ) / CLOCKS_PER_SEC;
+	double walltime = (double)(t_wall_end - t_wall_start) / GetTimeResolution();
+	duprintf("\nFinished simulation, CPU time: %g seconds, wall clock time: %g seconds\n", cpu_time, walltime);
 	int nbuffers;
 	MKL_INT64 nbytes_alloc = MKL_Mem_Stat(&nbuffers);
 	duprintf("MKL memory usage: currently %lld bytes in %d buffer(s)\n", nbytes_alloc, nbuffers);

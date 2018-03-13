@@ -4,6 +4,9 @@
 #include "sim_params.h"
 #include "dupio.h"
 #include <mkl.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include <memory.h>
 #include <time.h>
 #include <stdio.h>
@@ -218,6 +221,9 @@ int main(int argc, char *argv[])
 	duprintf(" OTOC operation of W and V: %c\n", op_c);
 	duprintf("   range of OTOC operators: from site %i to %i\n", i0, i1);
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
+	#ifdef _OPENMP
+	duprintf("        OpenMP max threads: %i\n", omp_get_max_threads());
+	#endif
 	duprintf("\n");
 	duprintf("Git commit %s\n", GIT_COMMIT);
 	duprintf("\n");

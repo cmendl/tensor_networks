@@ -367,7 +367,7 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 	AllocateTensor(2, dim_kn, &Vt);
 	int info = LAPACKE_zgesvd(LAPACK_COL_MAJOR, 'O', 'S', (lapack_int)m, (lapack_int)n, A0->data, (lapack_int)m, sigma, NULL, (lapack_int)m, Vt.data, (lapack_int)k, superb);
 	if (info != 0) {
-		duprintf("Call of LAPACK function 'zgesvd()' in 'SplitMatrix()' failed, return value: %i\n", info);
+		duprintf("Call of LAPACK function 'zgesvd()' in 'SplitMatrixBasic()' failed, return value: %i\n", info);
 		exit(-1);
 	}
 
@@ -526,10 +526,6 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		return ti;
 	}
 
-	// indices of current quantum number
-	size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
-	size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
-
 	// maximum total number of singular values: min(A->dim[0], A->dim[1])
 	const size_t max_bond_dim = (A->dim[1] < A->dim[0] ? A->dim[0] : A->dim[1]);
 
@@ -551,9 +547,14 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 
 	// for each shared quantum number...
 	size_t i;
+	#pragma omp parallel for schedule(dynamic)
 	for (i = 0; i < nis; i++)
 	{
 		size_t j;
+
+		// indices of current quantum number
+		size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
 
 		// subindices of current quantum number qis[i]
 		size_t m = 0;
@@ -595,7 +596,15 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 			exit(-1);
 		}
 
-		assert(D + k <= max_bond_dim);
+		size_t Dprev;
+		#pragma omp atomic capture
+		{
+			Dprev = D;
+			// update bond dimension
+			D += k;
+		}
+
+		assert(D <= max_bond_dim);
 
 		// distribute entries of U to T0
 		size_t l;
@@ -603,7 +612,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		{
 			for (j = 0; j < m; j++)
 			{
-				T0.data[i0[j] + T0.dim[0]*(D + l)] = Asub.data[j + m*l];
+				T0.data[i0[j] + T0.dim[0]*(Dprev + l)] = Asub.data[j + m*l];
 			}
 		}
 		// distribute entries of V^T to T1
@@ -611,24 +620,23 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		{
 			for (l = 0; l < k; l++)
 			{
-				T1.data[(D + l) + max_bond_dim*i1[j]] = Vt.data[l + k*j];
+				T1.data[(Dprev + l) + max_bond_dim*i1[j]] = Vt.data[l + k*j];
 			}
 		}
 
 		// append singular values and copy current quantum number
 		for (l = 0; l < k; l++)
 		{
-			 S[D + l] = sigma[l];
-			qS[D + l] = qis[i];
+			 S[Dprev + l] = sigma[l];
+			qS[Dprev + l] = qis[i];
 		}
-
-		// update bond dimension
-		D += k;
 
 		DeleteTensor(&Vt);
 		MKL_free(superb);
 		MKL_free(sigma);
 		DeleteTensor(&Asub);
+		MKL_free(i1);
+		MKL_free(i0);
 	}
 
 	MKL_free(qis);
@@ -656,8 +664,6 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		MKL_free(S);
 		DeleteTensor(&T1);
 		DeleteTensor(&T0);
-		MKL_free(i1);
-		MKL_free(i0);
 
 		return ti;
 	}
@@ -680,6 +686,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 
 	// extract truncated bond submatrices of T0 and T1 and store them in A0 and A1, respectively
 	// set 'i0' and 'i1' to identity index sets
+	size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
 	for (i = 0; i < A->dim[0]; i++)
 	{
 		i0[i] = i;
@@ -700,6 +708,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		const size_t sdim[2] = { Dtrunc, A->dim[1] };
 		SubTensor(&T1, sdim, idx, A1);
 	}
+	MKL_free(i1);
+	MKL_free(i0);
 
 	// distribute singular values
 	if (svd_distr == SVD_DISTR_LEFT)
@@ -765,8 +775,6 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 	MKL_free(S);
 	DeleteTensor(&T1);
 	DeleteTensor(&T0);
-	MKL_free(i1);
-	MKL_free(i0);
 
 	return ti;
 }
