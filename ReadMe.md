@@ -8,7 +8,7 @@ Features:
 - MPS and MPO structures
 - built-in support for quantum numbers (U(1) symmetries)
 - construction of common Hamiltonians (Ising, Heisenberg, Fermi-Hubbard, Bose-Hubbard) in 1D, by even-odd splitting or as MPO representation; MPO representation from arbitrary operator chain description
-- imaginary and real-time evolution
+- imaginary and real-time evolution using even-odd splitting
 - time-dynamical correlation functions and OTOCs at finite temperature
 - one-site and two-site local energy minimization using Lanczos iteration
 - preliminary support for PEPS

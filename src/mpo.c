@@ -2,6 +2,7 @@
 /// \brief Matrix product operator (MPO)
 
 #include "mpo.h"
+#include "profiler.h"
 #include "dupio.h"
 #include <mkl.h>
 #include <stdlib.h>
@@ -699,6 +700,8 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 	assert(A->dim[0] == d0*d1);
 	assert(A->dim[1] == d0*d1);
 
+	StartProfilingBlock(&std_profiler, PROFILE_SPLIT_MPO_TENSOR);
+
 	// reshape 'A' tensor into dimensions d0 x d1 x d0 x d1 x D0 x D2
 	tensor_t As;
 	{
@@ -790,6 +793,8 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 
 		DeleteTensor(&A1t);
 	}
+
+	EndProfilingBlock(&std_profiler, PROFILE_SPLIT_MPO_TENSOR);
 
 	return ti;
 }

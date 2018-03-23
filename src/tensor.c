@@ -2,6 +2,7 @@
 /// \brief Tensor structure, using column-major storage convention (first x, then y, z, ...)
 
 #include "tensor.h"
+#include "profiler.h"
 #include <mkl.h>
 #include <stdlib.h>
 #include <memory.h>
@@ -56,6 +57,8 @@ void AllocateTensor(const int ndim, const size_t *restrict dim, tensor_t *restri
 	assert(ndim >= 0);
 	t->ndim = ndim;
 
+	StartProfilingBlock(&std_profiler, PROFILE_ALLOCATE_TENSOR);
+
 	if (ndim > 0)
 	{
 		t->dim = (size_t *)MKL_malloc(ndim * sizeof(size_t), MEM_DATA_ALIGN);
@@ -81,6 +84,8 @@ void AllocateTensor(const int ndim, const size_t *restrict dim, tensor_t *restri
 		t->data = (MKL_Complex16 *)MKL_calloc(1, sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 		assert(t->data != NULL);
 	}
+
+	EndProfilingBlock(&std_profiler, PROFILE_ALLOCATE_TENSOR);
 }
 
 
@@ -229,6 +234,8 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 {
 	int i;
 
+	StartProfilingBlock(&std_profiler, PROFILE_TRANSPOSE_TENSOR);
+
 	// dimensions of new tensor 'r'
 	size_t *rdim = (size_t *)MKL_malloc(t->ndim * sizeof(size_t), MEM_DATA_ALIGN);
 	for (i = 0; i < t->ndim; i++)
@@ -281,6 +288,8 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 	// clean up
 	MKL_free(index_r);
 	MKL_free(index_t);
+
+	EndProfilingBlock(&std_profiler, PROFILE_TRANSPOSE_TENSOR);
 }
 
 
@@ -294,6 +303,8 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 void ConjugateTransposeTensor(const int *restrict perm, const tensor_t *restrict t, tensor_t *restrict r)
 {
 	int i;
+
+	StartProfilingBlock(&std_profiler, PROFILE_CTRANSPOSE_TENSOR);
 
 	// dimensions of new tensor 'r'
 	size_t *rdim = (size_t *)MKL_malloc(t->ndim * sizeof(size_t), MEM_DATA_ALIGN);
@@ -348,6 +359,9 @@ void ConjugateTransposeTensor(const int *restrict perm, const tensor_t *restrict
 	// clean up
 	MKL_free(index_r);
 	MKL_free(index_t);
+
+	EndProfilingBlock(&std_profiler, PROFILE_CTRANSPOSE_TENSOR);
+
 }
 
 
@@ -461,6 +475,8 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 {
 	int i;
 
+	StartProfilingBlock(&std_profiler, PROFILE_MULTIPLY_TENSOR);
+
 	assert(ndim_mult >= 1);
 	assert(s->ndim >= ndim_mult && t->ndim >= ndim_mult);
 	for (i = 0; i < ndim_mult; i++)
@@ -540,6 +556,8 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 			cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, (MKL_INT)lds, (MKL_INT)tdt, (MKL_INT)ldt, &one, s->data, (MKL_INT)lds, t->data, (MKL_INT)ldt, &zero, r->data, (MKL_INT)lds);
 		}
 	}
+
+	EndProfilingBlock(&std_profiler, PROFILE_MULTIPLY_TENSOR);
 }
 
 

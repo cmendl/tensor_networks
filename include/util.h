@@ -7,13 +7,14 @@
 #include <stdlib.h>
 #include <math.h>
 #include <mkl_types.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
 
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief square function x -> x^2
+/// \brief Square function x -> x^2
 ///
 static inline double square(const double x)
 {
@@ -87,9 +88,9 @@ int WriteData(const char *filename, const void *data, const size_t size, const s
 //
 
 
-unsigned long long GetTimeTicks();
+int64_t GetTimeTicks();
 
-unsigned long long GetTimeResolution();
+int64_t GetTimeResolution();
 
 
 

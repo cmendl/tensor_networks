@@ -2,6 +2,7 @@
 #include "dynamics.h"
 #include "complex.h"
 #include "sim_params.h"
+#include "profiler.h"
 #include "dupio.h"
 #include <mkl.h>
 #ifdef _OPENMP
@@ -181,7 +182,11 @@ int main(int argc, char *argv[])
 
 	// start timer
 	const clock_t t_cpu_start = clock();
-	const unsigned long long t_wall_start = GetTimeTicks();
+	#ifndef PROFILER_ENABLE
+	// at least record wall time
+	const int64_t t_wall_start = GetTimeTicks();
+	#endif
+	InitProfiler(&std_profiler);
 
 	// compute exp(-\beta H/2) as MPO
 	mpo_t rho_beta;
@@ -279,12 +284,17 @@ int main(int argc, char *argv[])
 	}
 
 	duprintf("chi at t = %g: (%g, %g)\n", params.tmax, chi[nsteps].real, chi[nsteps].imag);
+	duprintf("\n");
 
 	const clock_t t_cpu_end = clock();
-	const unsigned long long t_wall_end = GetTimeTicks();
 	double cpu_time = (double)(t_cpu_end  - t_cpu_start ) / CLOCKS_PER_SEC;
+	duprintf("CPU time: %g seconds\n", cpu_time);
+	#ifndef PROFILER_ENABLE
+	const int64_t t_wall_end = GetTimeTicks();
 	double walltime = (double)(t_wall_end - t_wall_start) / GetTimeResolution();
-	duprintf("\nFinished simulation, CPU time: %g seconds, wall clock time: %g seconds\n", cpu_time, walltime);
+	duprintf("Wall clock time: %g seconds\n", walltime);
+	#endif
+	PrintProfilerReport(&std_profiler);
 
 	// save results to disk
 	sprintf(filename, "%s/heisenberg_L%i_chi.dat", argv[4], L); WriteData(filename, chi, sizeof(MKL_Complex16), nsteps + 1, false);

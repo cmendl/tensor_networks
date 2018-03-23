@@ -2,6 +2,7 @@
 #include "dynamics.h"
 #include "complex.h"
 #include "sim_params.h"
+#include "profiler.h"
 #include "dupio.h"
 #include <mkl.h>
 #ifdef _OPENMP
@@ -333,7 +334,11 @@ int main(int argc, char *argv[])
 
 	// start timer
 	const clock_t t_cpu_start = clock();
-	const unsigned long long t_wall_start = GetTimeTicks();
+	#ifndef PROFILER_ENABLE
+	// at least record wall time
+	const int64_t t_wall_start = GetTimeTicks();
+	#endif
+	InitProfiler(&std_profiler);
 
 	// apply two-site current operators
 	mpo_t XA, XB;
@@ -487,12 +492,17 @@ int main(int argc, char *argv[])
 
 	const MKL_Complex16 chi_cum = ComplexSubtract(chi[nsteps], ComplexMultiply(chiA[nsteps], chiB[nsteps]));
 	duprintf("chi at t = %g: (%g, %g), corresponding cumulant: (%g, %g)\n", params.tmax, chi[nsteps].real, chi[nsteps].imag, chi_cum.real, chi_cum.imag);
+	duprintf("\n");
 
 	const clock_t t_cpu_end = clock();
-	const unsigned long long t_wall_end = GetTimeTicks();
 	double cpu_time = (double)(t_cpu_end  - t_cpu_start ) / CLOCKS_PER_SEC;
+	duprintf("CPU time: %g seconds\n", cpu_time);
+	#ifndef PROFILER_ENABLE
+	const int64_t t_wall_end = GetTimeTicks();
 	double walltime = (double)(t_wall_end - t_wall_start) / GetTimeResolution();
-	duprintf("\nFinished simulation, CPU time: %g seconds, wall clock time: %g seconds\n", cpu_time, walltime);
+	duprintf("Wall clock time: %g seconds\n", walltime);
+	#endif
+	PrintProfilerReport(&std_profiler);
 	int nbuffers;
 	MKL_INT64 nbytes_alloc = MKL_Mem_Stat(&nbuffers);
 	duprintf("MKL memory usage: currently %lld bytes in %d buffer(s)\n", nbytes_alloc, nbuffers);

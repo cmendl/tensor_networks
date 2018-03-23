@@ -1,7 +1,7 @@
 # common object files,
 # object files compiled with NQNUMBER=1 preprocessor constant (one quantum number), and
 # object files compiled with NQNUMBER=2 preprocessor constant (two quantum numbers)
-OBJFILES = dupio.o lanczos.o tensor.o util.o peps.o sim_params.o
+OBJFILES = dupio.o lanczos.o tensor.o util.o peps.o sim_params.o profiler.o
 OBJFILES1 = qnumber1.o bond_ops1.o mps1.o mpo1.o operation1.o minimization1.o dynamics1.o hamiltonian_ising.o hamiltonian_heisenberg.o hamiltonian_bose_hubbard.o
 OBJFILES2 = qnumber2.o bond_ops2.o mps2.o mpo2.o operation2.o minimization2.o dynamics2.o hamiltonian_fermi_hubbard.o 
 
@@ -14,7 +14,7 @@ TSTFILES2 = qnumber_test2.o operation_test2.o hamiltonian_fermi_hubbard_test.o
 CC = icc
 
 # compiler options
-CCOPTS = -Wall -O2 -Iinclude -DNDEBUG -restrict -DMEM_DATA_ALIGN=64 -DGIT_COMMIT=\"$(shell git describe --always)\" -qopenmp -mkl:sequential
+CCOPTS = -Wall -O2 -restrict -Iinclude -qopenmp -DNDEBUG -DMEM_DATA_ALIGN=64 -DGIT_COMMIT=\"$(shell git describe --always)\" -DPROFILER_ENABLE -mkl:sequential
 
 # set these with appropriate libraries for your system
 LIBRARIES = -mkl:sequential -lrt

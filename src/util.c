@@ -247,21 +247,21 @@ int WriteData(const char *filename, const void *data, const size_t size, const s
 
 //________________________________________________________________________________________________________________________
 ///
-/// \brief Get current time ticks
+/// \brief Get current time tick
 ///
-unsigned long long GetTimeTicks()
+int64_t GetTimeTicks()
 {
 	#ifdef _WIN32
 
 	LARGE_INTEGER t;
 	QueryPerformanceCounter(&t);
-	return (unsigned long long)(t.QuadPart);
+	return (int64_t)(t.QuadPart);
 
 	#else
 
 	struct timespec t;
 	clock_gettime(CLOCK_MONOTONIC, &t);
-	return (unsigned long long)(1000000000ULL * t.tv_sec + t.tv_nsec);
+	return (int64_t)(1000000000ULL * t.tv_sec + t.tv_nsec);
 
 	#endif
 }
@@ -271,18 +271,18 @@ unsigned long long GetTimeTicks()
 ///
 /// \brief Get timer resolution
 ///
-unsigned long long GetTimeResolution()
+int64_t GetTimeResolution()
 {
 	#ifdef _WIN32
 
 	LARGE_INTEGER freq;
 	QueryPerformanceFrequency(&freq);
-	return (unsigned long long)(freq.QuadPart);
+	return (int64_t)(freq.QuadPart);
 
 	#else
 
 	// clock_gettime() has nanosecond resolution
-	return (unsigned long long)1000000000ULL;
+	return (int64_t)1000000000ULL;
 
 	#endif
 }

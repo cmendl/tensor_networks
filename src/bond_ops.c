@@ -2,6 +2,7 @@
 /// \brief Auxiliary data structures and functions concerning virtual bonds (taking quantum numbers into account)
 
 #include "bond_ops.h"
+#include "profiler.h"
 #include "dupio.h"
 #include <mkl.h>
 #include <memory.h>
@@ -69,8 +70,6 @@ static int CompareValue(const void *p1, const void *p2)
 ///
 void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, const qnumber_t *restrict q1, tensor_t *restrict Q, tensor_t *restrict R, qnumber_t *restrict *qinterm)
 {
-	size_t i, j, l;
-
 	// must be a regular matrix
 	assert(A->ndim == 2);
 
@@ -99,10 +98,6 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 		return;
 	}
 
-	// indices of current quantum number
-	size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
-	size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
-
 	// maximum intermediate dimension
 	const size_t max_interm_dim = (A->dim[1] < A->dim[0] ? A->dim[0] : A->dim[1]);
 
@@ -126,8 +121,18 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 	(*qinterm) = MKL_calloc(max_interm_dim, sizeof(qnumber_t), MEM_DATA_ALIGN);
 
 	// for each shared quantum number...
+	size_t i;
+	#pragma omp parallel for schedule(dynamic)
 	for (i = 0; i < nis; i++)
 	{
+		// indices of current quantum number
+		size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
+
+		StartProfilingBlock(&std_profiler, PROFILE_QR);
+
+		size_t j;
+
 		// subindices of current quantum number qis[i]
 		size_t m = 0;
 		for (j = 0; j < A->dim[0]; j++)
@@ -164,13 +169,23 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 			exit(-1);
 		}
 
+		size_t Dprev;
+		#pragma omp atomic capture
+		{
+			Dprev = D;
+			// update bond dimension
+			D += k;
+		}
+
+		size_t l;
+
 		// copy current 'R' matrix
 		for (j = 0; j < n; j++)
 		{
 			const size_t l_max = (k-1 < j ? k-1 : j);
 			for (l = 0; l <= l_max; l++)
 			{
-				Ri.data[(D + l) + Ri.dim[0]*i1[j]] = Asub.data[l + m*j];
+				Ri.data[(Dprev + l) + Ri.dim[0]*i1[j]] = Asub.data[l + m*j];
 			}
 		}
 
@@ -181,21 +196,22 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 		{
 			for (j = 0; j < m; j++)
 			{
-				Q->data[i0[j] + Q->dim[0]*(D + l)] = Asub.data[j + m*l];
+				Q->data[i0[j] + Q->dim[0]*(Dprev + l)] = Asub.data[j + m*l];
 			}
 		}
 
 		// copy current quantum number
 		for (l = 0; l < k; l++)
 		{
-			(*qinterm)[D + l] = qis[i];
+			(*qinterm)[Dprev + l] = qis[i];
 		}
 
-		// update bond dimension
-		D += k;
+		EndProfilingBlock(&std_profiler, PROFILE_QR);
 
 		MKL_free(tau);
 		DeleteTensor(&Asub);
+		MKL_free(i1);
+		MKL_free(i0);
 	}
 	assert(D <= max_interm_dim);
 
@@ -207,8 +223,10 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 		const size_t dimR[2] = { D, A->dim[1] };
 		AllocateTensor(2, dimR, R);
 
+		size_t j;
 		for (j = 0; j < A->dim[1]; j++)
 		{
+			size_t l;
 			for (l = 0; l < D; l++)
 			{
 				R->data[l + D*j] = Ri.data[l + Ri.dim[0]*j];
@@ -217,8 +235,6 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 	}
 
 	DeleteTensor(&Ri);
-	MKL_free(i1);
-	MKL_free(i0);
 	MKL_free(qis);
 }
 
@@ -358,6 +374,8 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 
 	CopyTensor(A, A0);
 
+	StartProfilingBlock(&std_profiler, PROFILE_SVD_BASIC);
+
 	// overwrite 'A0' by the 'U' matrix
 	size_t k = (m <= n ? m : n);    // min(m, n)
 	double *sigma = MKL_malloc(k * sizeof(double), MEM_DATA_ALIGN);
@@ -370,6 +388,8 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 		duprintf("Call of LAPACK function 'zgesvd()' in 'SplitMatrixBasic()' failed, return value: %i\n", info);
 		exit(-1);
 	}
+
+	EndProfilingBlock(&std_profiler, PROFILE_SVD_BASIC);
 
 	size_t i;
 
@@ -526,6 +546,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		return ti;
 	}
 
+	StartProfilingBlock(&std_profiler, PROFILE_SPLIT_MATRIX);
+
 	// maximum total number of singular values: min(A->dim[0], A->dim[1])
 	const size_t max_bond_dim = (A->dim[1] < A->dim[0] ? A->dim[0] : A->dim[1]);
 
@@ -555,6 +577,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		// indices of current quantum number
 		size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
 		size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
+
+		StartProfilingBlock(&std_profiler, PROFILE_SVD_STANDARD);
 
 		// subindices of current quantum number qis[i]
 		size_t m = 0;
@@ -595,6 +619,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 			duprintf("Call of LAPACK function 'zgesvd()' in 'SplitMatrix()' failed, return value: %i\n", info);
 			exit(-1);
 		}
+
+		EndProfilingBlock(&std_profiler, PROFILE_SVD_STANDARD);
 
 		size_t Dprev;
 		#pragma omp atomic capture
@@ -665,6 +691,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		DeleteTensor(&T1);
 		DeleteTensor(&T0);
 
+		EndProfilingBlock(&std_profiler, PROFILE_SPLIT_MATRIX);
+
 		return ti;
 	}
 
@@ -683,6 +711,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 
 		ti.nsigma = nsigma;
 	}
+
+	StartProfilingBlock(&std_profiler, PROFILE_SPLIT_REASSEMBLE);
 
 	// extract truncated bond submatrices of T0 and T1 and store them in A0 and A1, respectively
 	// set 'i0' and 'i1' to identity index sets
@@ -769,12 +799,16 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		(*qbond)[i] = qS[indtr[i]];
 	}
 
+	EndProfilingBlock(&std_profiler, PROFILE_SPLIT_REASSEMBLE);
+
 	// clean up
 	MKL_free(indtr);
 	MKL_free(qS);
 	MKL_free(S);
 	DeleteTensor(&T1);
 	DeleteTensor(&T0);
+
+	EndProfilingBlock(&std_profiler, PROFILE_SPLIT_MATRIX);
 
 	return ti;
 }
