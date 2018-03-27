@@ -22,11 +22,13 @@ static const char *tag_strings[NUM_PROFILE_TAGS] = {
 	"QR decomposition",
 	"split matrix",
 	"split reassemble",
+	"compress virtual bonds",
 	"allocate tensor",
 	"transpose tensor",
-	"ctranspose tensor",
 	"multiply tensor",
-	"split MPO tensor"
+	"split MPO tensor",
+	"merge MPO tensor pair",
+	"compress MPO tensors"
 };
 
 
@@ -208,16 +210,16 @@ void PrintProfilerReport(const profiler_t *profiler)
 	// print report
 	duprintf("_______________________________________________________________________________\n");
 	duprintf("Profiling report:\n");
-	duprintf("%-20s%-7s%-8s%-10s%s\n", "name", "thread", "ncalls", "% of wall", "time per call (us)");
+	duprintf("%-26s%-7s%-8s%-10s%s\n", "name", "thread", "ncalls", "% of wall", "time per call (ms)");
 	int i;
 	for (i = 0; i < n; i++)
 	{
-		duprintf("%-20s%-7d%-8d%-10g%-g\n",
+		duprintf("%-26s%-7d%-8d%-10g%-g\n",
 				tag_strings[entries[i].tag],
 				entries[i].thread_num,
 				entries[i].ncalls,
 				(100.0 * entries[i].total) / main_total,
-				entries[i].total / (ticks_per_sec / 1000000.0 * entries[i].ncalls));
+				entries[i].total / (ticks_per_sec / 1000.0 * entries[i].ncalls));
 	}
 	duprintf("\n");
 	duprintf("Wall clock time: %g seconds\n", main_total / ticks_per_sec);
@@ -248,15 +250,15 @@ void PrintProfilerReport(const profiler_t *profiler)
 	// print report
 	duprintf("_______________________________________________________________________________\n");
 	duprintf("Profiling report:\n");
-	duprintf("%-20s%-8s%-10s%s\n", "name", "ncalls", "% of wall", "time per call (us)");
+	duprintf("%-26s%-8s%-10s%s\n", "name", "ncalls", "% of wall", "time per call (ms)");
 	int i;
 	for (i = 0; i < n; i++)
 	{
-		duprintf("%-20s%-8d%-10g%-g\n",
+		duprintf("%-26s%-8d%-10g%-g\n",
 			tag_strings[entries[i].tag],
 			entries[i].ncalls,
 			(100.0 * entries[i].total) / main_total,
-			entries[i].total / (ticks_per_sec / 1000000.0 * entries[i].ncalls));
+			entries[i].total / (ticks_per_sec / 1000.0 * entries[i].ncalls));
 	}
 	duprintf("\n");
 	duprintf("Wall clock time: %g seconds\n", main_total / ticks_per_sec);

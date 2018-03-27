@@ -99,7 +99,7 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 	}
 
 	// maximum intermediate dimension
-	const size_t max_interm_dim = (A->dim[1] < A->dim[0] ? A->dim[0] : A->dim[1]);
+	const size_t max_interm_dim = (A->dim[0] <= A->dim[1] ? A->dim[0] : A->dim[1]);
 
 	// keep track of intermediate dimension
 	size_t D = 0;
@@ -497,7 +497,7 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 //________________________________________________________________________________________________________________________
 ///
 /// \brief Split a matrix 'A' by singular value decompositions,
-/// taking quantum numbers 'q0' and 'q2' of first and second dimension into account
+/// taking quantum numbers 'q0' and 'q1' of first and second dimension into account
 ///
 trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q0, const qnumber_t *restrict q1, const svd_distr_t svd_distr, const bond_op_params_t *restrict params, tensor_t *restrict A0, tensor_t *restrict A1, qnumber_t *restrict *qbond)
 {
@@ -549,7 +549,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 	StartProfilingBlock(&std_profiler, PROFILE_SPLIT_MATRIX);
 
 	// maximum total number of singular values: min(A->dim[0], A->dim[1])
-	const size_t max_bond_dim = (A->dim[1] < A->dim[0] ? A->dim[0] : A->dim[1]);
+	const size_t max_bond_dim = (A->dim[0] <= A->dim[1] ? A->dim[0] : A->dim[1]);
 
 	// keep track of actual bond dimension
 	size_t D = 0;
@@ -578,8 +578,6 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
 		size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
 
-		StartProfilingBlock(&std_profiler, PROFILE_SVD_STANDARD);
-
 		// subindices of current quantum number qis[i]
 		size_t m = 0;
 		for (j = 0; j < A->dim[0]; j++)
@@ -606,6 +604,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		const size_t *restrict idx[2] = { i0, i1 };
 		const size_t sdim[2] = { m, n };
 		SubTensor(A, sdim, idx, &Asub);
+
+		StartProfilingBlock(&std_profiler, PROFILE_SVD_STANDARD);
 
 		// perform a SVD to split the submatrix; overwrite 'Asub' by the 'U' matrix
 		size_t k = (m <= n ? m : n);    // min(m, n)
@@ -831,6 +831,8 @@ trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
 	{
 		// if virtual bond dimension is large, simply form matrix product A0.A1 before splitting
 
+		StartProfilingBlock(&std_profiler, PROFILE_COMPRESS_VIRTUAL_BONDS);
+
 		tensor_t A;
 		MultiplyTensor(A0, A1, 1, &A);
 		DeleteTensor(A0);
@@ -840,10 +842,14 @@ trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
 
 		DeleteTensor(&A);
 
+		EndProfilingBlock(&std_profiler, PROFILE_COMPRESS_VIRTUAL_BONDS);
+
 		return ti;
 	}
 	else
 	{
+		StartProfilingBlock(&std_profiler, PROFILE_COMPRESS_VIRTUAL_BONDS);
+
 		const int perm[2] = { 1, 0 };
 
 		// form QR decomposition of A0, to reduce SVD dimensions
@@ -895,6 +901,8 @@ trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
 		DeleteTensor(&R0);
 		DeleteTensor(&Q1);
 		DeleteTensor(&L1);
+
+		EndProfilingBlock(&std_profiler, PROFILE_COMPRESS_VIRTUAL_BONDS);
 
 		return ti;
 	}

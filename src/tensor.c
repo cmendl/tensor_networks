@@ -68,7 +68,10 @@ void AllocateTensor(const int ndim, const size_t *restrict dim, tensor_t *restri
 		t->dnames = (string_t *)MKL_calloc(ndim, sizeof(string_t), MEM_DATA_ALIGN);
 		#endif
 
-		t->data = (MKL_Complex16 *)MKL_calloc(NumTensorElements(t), sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		const size_t nelem = NumTensorElements(t);
+		// dimensions must be strictly positive
+		assert(nelem > 0);
+		t->data = (MKL_Complex16 *)MKL_calloc(nelem, sizeof(MKL_Complex16), MEM_DATA_ALIGN);
 		assert(t->data != NULL);
 	}
 	else    // ndim == 0
@@ -240,43 +243,83 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 	size_t *rdim = (size_t *)MKL_malloc(t->ndim * sizeof(size_t), MEM_DATA_ALIGN);
 	for (i = 0; i < t->ndim; i++)
 	{
+		assert(0 <= perm[i] && perm[i] < t->ndim);
 		rdim[perm[i]] = t->dim[i];
 	}
 	// create new tensor 'r'
 	AllocateTensor(t->ndim, rdim, r);
 	MKL_free(rdim);
 
-	// stride (offset between successive elements) in new tensor 'r' corresponding to original first dimension
-	const size_t stride = IntProduct(r->dim, perm[0]);
-
-	const size_t nelem = NumTensorElements(t);
-
-	size_t *index_t = (size_t *)MKL_calloc(t->ndim,  sizeof(size_t), MEM_DATA_ALIGN);
-	size_t *index_r = (size_t *)MKL_malloc(t->ndim * sizeof(size_t), MEM_DATA_ALIGN);
-
-	size_t ot;
-	for (ot = 0; ot < nelem; ot += t->dim[0])
+	// probe if we can use MKL transposition (only works if 'perm' exchanges the first two dimensions)
+	bool use_mkl_transpose = true;
+	if (t->ndim <= 1 || (perm[0] != 1) || (perm[1] != 0))
 	{
-		// map index of tensor 't' to index of tensor 'r'
-		for (i = 0; i < t->ndim; i++) {
-			index_r[perm[i]] = index_t[i];
-		}
-		// convert back to offset of tensor 'r'
-		const size_t or = IndexToOffset(r->ndim, r->dim, index_r);
-
-		// main copy loop
-		const size_t n = t->dim[0];
-		__assume_aligned(t->data, MEM_DATA_ALIGN);
-		__assume_aligned(r->data, MEM_DATA_ALIGN);
-		size_t j;
-		#pragma ivdep
-		for (j = 0; j < n; j++)
+		use_mkl_transpose = false;
+	}
+	else
+	{
+		for (i = 2; i < t->ndim; i++)
 		{
-			r->data[or + j*stride] = t->data[ot + j];
+			if (perm[i] != i) {
+				use_mkl_transpose = false;
+				break;
+			}
+		}
+	}
+
+	if (use_mkl_transpose)
+	{
+		const size_t ntops = IntProduct(t->dim + 2, t->ndim - 2);
+
+		const size_t m = t->dim[0];
+		const size_t n = t->dim[1];
+
+		const MKL_Complex16 one = { 1, 0 };
+
+		size_t j;
+		for (j = 0; j < ntops; j++)
+		{
+			MKL_Zomatcopy('C', 'T', m, n, one, t->data + m*n * j, m, r->data + m*n * j, n);
+		}
+	}
+	else
+	{
+		// stride (offset between successive elements) in new tensor 'r' corresponding to original first dimension
+		const size_t stride = IntProduct(r->dim, perm[0]);
+
+		const size_t nelem = NumTensorElements(t);
+
+		size_t *index_t = (size_t *)MKL_calloc(t->ndim,  sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *index_r = (size_t *)MKL_malloc(t->ndim * sizeof(size_t), MEM_DATA_ALIGN);
+
+		size_t ot;
+		for (ot = 0; ot < nelem; ot += t->dim[0])
+		{
+			// map index of tensor 't' to index of tensor 'r'
+			for (i = 0; i < t->ndim; i++) {
+				index_r[perm[i]] = index_t[i];
+			}
+			// convert back to offset of tensor 'r'
+			const size_t or = IndexToOffset(r->ndim, r->dim, index_r);
+
+			// main copy loop
+			const size_t n = t->dim[0];
+			__assume_aligned(t->data, MEM_DATA_ALIGN);
+			__assume_aligned(r->data, MEM_DATA_ALIGN);
+			size_t j;
+			#pragma ivdep
+			for (j = 0; j < n; j++)
+			{
+				r->data[or + j*stride] = t->data[ot + j];
+			}
+
+			// advance index of tensor 't' by t->dim[0] elements
+			NextIndex(t->ndim - 1, t->dim + 1, index_t + 1);
 		}
 
-		// advance index of tensor 't' by t->dim[0] elements
-		NextIndex(t->ndim - 1, t->dim + 1, index_t + 1);
+		// clean up
+		MKL_free(index_r);
+		MKL_free(index_t);
 	}
 
 	#ifdef _DEBUG
@@ -284,10 +327,6 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 		memcpy(r->dnames[perm[i]].cstr, t->dnames[i].cstr, sizeof(string_t));
 	}
 	#endif
-
-	// clean up
-	MKL_free(index_r);
-	MKL_free(index_t);
 
 	EndProfilingBlock(&std_profiler, PROFILE_TRANSPOSE_TENSOR);
 }
@@ -302,66 +341,8 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 ///
 void ConjugateTransposeTensor(const int *restrict perm, const tensor_t *restrict t, tensor_t *restrict r)
 {
-	int i;
-
-	StartProfilingBlock(&std_profiler, PROFILE_CTRANSPOSE_TENSOR);
-
-	// dimensions of new tensor 'r'
-	size_t *rdim = (size_t *)MKL_malloc(t->ndim * sizeof(size_t), MEM_DATA_ALIGN);
-	for (i = 0; i < t->ndim; i++)
-	{
-		rdim[perm[i]] = t->dim[i];
-	}
-	// create new tensor 'r'
-	AllocateTensor(t->ndim, rdim, r);
-	MKL_free(rdim);
-
-	// stride (offset between successive elements) in new tensor 'r' corresponding to original first dimension
-	const size_t stride = IntProduct(r->dim, perm[0]);
-
-	const size_t nelem = NumTensorElements(t);
-
-	size_t *index_t = (size_t *)MKL_calloc(t->ndim,  sizeof(size_t), MEM_DATA_ALIGN);
-	size_t *index_r = (size_t *)MKL_malloc(t->ndim * sizeof(size_t), MEM_DATA_ALIGN);
-
-	size_t ot;
-	for (ot = 0; ot < nelem; ot += t->dim[0])
-	{
-		// map index of tensor 't' to index of tensor 'r'
-		for (i = 0; i < t->ndim; i++) {
-			index_r[perm[i]] = index_t[i];
-		}
-		// convert back to offset of tensor 'r'
-		const size_t or = IndexToOffset(r->ndim, r->dim, index_r);
-
-		// main copy loop
-		const size_t n = t->dim[0];
-		__assume_aligned(t->data, MEM_DATA_ALIGN);
-		__assume_aligned(r->data, MEM_DATA_ALIGN);
-		size_t j;
-		#pragma ivdep
-		for (j = 0; j < n; j++)
-		{
-			r->data[or + j*stride].real =  t->data[ot + j].real;
-			r->data[or + j*stride].imag = -t->data[ot + j].imag;
-		}
-
-		// advance index of tensor 't' by t->dim[0] elements
-		NextIndex(t->ndim - 1, t->dim + 1, index_t + 1);
-	}
-
-	#ifdef _DEBUG
-	for (i = 0; i < t->ndim; i++) {
-		memcpy(r->dnames[perm[i]].cstr, t->dnames[i].cstr, sizeof(string_t));
-	}
-	#endif
-
-	// clean up
-	MKL_free(index_r);
-	MKL_free(index_t);
-
-	EndProfilingBlock(&std_profiler, PROFILE_CTRANSPOSE_TENSOR);
-
+	TransposeTensor(perm, t, r);
+	ConjugateTensor(r);
 }
 
 

@@ -249,6 +249,8 @@ void MergeMPOTensorPair(const tensor_t *restrict A0, const tensor_t *restrict A1
 	assert(A0->ndim == 4);
 	assert(A1->ndim == 4);
 
+	StartProfilingBlock(&std_profiler, PROFILE_MERGE_MPO_TENSOR_PAIR);
+
 	tensor_t t;
 
 	// combine A0 and A1 by contracting the shared bond
@@ -266,6 +268,8 @@ void MergeMPOTensorPair(const tensor_t *restrict A0, const tensor_t *restrict A1
 	// combine original physical dimensions of A0 and A1
 	const size_t dim[4] = { A->dim[0]*A->dim[1], A->dim[2]*A->dim[3], A->dim[4], A->dim[5] };
 	ReshapeTensor(4, dim, A);
+
+	EndProfilingBlock(&std_profiler, PROFILE_MERGE_MPO_TENSOR_PAIR);
 }
 
 
@@ -825,6 +829,8 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	assert(A0->ndim == 4);
 	assert(A1->ndim == 4);
 
+	StartProfilingBlock(&std_profiler, PROFILE_COMPRESS_MPO_TENSORS);
+
 	const size_t d0 = A0->dim[0];
 	const size_t d1 = A1->dim[0];
 	// only same ingoing and outgoing physical dimensions supported yet
@@ -899,6 +905,8 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	DeleteTensor(&A1t);
 	MKL_free(q2);
 	MKL_free(q0);
+
+	EndProfilingBlock(&std_profiler, PROFILE_COMPRESS_MPO_TENSORS);
 
 	return ti;
 }
