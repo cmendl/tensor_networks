@@ -20,10 +20,13 @@ CCOPTS = -Wall -O2 -restrict -Iinclude -qopenmp -DNDEBUG -DMEM_DATA_ALIGN=64 -DG
 LIBRARIES = -mkl:sequential -lrt
 
 
-all: proj_heisenberg proj_bose_hubbard proj_bose_hubbard_rho proj_bose_hubbard_time proj_bose_hubbard_otoc proj_fermi_hubbard_rho proj_fermi_hubbard_time_current proj_ising_otoc proj_ising_otoc_comm proj_test1 proj_test2
+all: proj_heisenberg proj_heisenberg_XXZ_current proj_bose_hubbard proj_bose_hubbard_rho proj_bose_hubbard_time proj_bose_hubbard_otoc proj_fermi_hubbard_rho proj_fermi_hubbard_time_current proj_ising_otoc proj_ising_otoc_comm proj_test1 proj_test2
 
 proj_heisenberg: ${OBJFILES} ${OBJFILES1} main_heisenberg.o
 	${CC} ${CCOPTS} -o bin/sim_heisenberg $? ${LIBRARIES}
+
+proj_heisenberg_XXZ_current: ${OBJFILES} ${OBJFILES1} main_heisenberg_XXZ_current.o
+	${CC} ${CCOPTS} -o bin/sim_heisenberg_XXZ_current $? ${LIBRARIES}
 
 proj_bose_hubbard: ${OBJFILES} ${OBJFILES1} main_bose_hubbard.o
 	${CC} ${CCOPTS} -o bin/sim_bose_hubbard $? ${LIBRARIES}
@@ -104,6 +107,9 @@ hamiltonian_fermi_hubbard.o: src/hamiltonian_fermi_hubbard.c
 	${CC} -c ${CCOPTS} -DNQNUMBER=2 $<
 
 main_heisenberg.o: src/main_heisenberg.c
+	${CC} -c ${CCOPTS} -DNQNUMBER=1 $<
+
+main_heisenberg_XXZ_current.o: src/main_heisenberg_XXZ_current.c
 	${CC} -c ${CCOPTS} -DNQNUMBER=1 $<
 
 main_bose_hubbard.o: src/main_bose_hubbard.c
