@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
 	if (argc != 5)
 	{
 		duprintf("Syntax: %s <param filename> <jA> <jB> <output path>\n", argv[0]);
+		duprintf("Git commit %s\n", GIT_COMMIT);
 		return -1;
 	}
 
@@ -176,7 +177,7 @@ int main(int argc, char *argv[])
 		Sdn.data[1].real = 1;
 	}
 
-	// construct two-site Bose-Hubbard Hamiltonian operators
+	// construct two-site Heisenberg Hamiltonian operators
 	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
 	ConstructLocalHeisenbergOperators(L, params.Jx, params.Jy, params.Jz, params.hext, h);
 

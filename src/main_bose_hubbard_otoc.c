@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
 	if (argc != 5)
 	{
 		duprintf("Syntax: %s <param filename> <i> <j> <output path>\n", argv[0]);
+		duprintf("Git commit %s\n", GIT_COMMIT);
 		return -1;
 	}
 
