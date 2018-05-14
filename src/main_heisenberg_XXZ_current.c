@@ -8,6 +8,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include <memory.h>
 #include <time.h>
 #include <stdio.h>
 
