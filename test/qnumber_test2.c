@@ -11,7 +11,7 @@ int QuantumNumberTest2()
 	// accumulated error
 	int err = 0;
 
-	printf("Testing quantum number utility functions, for %zu U(1) symmetries...\n", sizeof(qnumber_t)/sizeof(int));
+	printf("Testing quantum number utility functions, for two U(1) symmetries...\n");
 
 	// load quantum numbers from disk
 	const size_t n0 = 16;
@@ -41,7 +41,7 @@ int QuantumNumberTest2()
 		{
 			size_t j;
 			for (j = 0; j < nis; j++) {
-				if (!EqualQuantumNumbers(qis[j], qis_ref[j])) {
+				if (qis[j] != qis_ref[j]) {
 					err = 1;
 				}
 			}

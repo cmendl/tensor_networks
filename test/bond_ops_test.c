@@ -20,7 +20,7 @@ static double MatrixBlockStructureError(const tensor_t *A, const qnumber_t *rest
 	{
 		for (i = 0; i < A->dim[0]; i++)
 		{
-			if (!EqualQuantumNumbers(q0[i], q1[j]))
+			if (q0[i] != q1[j])
 			{
 				err += ComplexAbs(A->data[i + A->dim[0]*j]);
 			}
@@ -154,7 +154,7 @@ int BondOperationsTest()
 				// largest entrywise bond quantum number error
 				size_t j;
 				for (j = 0; j < D_ref; j++) {
-					if (!EqualQuantumNumbers(qbond[j], qbond_ref[j])) {
+					if (qbond[j] != qbond_ref[j]) {
 						err = fmax(err, 1);
 					}
 				}

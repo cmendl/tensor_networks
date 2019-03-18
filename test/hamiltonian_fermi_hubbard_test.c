@@ -24,7 +24,7 @@ static double MPOBlockStructureError(const tensor_t *A, const qnumber_t *restric
 			{
 				for (i = 0; i < A->dim[0]; i++)
 				{
-					if (!EqualQuantumNumbers(AddQuantumNumbers(qd[0][i], qD0[k]), AddQuantumNumbers(qd[1][j], qD1[l])))
+					if (qd[0][i] + qD0[k] != qd[1][j] + qD1[l])
 					{
 						err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*(k + A->dim[2]*l))]);
 					}

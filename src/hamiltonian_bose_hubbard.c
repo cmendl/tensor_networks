@@ -7,10 +7,6 @@
 #include <memory.h>
 #include <assert.h>
 
-#if !defined(NQNUMBER) || NQNUMBER != 1
-#error Bose-Hubbard model requires one quantum number (particle number)
-#endif
-
 
 //________________________________________________________________________________________________________________________
 ///

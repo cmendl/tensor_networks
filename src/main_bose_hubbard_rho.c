@@ -12,10 +12,6 @@
 #include <time.h>
 #include <stdio.h>
 
-#if !defined(NQNUMBER) || NQNUMBER != 1
-#error Bose-Hubbard model requires one quantum number (particle number)
-#endif
-
 // for creating directories
 #ifdef _WIN32
 #include <windows.h>

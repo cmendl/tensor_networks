@@ -559,7 +559,7 @@ trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restric
 	{
 		for (i = 0; i < d0; i++)
 		{
-			q0[i + d0*j] = AddQuantumNumbers(qd0[i], qA0[j]);
+			q0[i + d0*j] = qd0[i] + qA0[j];
 		}
 	}
 	// q2
@@ -567,7 +567,7 @@ trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restric
 	{
 		for (i = 0; i < d1; i++)
 		{
-			q2[i + d1*j] = SubtractQuantumNumbers(qA2[j], qd1[i]);
+			q2[i + d1*j] = qA2[j] - qd1[i];
 		}
 	}
 
@@ -642,7 +642,7 @@ trunc_info_t CompressMPSTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	{
 		for (i = 0; i < d0; i++)
 		{
-			q0[i + d0*j] = AddQuantumNumbers(qd0[i], qA0[j]);
+			q0[i + d0*j] = qd0[i] + qA0[j];
 		}
 	}
 	// q2
@@ -650,7 +650,7 @@ trunc_info_t CompressMPSTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	{
 		for (i = 0; i < d1; i++)
 		{
-			q2[i + d1*j] = SubtractQuantumNumbers(qA2[j], qd1[i]);
+			q2[i + d1*j] = qA2[j] - qd1[i];
 		}
 	}
 

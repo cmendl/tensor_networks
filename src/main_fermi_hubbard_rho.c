@@ -12,10 +12,6 @@
 #include <time.h>
 #include <stdio.h>
 
-#if !defined(NQNUMBER) || NQNUMBER != 2
-#error Fermi-Hubbard model requires two quantum numbers (particle number and spin)
-#endif
-
 // for creating directories
 #ifdef _WIN32
 #include <windows.h>
@@ -109,10 +105,10 @@ int main(int argc, char *argv[])
 
 	// physical quantum numbers (particle number and spin)
 	const qnumber_t qd[4] = {
-		{ 0,  0 },  // |0>
-		{ 1,  1 },  // |up>
-		{ 1, -1 },  // |dn>
-		{ 2,  0 },  // |up,dn>
+		( 0 << QNUMBER2_SHIFT) + 0, // |0>
+		( 1 << QNUMBER2_SHIFT) + 1, // |up>
+		( 1 << QNUMBER2_SHIFT) - 1, // |dn>
+		( 2 << QNUMBER2_SHIFT) + 0, // |up,dn>
 	};
 
 	// construct two-site Fermi-Hubbard Hamiltonian operators

@@ -188,7 +188,7 @@ void TransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoT)
 		size_t j;
 		for (j = 0; j < D; j++)
 		{
-			mpoT->qD[i][j] = NegateQuantumNumber(mpo->qD[i][j]);
+			mpoT->qD[i][j] = -mpo->qD[i][j];
 		}
 	}
 }
@@ -234,7 +234,7 @@ void ConjugateTransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoH)
 		size_t j;
 		for (j = 0; j < D; j++)
 		{
-			mpoH->qD[i][j] = NegateQuantumNumber(mpo->qD[i][j]);
+			mpoH->qD[i][j] = -mpo->qD[i][j];
 		}
 	}
 }
@@ -672,7 +672,7 @@ void MPOAdd(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict Z)
 		else
 		{
 			assert(DX == 1 && DY == 1 && DZ == 1);
-			assert(EqualQuantumNumbers(Y->qD[i][0], X->qD[i][0]));
+			assert(Y->qD[i][0] == X->qD[i][0]);
 		}
 	}
 }
@@ -751,7 +751,7 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 		{
 			for (i = 0; i < d0; i++)
 			{
-				q0[i + d0*(j + d0*k)] = SubtractQuantumNumbers(AddQuantumNumbers(qd0[i], qA0[k]), qd0[j]);
+				q0[i + d0*(j + d0*k)] = qd0[i] - qd0[j] + qA0[k];
 			}
 		}
 	}
@@ -762,7 +762,7 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 		{
 			for (i = 0; i < d1; i++)
 			{
-				q2[i + d1*(j + d1*k)] = SubtractQuantumNumbers(AddQuantumNumbers(qA2[k], qd1[j]), qd1[i]);
+				q2[i + d1*(j + d1*k)] = qA2[k] + qd1[j] - qd1[i];
 			}
 		}
 	}
@@ -851,7 +851,7 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 		{
 			for (i = 0; i < d0; i++)
 			{
-				q0[i + d0*(j + d0*k)] = SubtractQuantumNumbers(AddQuantumNumbers(qd0[i], qA0[k]), qd0[j]);
+				q0[i + d0*(j + d0*k)] = qd0[i] - qd0[j] + qA0[k];
 			}
 		}
 	}
@@ -862,7 +862,7 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 		{
 			for (i = 0; i < d1; i++)
 			{
-				q2[i + d1*(j + d1*k)] = SubtractQuantumNumbers(AddQuantumNumbers(qA2[k], qd1[j]), qd1[i]);
+				q2[i + d1*(j + d1*k)] = qA2[k] + qd1[j] - qd1[i];
 			}
 		}
 	}
@@ -964,7 +964,7 @@ static void CombineQuantumNumbers(const size_t m, const size_t n, const qnumber_
 		size_t i;
 		for (i = 0; i < m; i++)
 		{
-			qC[i + m*j] = AddQuantumNumbers(q0[i], q1[j]);
+			qC[i + m*j] = q0[i] + q1[j];
 		}
 	}
 }

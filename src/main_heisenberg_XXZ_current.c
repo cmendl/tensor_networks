@@ -12,10 +12,6 @@
 #include <time.h>
 #include <stdio.h>
 
-#if !defined(NQNUMBER) || NQNUMBER != 1
-#error Heisenberg XXZ model requires one quantum number (magnetization)
-#endif
-
 // for creating directories
 #ifdef _WIN32
 #include <windows.h>

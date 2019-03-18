@@ -7,10 +7,6 @@
 #include <memory.h>
 #include <assert.h>
 
-#if !defined(NQNUMBER) || NQNUMBER != 2
-#error Fermi-Hubbard model requires two quantum numbers (particle number and spin)
-#endif
-
 
 //________________________________________________________________________________________________________________________
 ///
@@ -140,22 +136,22 @@ void ConstructFermiHubbardMPO(const int L, const double t, const double U, const
 
 		// physical quantum numbers (particle number and spin)
 		const qnumber_t qd[4] = {
-			{ 0,  0 },  // |0>
-			{ 1,  1 },  // |up>
-			{ 1, -1 },  // |dn>
-			{ 2,  0 },  // |up,dn>
+			( 0 << QNUMBER2_SHIFT) + 0, // |0>
+			( 1 << QNUMBER2_SHIFT) + 1, // |up>
+			( 1 << QNUMBER2_SHIFT) - 1, // |dn>
+			( 2 << QNUMBER2_SHIFT) + 0, // |up,dn>
 		};
 		memcpy(H->qd[0], qd, 4*sizeof(qnumber_t));
 		memcpy(H->qd[1], qd, 4*sizeof(qnumber_t));
 
 		// virtual bond quantum numbers (particle number and spin)
 		const qnumber_t qD[6] = {
-			{  0,  0 },
-			{  1,  1 },
-			{  1, -1 },
-			{ -1, -1 },
-			{ -1,  1 },
-			{  0,  0 }
+			( 0 << QNUMBER2_SHIFT) + 0,
+			( 1 << QNUMBER2_SHIFT) + 1,
+			( 1 << QNUMBER2_SHIFT) - 1,
+			(-1 << QNUMBER2_SHIFT) - 1,
+			(-1 << QNUMBER2_SHIFT) + 1,
+			( 0 << QNUMBER2_SHIFT) + 0,
 		};
 		for (i = 1; i < L; i++)
 		{

@@ -7,10 +7,6 @@
 #include <memory.h>
 #include <assert.h>
 
-#if !defined(NQNUMBER) || NQNUMBER != 1
-#error Heisenberg model requires one (spin) quantum number
-#endif
-
 
 //________________________________________________________________________________________________________________________
 ///

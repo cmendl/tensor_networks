@@ -25,7 +25,7 @@ static double MPSBlockStructureError(const tensor_t *A, const qnumber_t *restric
 		{
 			for (i = 0; i < A->dim[0]; i++)
 			{
-				if (!EqualQuantumNumbers(AddQuantumNumbers(qd[i], qD0[j]), qD1[k]))
+				if (qd[i] + qD0[j] != qD1[k])
 				{
 					err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*k)]);
 				}
@@ -411,7 +411,7 @@ int MPSTest()
 			{
 				size_t j;
 				for (j = 0; j < D_ref; j++) {
-					if (!EqualQuantumNumbers(qG1[j], qG1_ref[j])) {
+					if (qG1[j] != qG1_ref[j]) {
 						err = fmax(err, 1);
 					}
 				}
@@ -475,7 +475,7 @@ int MPSTest()
 			{
 				size_t j;
 				for (j = 0; j < D_ref; j++) {
-					if (!EqualQuantumNumbers(qG1[j], qG1_ref[j])) {
+					if (qG1[j] != qG1_ref[j]) {
 						err = fmax(err, 1);
 					}
 				}
@@ -589,7 +589,7 @@ int MPSTest()
 		{
 			size_t j;
 			for (j = 0; j < D_ref; j++) {
-				if (!EqualQuantumNumbers(qcK1[j], qcK1_ref[j])) {
+				if (qcK1[j] != qcK1_ref[j]) {
 					err = fmax(err, 1);
 				}
 			}

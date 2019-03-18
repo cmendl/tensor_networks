@@ -27,7 +27,7 @@ static double MPOBlockStructureError(const tensor_t *A, const qnumber_t *restric
 			{
 				for (i = 0; i < A->dim[0]; i++)
 				{
-					if (!EqualQuantumNumbers(AddQuantumNumbers(qd[0][i], qD0[k]), AddQuantumNumbers(qd[1][j], qD1[l])))
+					if (qd[0][i] + qD0[k] != qd[1][j] + qD1[l])
 					{
 						err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*(k + A->dim[2]*l))]);
 					}
@@ -392,7 +392,7 @@ int MPOTest()
 			{
 				size_t j;
 				for (j = 0; j < D_ref; j++) {
-					if (!EqualQuantumNumbers(qG1[j], qG1_ref[j])) {
+					if (qG1[j] != qG1_ref[j]) {
 						err = fmax(err, 1);
 					}
 				}
@@ -458,7 +458,7 @@ int MPOTest()
 			{
 				size_t j;
 				for (j = 0; j < D_ref; j++) {
-					if (!EqualQuantumNumbers(qG1[j], qG1_ref[j])) {
+					if (qG1[j] != qG1_ref[j]) {
 						err = fmax(err, 1);
 					}
 				}
@@ -561,7 +561,7 @@ int MPOTest()
 		{
 			size_t j;
 			for (j = 0; j < D_ref; j++) {
-				if (!EqualQuantumNumbers(qcK1[j], qcK1_ref[j])) {
+				if (qcK1[j] != qcK1_ref[j]) {
 					err = fmax(err, 1);
 				}
 			}
@@ -714,7 +714,7 @@ int MPOTest()
 			const size_t D = MPOBondDim(&ZX_ref, i);
 			size_t j;
 			for (j = 0; j < D; j++) {
-				if (!EqualQuantumNumbers(ZX.qD[i][j], ZX_ref.qD[i][j])) {
+				if (ZX.qD[i][j] != ZX_ref.qD[i][j]) {
 					err = fmax(err, 1);
 				}
 			}
@@ -818,7 +818,7 @@ int MPOTest()
 			const size_t D = MPOBondDim(&W_ref, i);
 			size_t j;
 			for (j = 0; j < D; j++) {
-				if (!EqualQuantumNumbers(W.qD[i][j], W_ref.qD[i][j])) {
+				if (W.qD[i][j] != W_ref.qD[i][j]) {
 					err = fmax(err, 1);
 				}
 			}
