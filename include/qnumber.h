@@ -4,6 +4,7 @@
 #ifndef QNUMBER_H
 #define QNUMBER_H
 
+#include <stdlib.h>
 #include <stdbool.h>
 
 
