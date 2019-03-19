@@ -46,6 +46,24 @@ static inline size_t MPSBondDim(const mps_t *restrict mps, const int i)
 	return (i < L ? mps->A[i].dim[1] : mps->A[L-1].dim[2]);
 }
 
+//________________________________________________________________________________________________________________________
+///
+/// \brief Extract all virtual bond dimensions
+///
+static inline void MPSBondDims(const mps_t *restrict mps, size_t *D)
+{
+	const int L = mps->L;
+
+	int i;
+	for (i = 0; i < L; i++)
+	{
+		assert(mps->A[i].ndim == 3);
+		assert(i < L - 1 ? mps->A[i].dim[2] == mps->A[i+1].dim[1] : true);
+		D[i] = mps->A[i].dim[1];
+	}
+	D[L] = mps->A[L-1].dim[2];
+}
+
 
 //________________________________________________________________________________________________________________________
 //
