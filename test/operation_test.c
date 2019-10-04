@@ -1,5 +1,4 @@
 #include "operation.h"
-#include "complex.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -27,7 +26,7 @@ int OperationTest()
 		{
 			char filename[1024];
 			sprintf(filename, "../test/operation_test_A%i.dat", i);
-			status = ReadData(filename, psi.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&psi.A[i]));
+			status = ReadData(filename, psi.A[i].data, sizeof(double complex), NumTensorElements(&psi.A[i]));
 			if (status < 0) { return status; }
 		}
 	}
@@ -43,20 +42,20 @@ int OperationTest()
 		{
 			char filename[1024];
 			sprintf(filename, "../test/operation_test_W%i.dat", i);
-			status = ReadData(filename, op.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&op.A[i]));
+			status = ReadData(filename, op.A[i].data, sizeof(double complex), NumTensorElements(&op.A[i]));
 			if (status < 0) { return status; }
 		}
 	}
 
 	// calculate average (expectation value)
 	{
-		const MKL_Complex16 avr = OperatorAverage(&psi, &op);
+		const double complex avr = OperatorAverage(&psi, &op);
 
 		// reference value
-		const MKL_Complex16 avr_ref = { 0.13951174201351324, 0.418058504881752 };
+		const double complex avr_ref = 0.13951174201351324 + 0.418058504881752*_Complex_I;
 
 		// largest entrywise error
-		err = fmax(err, ComplexAbs(ComplexSubtract(avr, avr_ref)));
+		err = fmax(err, cabs(avr - avr_ref));
 	}
 
 	// apply local Hamiltonian operator
@@ -66,8 +65,8 @@ int OperationTest()
 		const size_t dimR[3] = { 8, 4, 9 };
 		AllocateTensor(3, dimL, &BL);
 		AllocateTensor(3, dimR, &BR);
-		status = ReadData("../test/operation_test_BL.dat", BL.data, sizeof(MKL_Complex16), NumTensorElements(&BL)); if (status < 0) { return status; }
-		status = ReadData("../test/operation_test_BR.dat", BR.data, sizeof(MKL_Complex16), NumTensorElements(&BR)); if (status < 0) { return status; }
+		status = ReadData("../test/operation_test_BL.dat", BL.data, sizeof(double complex), NumTensorElements(&BL)); if (status < 0) { return status; }
+		status = ReadData("../test/operation_test_BR.dat", BR.data, sizeof(double complex), NumTensorElements(&BR)); if (status < 0) { return status; }
 
 		tensor_t HM;
 		ApplyLocalHamiltonian(&BL, &BR, &op.A[4], &psi.A[4], &HM);
@@ -77,11 +76,11 @@ int OperationTest()
 		{
 			const size_t dim[3] =  { d, 6, 9 };
 			AllocateTensor(3, dim, &HM_ref);
-			status = ReadData("../test/operation_test_HM.dat", HM_ref.data, sizeof(MKL_Complex16), NumTensorElements(&HM_ref));
+			status = ReadData("../test/operation_test_HM.dat", HM_ref.data, sizeof(double complex), NumTensorElements(&HM_ref));
 			if (status < 0) { return status; }
 		}
 		// largest entrywise error
-		err = fmax(err, UniformDistance(2*NumTensorElements(&HM), (double *)HM.data, (double *)HM_ref.data));
+		err = fmax(err, UniformDistance(NumTensorElements(&HM), HM.data, HM_ref.data));
 
 		DeleteTensor(&HM_ref);
 		DeleteTensor(&HM);

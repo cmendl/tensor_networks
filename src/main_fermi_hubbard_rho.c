@@ -1,6 +1,5 @@
 #include "hamiltonian_fermi_hubbard.h"
 #include "dynamics.h"
-#include "complex.h"
 #include "sim_params.h"
 #include "profiler.h"
 #include "dupio.h"
@@ -128,10 +127,9 @@ int main(int argc, char *argv[])
 
 	// initialize rho_beta by the scaled identity operation (such that Frobenius norm is 1)
 	CreateIdentityMPO(L, 4, &rho_beta);
-	const MKL_Complex16 one_half = { 0.5, 0 };
 	for (i = 0; i < L; i++)
 	{
-		ScaleTensor(one_half, &rho_beta.A[i]);
+		ScaleTensor(0.5, &rho_beta.A[i]);
 	}
 	memcpy(rho_beta.qd[0], qd, 4*sizeof(qnumber_t));
 	memcpy(rho_beta.qd[1], qd, 4*sizeof(qnumber_t));
@@ -144,11 +142,9 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	const MKL_Complex16 dbeta = { params.dbeta, 0 };
-
 	// compute evolution dynamics data required for Strang splitting evolution
 	dynamics_data_t dyn;
-	ComputeDynamicsDataStrang(L, dbeta, 4*4, (const double **)h, &dyn);
+	ComputeDynamicsDataStrang(L, params.dbeta, 4*4, (const double **)h, &dyn);
 
 	// effective tolerance (truncation weight)
 	double *tol_eff = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
@@ -182,7 +178,7 @@ int main(int argc, char *argv[])
 	for (i = 0; i < L; i++)
 	{
 		sprintf(filename, "%s/fermi_hubbard_L%i_beta%g_A%i.dat", argv[2], L, params.beta, i);
-		WriteData(filename, rho_beta.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&rho_beta.A[i]), false);
+		WriteData(filename, rho_beta.A[i].data, sizeof(double complex), NumTensorElements(&rho_beta.A[i]), false);
 	}
 	for (i = 0; i < L + 1; i++)
 	{

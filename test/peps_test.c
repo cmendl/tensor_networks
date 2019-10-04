@@ -1,5 +1,4 @@
 #include "peps.h"
-#include "complex.h"
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -27,8 +26,7 @@ int PEPSTest()
 			const tensor_t *A = &psi.A[x + L*y];
 			const size_t nelem = NumTensorElements(A);
 			for (j = 0; j < nelem; j++) {
-				A->data[j].real = ((j % 2) - 0.5 + 1.0 / sqrt(1 + x*x + y*y)) / 16;
-				A->data[j].imag = (((j+1) % 5) - 2.5 + atan(x - y - 1)) / 16;
+				A->data[j] = ((j % 2) - 0.5 + 1.0 / sqrt(1 + x*x + y*y)) / 16 + (((j+1) % 5) - 2.5 + atan(x - y - 1)) / 16 * _Complex_I;
 			}
 		}
 	}
@@ -51,7 +49,7 @@ int PEPSTest()
 		// maximum error
 		double errA = 0;
 		for (j = 0; j < nelem; j++) {
-			errA = fmax(errA, ComplexAbs(ComplexSubtract(A->data[j], Aref.data[j])));
+			errA = fmax(errA, cabs(A->data[j] - Aref.data[j]));
 		}
 		printf("'A' tensor construction error: %g\n", errA);
 
@@ -78,7 +76,7 @@ int PEPSTest()
 		// maximum error
 		double errE = 0;
 		for (j = 0; j < nelem; j++) {
-			errE = fmax(errE, ComplexAbs(ComplexSubtract(E.data[j], Eref.data[j])));
+			errE = fmax(errE, cabs(E.data[j] - Eref.data[j]));
 		}
 		printf("'E' tensor construction error: %g\n", errE);
 
@@ -102,8 +100,8 @@ int PEPSTest()
 		#endif
 
 		// example output
-		printf("mps_top.data[0]: (%g, %g)\n", mps_top.data[0].real, mps_top.data[0].imag);
-		printf("mps_top.data[1]: (%g, %g)\n", mps_top.data[1].real, mps_top.data[1].imag);
+		printf("mps_top.data[0]: %g%+gi\n", creal(mps_top.data[0]), cimag(mps_top.data[0]));
+		printf("mps_top.data[1]: %g%+gi\n", creal(mps_top.data[1]), cimag(mps_top.data[1]));
 
 		tensor_t mpo_top_ref;
 		AllocateTensor(mps_top.ndim, mps_top.dim, &mpo_top_ref);
@@ -117,7 +115,7 @@ int PEPSTest()
 		// maximum relative error
 		double errT = 0;
 		for (j = 0; j < nelem; j++) {
-			errT = fmax(errT, ComplexAbs(ComplexSubtract(mps_top.data[j], mpo_top_ref.data[j])) / ComplexAbs(mpo_top_ref.data[j]));
+			errT = fmax(errT, cabs(mps_top.data[j] - mpo_top_ref.data[j]) / cabs(mpo_top_ref.data[j]));
 		}
 		printf("MPS top maximum relative error: %g\n", errT);
 
@@ -141,8 +139,8 @@ int PEPSTest()
 		#endif
 
 		// example output
-		printf("mps_bottom.data[0]: (%g, %g)\n", mps_bottom.data[0].real, mps_bottom.data[0].imag);
-		printf("mps_bottom.data[1]: (%g, %g)\n", mps_bottom.data[1].real, mps_bottom.data[1].imag);
+		printf("mps_bottom.data[0]: %g%+gi\n", creal(mps_bottom.data[0]), cimag(mps_bottom.data[0]));
+		printf("mps_bottom.data[1]: %g%+gi\n", creal(mps_bottom.data[1]), cimag(mps_bottom.data[1]));
 
 		tensor_t mpo_bottom_ref;
 		AllocateTensor(mps_bottom.ndim, mps_bottom.dim, &mpo_bottom_ref);
@@ -156,7 +154,7 @@ int PEPSTest()
 		// maximum relative error
 		double errB = 0;
 		for (j = 0; j < nelem; j++) {
-			errB = fmax(errB, ComplexAbs(ComplexSubtract(mps_bottom.data[j], mpo_bottom_ref.data[j])) / ComplexAbs(mpo_bottom_ref.data[j]));
+			errB = fmax(errB, cabs(mps_bottom.data[j] - mpo_bottom_ref.data[j]) / cabs(mpo_bottom_ref.data[j]));
 		}
 		printf("MPS bottom maximum relative error: %g\n", errB);
 
@@ -180,8 +178,8 @@ int PEPSTest()
 		#endif
 
 		// example output
-		printf("mpo.data[0]: (%g, %g)\n", mpo.data[0].real, mpo.data[0].imag);
-		printf("mpo.data[1]: (%g, %g)\n", mpo.data[1].real, mpo.data[1].imag);
+		printf("mpo.data[0]: %g%+gi\n", creal(mpo.data[0]), cimag(mpo.data[0]));
+		printf("mpo.data[1]: %g%+gi\n", creal(mpo.data[1]), cimag(mpo.data[1]));
 
 		tensor_t mpo_sub_ref;
 		AllocateTensor(3, mpo.dim, &mpo_sub_ref);
@@ -196,7 +194,7 @@ int PEPSTest()
 		const size_t offset = mpo.dim[0]*mpo.dim[1]*mpo.dim[2]*(2 + mpo.dim[3]*(3 + mpo.dim[4]*(4 + mpo.dim[5]*(5 + mpo.dim[6]*6)))) ;
 		double errO = 0;
 		for (j = 0; j < nelem; j++) {
-			errO = fmax(errO, ComplexAbs(ComplexSubtract(mpo.data[offset + j], mpo_sub_ref.data[j])) / ComplexAbs(mpo_sub_ref.data[j]));
+			errO = fmax(errO, cabs(mpo.data[offset + j] - mpo_sub_ref.data[j]) / cabs(mpo_sub_ref.data[j]));
 		}
 		printf("MPO maximum relative error: %g\n", errO);
 

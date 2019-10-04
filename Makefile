@@ -8,7 +8,7 @@ TSTFILES = matrix_exp_test.o tensor_test.o lanczos_test.o qnumber_test.o qnumber
 CC = icc
 
 # compiler options
-CCOPTS = -Wall -O2 -restrict -Iinclude -qopenmp -DNDEBUG -DMEM_DATA_ALIGN=64 -DGIT_COMMIT=\"$(shell git describe --always)\" -DPROFILER_ENABLE -mkl:sequential
+CCOPTS = -std=c99 -Wall -O2 -restrict -Iinclude -qopenmp -DNDEBUG -DMEM_DATA_ALIGN=64 -DGIT_COMMIT=\"$(shell git describe --always)\" -DPROFILER_ENABLE -Dlapack_complex_double="double _Complex" -mkl:sequential
 
 # set these with appropriate libraries for your system
 LIBRARIES = -mkl:sequential -lrt

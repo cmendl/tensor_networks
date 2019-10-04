@@ -1,5 +1,4 @@
 #include "util.h"
-#include "complex.h"
 #include <stdio.h>
 
 
@@ -19,22 +18,22 @@ int MatrixExpTest()
 	if (status < 0) { return status; }
 
 	// allocate memory for matrix exponential
-	MKL_Complex16 *expA = (MKL_Complex16 *)algn_malloc(n*n * sizeof(MKL_Complex16));
+	double complex *expA = (double complex *)algn_malloc(n*n * sizeof(double complex));
 
 	// real time step
 	{
-		const MKL_Complex16 t = { 1.0/7, 0 };
+		const double complex t = 1.0/7;
 
 		status = MatrixExp(n, t, A, expA);
 		if (status != 0) { return status; }
 
 		// load reference data from disk
-		MKL_Complex16 *expA_ref = (MKL_Complex16 *)algn_malloc(n*n * sizeof(MKL_Complex16));
-		status = ReadData("../test/matrix_exp_test_exp17A.dat", expA_ref, sizeof(MKL_Complex16), n*n);
+		double complex *expA_ref = (double complex *)algn_malloc(n*n * sizeof(double complex));
+		status = ReadData("../test/matrix_exp_test_exp17A.dat", expA_ref, sizeof(double complex), n*n);
 		if (status < 0) { return status; }
 
 		// largest entrywise error
-		err = fmax(err, UniformDistance(2*n*n, (double *)expA, (double *)expA_ref));
+		err = fmax(err, UniformDistance(n*n, expA, expA_ref));
 
 		// clean up
 		algn_free(expA_ref);
@@ -42,18 +41,18 @@ int MatrixExpTest()
 
 	// complex time step
 	{
-		const MKL_Complex16 t = { 0.3, 1.0/7 };
+		const double complex t = 0.3 + 1.0/7*_Complex_I;
 
 		status = MatrixExp(n, t, A, expA);
 		if (status != 0) { return status; }
 
 		// load reference data from disk
-		MKL_Complex16 *expA_ref = (MKL_Complex16 *)algn_malloc(n*n * sizeof(MKL_Complex16));
-		status = ReadData("../test/matrix_exp_test_exp3i7A.dat", expA_ref, sizeof(MKL_Complex16), n*n);
+		double complex *expA_ref = (double complex *)algn_malloc(n*n * sizeof(double complex));
+		status = ReadData("../test/matrix_exp_test_exp3i7A.dat", expA_ref, sizeof(double complex), n*n);
 		if (status < 0) { return status; }
 
 		// largest entrywise error
-		err = fmax(err, UniformDistance(2*n*n, (double *)expA, (double *)expA_ref));
+		err = fmax(err, UniformDistance(n*n, expA, expA_ref));
 
 		// clean up
 		algn_free(expA_ref);

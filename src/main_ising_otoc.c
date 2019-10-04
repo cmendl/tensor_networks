@@ -1,6 +1,5 @@
 #include "hamiltonian_ising.h"
 #include "dynamics.h"
-#include "complex.h"
 #include "sim_params.h"
 #include "profiler.h"
 #include "dupio.h"
@@ -75,26 +74,24 @@ static void ConstructOperatorSumMPO(const int L, const int i0, const int i1, con
 	}
 
 	// local identity operator
-	MKL_Complex16 id[4] = { 0 };
-	id[0].real = 1;
-	id[3].real = 1;
+	const double complex id[4] = { 1, 0, 0, 1 };
 
 	for (i = 0; i < L; i++)
 	{
 		if (i < i0)
 		{
 			// preceding "trivial" tensors
-			memcpy(mpo->A[i].data, id, 4*sizeof(MKL_Complex16));
+			memcpy(mpo->A[i].data, id, 4*sizeof(double complex));
 		}
 		else if (i == i0)
 		{
 			assert(mpo->A[i].dim[2] == 1);
 
 			// construct first 'W' tensor
-			memcpy(&mpo->A[i].data[0], op->data, 4*sizeof(MKL_Complex16));
+			memcpy(&mpo->A[i].data[0], op->data, 4*sizeof(double complex));
 			if (i0 < i1)
 			{
-				memcpy(&mpo->A[i].data[4], id, 4*sizeof(MKL_Complex16));
+				memcpy(&mpo->A[i].data[4], id, 4*sizeof(double complex));
 			}
 		}
 		else if (i < i1)
@@ -102,9 +99,9 @@ static void ConstructOperatorSumMPO(const int L, const int i0, const int i1, con
 			assert(mpo->A[i].dim[2] == 2 && mpo->A[i].dim[3] == 2);
 
 			// construct intermediate 'W' tensors
-			memcpy(&mpo->A[i].data[ 0], id,       4*sizeof(MKL_Complex16)); // (0,0) block
-			memcpy(&mpo->A[i].data[ 4], op->data, 4*sizeof(MKL_Complex16)); // (1,0) block
-			memcpy(&mpo->A[i].data[12], id,       4*sizeof(MKL_Complex16)); // (1,1) block
+			memcpy(&mpo->A[i].data[ 0], id,       4*sizeof(double complex)); // (0,0) block
+			memcpy(&mpo->A[i].data[ 4], op->data, 4*sizeof(double complex)); // (1,0) block
+			memcpy(&mpo->A[i].data[12], id,       4*sizeof(double complex)); // (1,1) block
 		}
 		else if (i == i1)
 		{
@@ -112,15 +109,15 @@ static void ConstructOperatorSumMPO(const int L, const int i0, const int i1, con
 			assert(mpo->A[i].dim[2] == 2 && mpo->A[i].dim[3] == 1);
 
 			// construct last 'W' tensor
-			memcpy(&mpo->A[i].data[0], id,       4*sizeof(MKL_Complex16));
-			memcpy(&mpo->A[i].data[4], op->data, 4*sizeof(MKL_Complex16));
+			memcpy(&mpo->A[i].data[0], id,       4*sizeof(double complex));
+			memcpy(&mpo->A[i].data[4], op->data, 4*sizeof(double complex));
 		}
 		else
 		{
 			assert(i1 < i);
 
 			// trailing "trivial" tensors
-			memcpy(mpo->A[i].data, id, 4*sizeof(MKL_Complex16));
+			memcpy(mpo->A[i].data, id, 4*sizeof(double complex));
 		}
 	}
 }
@@ -249,18 +246,18 @@ int main(int argc, char *argv[])
 		// sigma_x
 		// (0  1)
 		// (1  0)
-		sigma_x.data[1].real = 1;
-		sigma_x.data[2].real = 1;
+		sigma_x.data[1] = 1;
+		sigma_x.data[2] = 1;
 		// sigma_y
 		// (0 -i)
 		// (i  0)
-		sigma_y.data[1].imag =  1;
-		sigma_y.data[2].imag = -1;
+		sigma_y.data[1] =  _Complex_I;
+		sigma_y.data[2] = -_Complex_I;
 		// sigma_z
 		// (1  0)
 		// (0 -1)
-		sigma_z.data[0].real =  1;
-		sigma_z.data[3].real = -1;
+		sigma_z.data[0] =  1;
+		sigma_z.data[3] = -1;
 	}
 
 	// construct MPO representation of OTOC operator
@@ -296,10 +293,9 @@ int main(int argc, char *argv[])
 	{
 		// initialize exp_betaH by the scaled identity operation (such that Frobenius norm is 1)
 		CreateIdentityMPO(L, 2, &exp_betaH);
-		const MKL_Complex16 invsqrt2 = { sqrt(0.5), 0 };
 		for (i = 0; i < L; i++)
 		{
-			ScaleTensor(invsqrt2, &exp_betaH.A[i]);
+			ScaleTensor(sqrt(0.5), &exp_betaH.A[i]);
 		}
 
 		// number of imaginary time steps
@@ -310,11 +306,9 @@ int main(int argc, char *argv[])
 			return -4;
 		}
 
-		const MKL_Complex16 dbeta = { params.dbeta, 0 };
-
 		// compute evolution dynamics data required for Strang splitting evolution
 		dynamics_data_t dyn;
-		ComputeDynamicsDataStrang(L, dbeta, 4, (const double **)h, &dyn);
+		ComputeDynamicsDataStrang(L, params.dbeta, 4, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
 		double *tol_eff_beta = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
@@ -336,7 +330,7 @@ int main(int argc, char *argv[])
 	}
 
 	// record trace of exp(-beta H)
-	const double Zbeta = ComplexReal(MPOTrace(&exp_betaH));
+	const double Zbeta = creal(MPOTrace(&exp_betaH));
 	duprintf("Trace of exp_betaH: %g\n", Zbeta);
 
 	// compute local magnetization
@@ -352,7 +346,7 @@ int main(int argc, char *argv[])
 			// apply sigma_z at site i
 			ApplySingleSiteTopOperator(&sigma_z, &exp_betaH_n.A[i]);
 
-			magnetization[i] = ComplexReal(MPOTrace(&exp_betaH_n)) / Zbeta;
+			magnetization[i] = creal(MPOTrace(&exp_betaH_n)) / Zbeta;
 
 			// restore original tensor at site i
 			DeleteTensor(&exp_betaH_n.A[i]);
@@ -374,7 +368,7 @@ int main(int argc, char *argv[])
 		mpo_t mpoH;
 		ConstructIsingMPO(L, params.J, params.hext, params.gext, &mpoH);
 
-		const double energy = ComplexReal(MPOTraceProduct(&exp_betaH, &mpoH)) / Zbeta;
+		const double energy = MPOTraceProduct(&exp_betaH, &mpoH) / Zbeta;
 		duprintf("Total energy Tr[exp(-beta H) H]: %g\n", energy);
 
 		// save energy to disk
@@ -399,8 +393,7 @@ int main(int argc, char *argv[])
 
 	// compute dynamics data for time evolution
 	dynamics_data_t dyn_time;
-	const MKL_Complex16 idt = { 0, params.dt };
-	ComputeDynamicsDataPRK(L, idt, 4, (const double **)h, &dyn_time);
+	ComputeDynamicsDataPRK(L, params.dt*_Complex_I, 4, (const double **)h, &dyn_time);
 
 	// perform time evolution and compute OTOCs at several time points
 
@@ -411,8 +404,8 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	MKL_Complex16 *otoc = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
-	MKL_Complex16 *gf   = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
+	double complex *otoc = (double complex *)algn_malloc((nsteps + 1)*sizeof(double complex));
+	double complex *gf   = (double complex *)algn_malloc((nsteps + 1)*sizeof(double complex));
 
 	// effective tolerance (truncation weight)
 	double *tol_eff_A = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
@@ -438,8 +431,8 @@ int main(int argc, char *argv[])
 			duprintf("Continuing simulation after time step %i...\n", nstart);
 
 			// read intermediate results from disk
-			sprintf(filename, "%s/ising_L%i_otoc_tmp.dat",      argv[5], L); status = ReadData(filename, otoc,      sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
-			sprintf(filename, "%s/ising_L%i_gf_tmp.dat",        argv[5], L); status = ReadData(filename, gf,        sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
+			sprintf(filename, "%s/ising_L%i_otoc_tmp.dat",      argv[5], L); status = ReadData(filename, otoc,      sizeof(double complex), nstart + 1);    if (status < 0) { return status; }
+			sprintf(filename, "%s/ising_L%i_gf_tmp.dat",        argv[5], L); status = ReadData(filename, gf,        sizeof(double complex), nstart + 1);    if (status < 0) { return status; }
 			sprintf(filename, "%s/ising_L%i_DXA_tmp.dat",       argv[5], L); status = ReadData(filename, D_XA,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
 			sprintf(filename, "%s/ising_L%i_DXB_tmp.dat",       argv[5], L); status = ReadData(filename, D_XB,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
 			sprintf(filename, "%s/ising_L%i_tol_eff_A_tmp.dat", argv[5], L); status = ReadData(filename, tol_eff_A, sizeof(double),  nstart     *(L - 1));  if (status < 0) { return status; }
@@ -453,8 +446,8 @@ int main(int argc, char *argv[])
 			AllocateMPO(L, dim, &D_XB[nstart*(L + 1)], &XB);
 			for (i = 0; i < L; i++)
 			{
-				sprintf(filename, "%s/ising_L%i_XA/A%i.dat", argv[5], L, i); status = ReadData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]));  if (status < 0) { return status; }
-				sprintf(filename, "%s/ising_L%i_XB/A%i.dat", argv[5], L, i); status = ReadData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]));  if (status < 0) { return status; }
+				sprintf(filename, "%s/ising_L%i_XA/A%i.dat", argv[5], L, i); status = ReadData(filename, XA.A[i].data, sizeof(double complex), NumTensorElements(&XA.A[i]));  if (status < 0) { return status; }
+				sprintf(filename, "%s/ising_L%i_XB/A%i.dat", argv[5], L, i); status = ReadData(filename, XB.A[i].data, sizeof(double complex), NumTensorElements(&XB.A[i]));  if (status < 0) { return status; }
 			}
 
 			// single step; "forward" and "backward" are reversed in Heisenberg picture
@@ -481,8 +474,8 @@ int main(int argc, char *argv[])
 			MPOComposition(&XA, &op, &XAop);
 			MPOComposition(&XB, &op, &XBop);
 
-			otoc[n] = ComplexScale(1/Zbeta, MPOTraceProduct(&XAop, &XBop));
-			  gf[n] = ComplexScale(1/Zbeta, MPOTrace(&XAop));
+			otoc[n] = MPOTraceProduct(&XAop, &XBop) / Zbeta;
+			  gf[n] = MPOTrace(&XAop) / Zbeta;
 
 			// clean up
 			DeleteMPO(&XAop);
@@ -494,8 +487,8 @@ int main(int argc, char *argv[])
 		MPOBondDims(&XB, &D_XB[n*(L + 1)]);
 
 		// save intermediate results to disk
-		sprintf(filename, "%s/ising_L%i_otoc_tmp.dat", argv[5], L); WriteData(filename, &otoc[n], sizeof(MKL_Complex16), 1, true);
-		sprintf(filename, "%s/ising_L%i_gf_tmp.dat",   argv[5], L); WriteData(filename, &gf[n],   sizeof(MKL_Complex16), 1, true);
+		sprintf(filename, "%s/ising_L%i_otoc_tmp.dat", argv[5], L); WriteData(filename, &otoc[n], sizeof(double complex), 1, true);
+		sprintf(filename, "%s/ising_L%i_gf_tmp.dat",   argv[5], L); WriteData(filename, &gf[n],   sizeof(double complex), 1, true);
 		sprintf(filename, "%s/ising_L%i_DXA_tmp.dat",  argv[5], L); WriteData(filename, &D_XA[n*(L + 1)], sizeof(size_t), L + 1, true);
 		sprintf(filename, "%s/ising_L%i_DXB_tmp.dat",  argv[5], L); WriteData(filename, &D_XB[n*(L + 1)], sizeof(size_t), L + 1, true);
 		if (n > 0) {
@@ -506,8 +499,8 @@ int main(int argc, char *argv[])
 		{
 			for (i = 0; i < L; i++)
 			{
-				sprintf(filename, "%s/ising_L%i_XA/A%i.dat", argv[5], L, i); WriteData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]), false);
-				sprintf(filename, "%s/ising_L%i_XB/A%i.dat", argv[5], L, i); WriteData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]), false);
+				sprintf(filename, "%s/ising_L%i_XA/A%i.dat", argv[5], L, i); WriteData(filename, XA.A[i].data, sizeof(double complex), NumTensorElements(&XA.A[i]), false);
+				sprintf(filename, "%s/ising_L%i_XB/A%i.dat", argv[5], L, i); WriteData(filename, XB.A[i].data, sizeof(double complex), NumTensorElements(&XB.A[i]), false);
 			}
 		}
 
@@ -525,8 +518,8 @@ int main(int argc, char *argv[])
 	}
 
 	duprintf("At t = %g:\n", params.tmax);
-	duprintf("<W(t) V(0) W(t) V(0)> = (%g, %g)\n", otoc[nsteps].real, otoc[nsteps].imag);
-	duprintf("<W(t) V(0)>           = (%g, %g)\n",   gf[nsteps].real,   gf[nsteps].imag);
+	duprintf("<W(t) V(0) W(t) V(0)> = %g%+gi\n", creal(otoc[nsteps]), cimag(otoc[nsteps]));
+	duprintf("<W(t) V(0)>           = %g%+gi\n",   creal(gf[nsteps]),   cimag(gf[nsteps]));
 	duprintf("\n");
 
 	const clock_t t_cpu_end = clock();
@@ -543,8 +536,8 @@ int main(int argc, char *argv[])
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
 
 	// save results to disk
-	sprintf(filename, "%s/ising_L%i_otoc.dat",      argv[5], L); WriteData(filename, otoc, sizeof(MKL_Complex16),   nsteps + 1, false);
-	sprintf(filename, "%s/ising_L%i_gf.dat",        argv[5], L); WriteData(filename, gf,   sizeof(MKL_Complex16),   nsteps + 1, false);
+	sprintf(filename, "%s/ising_L%i_otoc.dat",      argv[5], L); WriteData(filename, otoc, sizeof(double complex),   nsteps + 1, false);
+	sprintf(filename, "%s/ising_L%i_gf.dat",        argv[5], L); WriteData(filename, gf,   sizeof(double complex),   nsteps + 1, false);
 	sprintf(filename, "%s/ising_L%i_tol_eff_A.dat", argv[5], L); WriteData(filename, tol_eff_A, sizeof(double),  nsteps*(L - 1), false);
 	sprintf(filename, "%s/ising_L%i_tol_eff_B.dat", argv[5], L); WriteData(filename, tol_eff_B, sizeof(double),  nsteps*(L - 1), false);
 	sprintf(filename, "%s/ising_L%i_DXA.dat",       argv[5], L); WriteData(filename, D_XA, sizeof(size_t), (nsteps + 1)*(L + 1), false);

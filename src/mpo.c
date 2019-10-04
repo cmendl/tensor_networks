@@ -128,7 +128,7 @@ void CreateIdentityMPO(const int L, const size_t d, mpo_t *restrict mpo)
 		size_t j;
 		for (j = 0; j < d; j++)
 		{
-			mpo->A[i].data[j + j*d].real = 1;
+			mpo->A[i].data[j + j*d] = 1;
 		}
 	}
 }
@@ -333,15 +333,14 @@ void MergeMPOFull(const mpo_t *restrict mpo, tensor_t *restrict A)
 ///
 /// \brief Compute the trace of a MPO
 ///
-MKL_Complex16 MPOTrace(const mpo_t *restrict X)
+double complex MPOTrace(const mpo_t *restrict X)
 {
 	// dimensions must agree, otherwise "trace" not well defined
 	assert(X->d[0] == X->d[1]);
 
 	// start with 1D vector
-	MKL_Complex16 *v = (MKL_Complex16 *)algn_malloc(sizeof(MKL_Complex16));
-	v[0].real = 1;
-	v[0].imag = 0;
+	double complex *v = (double complex *)algn_malloc(sizeof(double complex));
+	v[0] = 1;
 
 	int i;
 	for (i = X->L-1; i >= 0; i--)
@@ -350,12 +349,12 @@ MKL_Complex16 MPOTrace(const mpo_t *restrict X)
 		assert(X->A[i].dim[0] == X->d[0] && X->A[i].dim[1] == X->d[1]);
 		assert(i == 0 || X->A[i].dim[2] == X->A[i-1].dim[3]);
 
-		const MKL_Complex16 zero = { 0, 0 };
-		const MKL_Complex16 one  = { 1, 0 };
+		const double complex zero = 0;
+		const double complex one  = 1;
 
 		// trace out physical dimensions
 		const size_t D[2] = { X->A[i].dim[2], X->A[i].dim[3] };
-		MKL_Complex16 *t = (MKL_Complex16 *)algn_calloc(D[0]*D[1], sizeof(MKL_Complex16));
+		double complex *t = (double complex *)algn_calloc(D[0]*D[1], sizeof(double complex));
 		size_t j;
 		for (j = 0; j < X->d[0]; j++)
 		{
@@ -363,7 +362,7 @@ MKL_Complex16 MPOTrace(const mpo_t *restrict X)
 		}
 
 		// w = t*v
-		MKL_Complex16 *w = (MKL_Complex16 *)algn_malloc(D[0]*sizeof(MKL_Complex16));
+		double complex *w = (double complex *)algn_malloc(D[0]*sizeof(double complex));
 		cblas_zgemv(CblasColMajor, CblasNoTrans, D[0], D[1], &one, t, D[0], v, 1, &zero, w, 1);
 		algn_free(t);
 
@@ -374,7 +373,7 @@ MKL_Complex16 MPOTrace(const mpo_t *restrict X)
 
 	// after traversing chain from right to left, v should again be a 1D vector
 
-	MKL_Complex16 tr = v[0];
+	double complex tr = v[0];
 	algn_free(v);
 
 	return tr;
@@ -417,7 +416,7 @@ void MPOTraceProductTensorReduce(const tensor_t *restrict A, const tensor_t *res
 ///
 /// \brief Compute the trace of a MPO product Tr[Y.X]
 ///
-MKL_Complex16 MPOTraceProduct(const mpo_t *restrict X, const mpo_t *restrict Y)
+double complex MPOTraceProduct(const mpo_t *restrict X, const mpo_t *restrict Y)
 {
 	assert(X->L == Y->L);
 
@@ -437,7 +436,7 @@ MKL_Complex16 MPOTraceProduct(const mpo_t *restrict X, const mpo_t *restrict Y)
 	assert(R.ndim == 2);
 	assert(R.dim[0] == 1 && R.dim[1] == 1);
 
-	MKL_Complex16 tr = R.data[0];
+	double complex tr = R.data[0];
 	DeleteTensor(&R);
 
 	return tr;
@@ -472,10 +471,10 @@ double MPOFrobeniusNorm(const mpo_t *X)
 	assert(R.ndim == 2);
 	assert(R.dim[0] == 1 && R.dim[1] == 1);
 
-	MKL_Complex16 tr = R.data[0];
+	double complex tr = R.data[0];
 	DeleteTensor(&R);
 
-	return sqrt(tr.real);
+	return sqrt(creal(tr));
 }
 
 
@@ -551,7 +550,7 @@ void MPOTraceQuadProductTensorReduce(const tensor_t *restrict A, const tensor_t 
 ///
 /// \brief Compute the trace of a MPO quad-product Tr[X.Y.Z.W]
 ///
-MKL_Complex16 MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict Y, const mpo_t *restrict Z, const mpo_t *restrict W)
+double complex MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict Y, const mpo_t *restrict Z, const mpo_t *restrict W)
 {
 	assert(X->L == Y->L);
 	assert(Y->L == Z->L);
@@ -573,7 +572,7 @@ MKL_Complex16 MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict
 	assert(R.ndim == 4);
 	assert(R.dim[0] == 1 && R.dim[1] == 1 && R.dim[2] == 1 && R.dim[3] == 1);
 
-	MKL_Complex16 tr = R.data[0];
+	double complex tr = R.data[0];
 	DeleteTensor(&R);
 
 	return tr;
@@ -640,13 +639,13 @@ void MPOAdd(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict Z)
 		size_t j;
 		for (j = 0; j < DX1; j++)
 		{
-			memcpy(&Z->A[i].data[ldZ*j], &X->A[i].data[ldX*j], ldX*sizeof(MKL_Complex16));
+			memcpy(&Z->A[i].data[ldZ*j], &X->A[i].data[ldX*j], ldX*sizeof(double complex));
 		}
 		for (j = 0; j < DY1; j++)
 		{
 			const size_t offset0 = (i == 0   ? 0 : ldX);
 			const size_t offsetL = (i == L-1 ? 0 : DX1);
-			memcpy(&Z->A[i].data[offset0 + ldZ*(offsetL + j)], &Y->A[i].data[ldY*j], ldY*sizeof(MKL_Complex16));
+			memcpy(&Z->A[i].data[offset0 + ldZ*(offsetL + j)], &Y->A[i].data[ldY*j], ldY*sizeof(double complex));
 		}
 	}
 
@@ -1281,7 +1280,7 @@ void MPOFromOpChains(const int L, const size_t d, const int nopc, const opchain_
 			assert(opslots[j][k] < D[opc[j].i + k + 1]);
 
 			// add to MPO tensor (instead of simply assigning) to handle sum of single-site operators without dedicated bond slots
-			const MKL_Complex16 one = { 1, 0 };
+			const double complex one = 1;
 			cblas_zaxpy(d*d, &one, opc[j].op[k].data, 1, &mpo->A[opc[j].i + k].data[(m + D[opc[j].i + k]*opslots[j][k])*d*d], 1);
 		}
 

@@ -2,7 +2,6 @@
 /// \brief Time evolution (real and imaginary) of matrix product operators
 
 #include "dynamics.h"
-#include "complex.h"
 #include "util.h"
 
 
@@ -10,7 +9,7 @@
 ///
 /// \brief Allocate memory for evolution dynamics data
 ///
-void AllocateDynamicsData(const int L, const int m, const MKL_Complex16 dt, dynamics_data_t *dyn)
+void AllocateDynamicsData(const int L, const int m, const double complex dt, dynamics_data_t *dyn)
 {
 	assert(L > 1);
 	assert(m > 0);
@@ -186,7 +185,7 @@ static double LatticeTwoSiteSweep(const tensor_t *restrict opT, const tensor_t *
 ///
 /// \brief Compute the evolution dynamics data required for Strang splitting evolution
 ///
-void ComputeDynamicsDataStrang(const int L, const MKL_Complex16 dt, const size_t d2, const double **h, dynamics_data_t *restrict dyn)
+void ComputeDynamicsDataStrang(const int L, const double complex dt, const size_t d2, const double **h, dynamics_data_t *restrict dyn)
 {
 	int i, j;
 	assert(d2 > 0);
@@ -197,7 +196,7 @@ void ComputeDynamicsDataStrang(const int L, const MKL_Complex16 dt, const size_t
 	const size_t dim[4] = { d2, d2, 1, 1 };
 
 	// four versions
-	const MKL_Complex16 dt_steps[4] = { dt, ComplexScale(0.5, dt), ComplexScale(-1, dt), ComplexScale(-0.5, dt) };
+	const double complex dt_steps[4] = { dt, 0.5*dt, -dt, -0.5*dt };
 
 	for (j = 0; j < 4; j++)
 	{
@@ -236,8 +235,7 @@ void EvolveMPOStrang(const dynamics_data_t *restrict dyn, const int nsteps, cons
 		if (normalize)
 		{
 			assert(nsigma > 0);
-			MKL_Complex16 alpha = { 1/nsigma, 0 };
-			cblas_zscal(NumTensorElements(&mpo->A[0]), &alpha, mpo->A[0].data, 1);
+			ScaleTensor(1/nsigma, &mpo->A[0]);
 		}
 	}
 }
@@ -269,8 +267,7 @@ void EvolveLiouvilleMPOStrang(const dynamics_data_t *restrict dyn, const int nst
 		if (normalize)
 		{
 			assert(nsigma > 0);
-			MKL_Complex16 alpha = { 1/nsigma, 0 };
-			cblas_zscal(NumTensorElements(&mpo->A[0]), &alpha, mpo->A[0].data, 1);
+			ScaleTensor(1/nsigma, &mpo->A[0]);
 		}
 	}
 }
@@ -286,7 +283,7 @@ void EvolveLiouvilleMPOStrang(const dynamics_data_t *restrict dyn, const int nst
 ///     Practical symplectic partitioned Runge-Kutta and Runge-Kutta-Nystrom methods.
 ///     J. Comput. Appl. Math. 142, 313-330 (2002)
 ///
-void ComputeDynamicsDataPRK(const int L, const MKL_Complex16 dt, const size_t d2, const double **h, dynamics_data_t *restrict dyn)
+void ComputeDynamicsDataPRK(const int L, const double complex dt, const size_t d2, const double **h, dynamics_data_t *restrict dyn)
 {
 	int i, j;
 	assert(d2 > 0);
@@ -315,14 +312,12 @@ void ComputeDynamicsDataPRK(const int L, const MKL_Complex16 dt, const size_t d2
 		for (i = 0; i < L - 1; i++)
 		{
 			// a[j]*dt
-			const MKL_Complex16 adt = { coeff_a[j]*dt.real, coeff_a[j]*dt.imag };
-			AllocateTensor(4, dim,  &dyn->exp_h[i + (L-1)*2*j]);
-			MatrixExp(d2, adt, h[i], dyn->exp_h[i + (L-1)*2*j].data);
+			AllocateTensor(4, dim,            &dyn->exp_h[i + (L-1)*2*j]);
+			MatrixExp(d2, coeff_a[j]*dt, h[i], dyn->exp_h[i + (L-1)*2*j].data);
 
 			// -a[j]*dt
-			const MKL_Complex16 nadt = { -coeff_a[j]*dt.real, -coeff_a[j]*dt.imag };
-			AllocateTensor(4, dim,   &dyn->exp_h[i + (L-1)*(2*j+1)]);
-			MatrixExp(d2, nadt, h[i], dyn->exp_h[i + (L-1)*(2*j+1)].data);
+			AllocateTensor(4, dim,             &dyn->exp_h[i + (L-1)*(2*j+1)]);
+			MatrixExp(d2, -coeff_a[j]*dt, h[i], dyn->exp_h[i + (L-1)*(2*j+1)].data);
 		}
 	}
 
@@ -332,14 +327,12 @@ void ComputeDynamicsDataPRK(const int L, const MKL_Complex16 dt, const size_t d2
 		for (i = 0; i < L - 1; i++)
 		{
 			// b[j]*dt
-			const MKL_Complex16 bdt = { coeff_b[j]*dt.real, coeff_b[j]*dt.imag };
-			AllocateTensor(4, dim,  &dyn->exp_h[i + (L-1)*2*(j+4)]);
-			MatrixExp(d2, bdt, h[i], dyn->exp_h[i + (L-1)*2*(j+4)].data);
+			AllocateTensor(4, dim,            &dyn->exp_h[i + (L-1)*2*(j+4)]);
+			MatrixExp(d2, coeff_b[j]*dt, h[i], dyn->exp_h[i + (L-1)*2*(j+4)].data);
 
 			// -b[j]*dt
-			const MKL_Complex16 nbdt = { -coeff_b[j]*dt.real, -coeff_b[j]*dt.imag };
-			AllocateTensor(4, dim,   &dyn->exp_h[i + (L-1)*(2*(j+4)+1)]);
-			MatrixExp(d2, nbdt, h[i], dyn->exp_h[i + (L-1)*(2*(j+4)+1)].data);
+			AllocateTensor(4, dim,             &dyn->exp_h[i + (L-1)*(2*(j+4)+1)]);
+			MatrixExp(d2, -coeff_b[j]*dt, h[i], dyn->exp_h[i + (L-1)*(2*(j+4)+1)].data);
 		}
 	}
 }

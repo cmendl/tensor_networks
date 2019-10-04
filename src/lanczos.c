@@ -12,18 +12,18 @@
 ///
 /// \brief Perform a Lanczos iteration to approximate the lowest eigenvalue and corresponding eigenvector
 ///
-void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adata, MKL_Complex16 *restrict v_start, const int maxiter, double *restrict lambda_min, MKL_Complex16 *restrict v_min)
+void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adata, double complex *restrict v_start, const int maxiter, double *restrict lambda_min, double complex *restrict v_min)
 {
 	double *alpha = (double *)algn_calloc(maxiter, sizeof(double));
 	double *beta  = (double *)algn_calloc(maxiter, sizeof(double));
 
 	// logical index shifted by one vector in 'V'
-	MKL_Complex16 *V = (MKL_Complex16 *)algn_malloc(n*(maxiter+1) * sizeof(MKL_Complex16));
-	MKL_Complex16 *w = (MKL_Complex16 *)algn_malloc(n             * sizeof(MKL_Complex16));
+	double complex *V = (double complex *)algn_malloc(n*(maxiter+1) * sizeof(double complex));
+	double complex *w = (double complex *)algn_malloc(n             * sizeof(double complex));
 
 	// set first "v" vector to zero and second "v" vector to starting vector
-	memset(V, 0, n*sizeof(MKL_Complex16));
-	memcpy(&V[n], v_start, n*sizeof(MKL_Complex16));
+	memset(V, 0, n*sizeof(double complex));
+	memcpy(&V[n], v_start, n*sizeof(double complex));
 	// normalize starting vector
 	{
 		double nrm = Norm(2*n, (double *)&V[n]);
@@ -38,16 +38,15 @@ void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adat
 		Afunc(n, Adata, &V[(j+1)*n], w);
 
 		// alpha_j = <w', v_j>
-		MKL_Complex16 t;
+		double complex t;
 		cblas_zdotc_sub(n, w, 1, &V[(j+1)*n], 1, &t);
-		alpha[j] = t.real;  // should be real if matrix is Hermitian
+		alpha[j] = creal(t);  // should be real if matrix is Hermitian
 
 		// w = w' - alpha_j v_j - beta_j v_{j-1}
 		size_t i;
 		for (i = 0; i < n; i++)
 		{
-			w[i].real -= alpha[j]*V[i + (j+1)*n].real + beta[j]*V[i + j*n].real;
-			w[i].imag -= alpha[j]*V[i + (j+1)*n].imag + beta[j]*V[i + j*n].imag;
+			w[i] -= alpha[j]*V[i + (j+1)*n] + beta[j]*V[i + j*n];
 		}
 
 		// beta_{j+1} = ||w||
@@ -58,8 +57,7 @@ void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adat
 		const double inv_beta = 1 / beta[j+1];
 		for (i = 0; i < n; i++)
 		{
-			V[i + (j+2)*n].real = inv_beta * w[i].real;
-			V[i + (j+2)*n].imag = inv_beta * w[i].imag;
+			V[i + (j+2)*n] = inv_beta * w[i];
 		}
 	}
 
@@ -69,9 +67,9 @@ void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adat
 		Afunc(n, Adata, &V[(j+1)*n], w);
 
 		// alpha_j = <w', v_j>
-		MKL_Complex16 t;
+		double complex t;
 		cblas_zdotc_sub(n, w, 1, &V[(j+1)*n], 1, &t);
-		alpha[j] = t.real;  // should be real if matrix is Hermitian
+		alpha[j] = creal(t);  // should be real if matrix is Hermitian
 	}
 
 	// postprocessing to obtain approximate eigenvalues and -vectors
@@ -86,16 +84,15 @@ void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adat
 	(*lambda_min) = alpha[0];
 
 	// embed smallest 'U' eigenvector into a complex vector
-	MKL_Complex16 *u0 = (MKL_Complex16 *)algn_malloc(maxiter * sizeof(MKL_Complex16));
+	double complex *u0 = (double complex *)algn_malloc(maxiter * sizeof(double complex));
 	for (j = 0; j < maxiter; j++)
 	{
-		u0[j].real = U[j];
-		u0[j].imag = 0;
+		u0[j] = U[j];
 	}
 
 	// Ritz eigenvector corresponding to smallest eigenvalue
-	const MKL_Complex16 one  = { 1, 0 };
-	const MKL_Complex16 zero = { 0, 0 };
+	const double complex one  = 1;
+	const double complex zero = 0;
 	cblas_zgemv(CblasColMajor, CblasNoTrans, n, maxiter, &one, &V[n], n, u0, 1, &zero, v_min, 1);
 
 	// clean up

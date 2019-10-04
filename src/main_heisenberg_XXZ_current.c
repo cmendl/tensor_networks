@@ -1,6 +1,5 @@
 #include "hamiltonian_heisenberg.h"
 #include "dynamics.h"
-#include "complex.h"
 #include "sim_params.h"
 #include "profiler.h"
 #include "dupio.h"
@@ -199,8 +198,8 @@ int main(int argc, char *argv[])
 		//  | 0   i/2 0   0 |
 		//  \ 0   0   0   0 /
 		//
-		J.data[6].imag =  0.5;
-		J.data[9].imag = -0.5;
+		J.data[6] =  0.5*_Complex_I;
+		J.data[9] = -0.5*_Complex_I;
 	}
 
 	// construct two-site Heisenberg Hamiltonian operators
@@ -220,10 +219,9 @@ int main(int argc, char *argv[])
 	{
 		// initialize rho_beta by the scaled identity operation (such that Frobenius norm is 1)
 		CreateIdentityMPO(L, 2, &rho_beta);
-		const MKL_Complex16 invsqrt2 = { sqrt(0.5), 0 };
 		for (i = 0; i < L; i++)
 		{
-			ScaleTensor(invsqrt2, &rho_beta.A[i]);
+			ScaleTensor(sqrt(0.5), &rho_beta.A[i]);
 		}
 		memcpy(rho_beta.qd[0], qd, 2*sizeof(qnumber_t));
 		memcpy(rho_beta.qd[1], qd, 2*sizeof(qnumber_t));
@@ -236,11 +234,9 @@ int main(int argc, char *argv[])
 			return -4;
 		}
 
-		const MKL_Complex16 dbeta = { params.dbeta, 0 };
-
 		// compute evolution dynamics data required for Strang splitting evolution
 		dynamics_data_t dyn;
-		ComputeDynamicsDataStrang(L, dbeta, 4, (const double **)h, &dyn);
+		ComputeDynamicsDataStrang(L, params.dbeta, 4, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
 		double *tol_eff_beta = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
@@ -270,8 +266,7 @@ int main(int argc, char *argv[])
 
 	// compute dynamics data for time evolution
 	dynamics_data_t dyn_time;
-	const MKL_Complex16 idt = { 0, params.dt };
-	ComputeDynamicsDataPRK(L, idt, 4, (const double **)h, &dyn_time);
+	ComputeDynamicsDataPRK(L, params.dt*_Complex_I, 4, (const double **)h, &dyn_time);
 
 	// perform time evolution and compute response function at several time points
 
@@ -282,7 +277,7 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	MKL_Complex16 *chi = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
+	double complex *chi = (double complex *)algn_malloc((nsteps + 1)*sizeof(double complex));
 
 	// effective tolerance (truncation weight)
 	double *tol_eff_A = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
@@ -298,7 +293,7 @@ int main(int argc, char *argv[])
 		duprintf("time step %i / %i\n", n, nsteps);
 
 		// response function
-		chi [n] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
+		chi [n] = MPOTraceProduct(&XA, &XB) / square(norm_rho);
 		// averages of XA and XB are zero
 
 		// record virtual bond dimensions
@@ -315,7 +310,7 @@ int main(int argc, char *argv[])
 		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, &bond_op_params, &XB, &tol_eff_B[n*(L - 1)]);
 	}
 
-	duprintf("chi at t = %g: (%g, %g)\n", params.tmax, chi[nsteps].real, chi[nsteps].imag);
+	duprintf("chi at t = %g: %g%+gi\n", params.tmax, creal(chi[nsteps]), cimag(chi[nsteps]));
 	duprintf("\n");
 
 	const clock_t t_cpu_end = clock();
@@ -333,7 +328,7 @@ int main(int argc, char *argv[])
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
 
 	// save results to disk
-	sprintf(filename, "%s/heisenberg_XXZ_L%i_chi.dat",       argv[4], L); WriteData(filename, chi, sizeof(MKL_Complex16), nsteps + 1, false);
+	sprintf(filename, "%s/heisenberg_XXZ_L%i_chi.dat",       argv[4], L); WriteData(filename, chi, sizeof(double complex), nsteps + 1, false);
 	sprintf(filename, "%s/heisenberg_XXZ_L%i_tol_eff_A.dat", argv[4], L); WriteData(filename, tol_eff_A, sizeof(double), nsteps*(L - 1), false);
 	sprintf(filename, "%s/heisenberg_XXZ_L%i_tol_eff_B.dat", argv[4], L); WriteData(filename, tol_eff_B, sizeof(double), nsteps*(L - 1), false);
 	sprintf(filename, "%s/heisenberg_XXZ_L%i_DXA.dat",       argv[4], L); WriteData(filename, D_XA, sizeof(size_t), (nsteps + 1)*(L + 1), false);

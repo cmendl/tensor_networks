@@ -304,7 +304,7 @@ double CalculateMPSNorm(const mps_t *restrict mps)
 	assert(t.dim[0] == 1 && t.dim[1] == 1);
 
 	// imaginary part should be zero up to numerical rounding errors
-	const double norm = t.data[0].real;
+	const double norm = creal(t.data[0]);
 
 	DeleteTensor(&t);
 
@@ -352,8 +352,7 @@ void MPSUnitaryLeftProjection(tensor_t *restrict A, tensor_t *restrict Anext)
 		size_t i;
 		for (i = 0; i < k; i++)
 		{
-			vt.data[i + k*j].real *= sigma[i];
-			vt.data[i + k*j].imag *= sigma[i];
+			vt.data[i + k*j] *= sigma[i];
 		}
 	}
 

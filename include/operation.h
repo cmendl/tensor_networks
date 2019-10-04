@@ -8,7 +8,7 @@
 #include "mpo.h"
 
 
-MKL_Complex16 OperatorAverage(const mps_t *restrict state, const mpo_t *restrict op);
+double complex OperatorAverage(const mps_t *restrict state, const mpo_t *restrict op);
 
 
 void ComputeLeftOperatorBlocks(const mps_t *restrict psi, const mpo_t *restrict op, tensor_t *restrict BL);

@@ -1,5 +1,4 @@
 #include "tensor.h"
-#include "complex.h"
 #include <math.h>
 #include <memory.h>
 #include <stdio.h>
@@ -26,7 +25,7 @@ static double TensorDifference(const tensor_t *s, const tensor_t *t)
 	size_t j;
 	for (j = 0; j < nelem; j++)
 	{
-		diff = fmax(diff, ComplexAbs(ComplexSubtract(s->data[j], t->data[j])));
+		diff = fmax(diff, cabs(s->data[j] - t->data[j]));
 	}
 
 	return diff;
@@ -48,7 +47,7 @@ int TensorTest()
 	AllocateTensor(4, dim,  &t);
 
 	// read values from disk
-	status = ReadData("../test/tensor_test_t1.dat", t.data, sizeof(MKL_Complex16), NumTensorElements(&t));
+	status = ReadData("../test/tensor_test_t1.dat", t.data, sizeof(double complex), NumTensorElements(&t));
 	if (status < 0) { return status; }
 
 	// test generalized transpose
@@ -62,7 +61,7 @@ int TensorTest()
 		const size_t refdim[4] = { 5, 2, 4, 3 };
 		tensor_t r_ref;
 		AllocateTensor(4, refdim, &r_ref);
-		status = ReadData("../test/tensor_test_t1T.dat", r_ref.data, sizeof(MKL_Complex16), NumTensorElements(&r_ref));
+		status = ReadData("../test/tensor_test_t1T.dat", r_ref.data, sizeof(double complex), NumTensorElements(&r_ref));
 		if (status < 0) { return status; }
 
 		// largest error
@@ -90,7 +89,7 @@ int TensorTest()
 		// reference tensor for checking
 		tensor_t s_ref;
 		AllocateTensor(4, sdim, &s_ref);
-		status = ReadData("../test/tensor_test_t1sub.dat", s_ref.data, sizeof(MKL_Complex16), NumTensorElements(&s_ref));
+		status = ReadData("../test/tensor_test_t1sub.dat", s_ref.data, sizeof(double complex), NumTensorElements(&s_ref));
 		if (status < 0) { return status; }
 
 		// largest error
@@ -107,7 +106,7 @@ int TensorTest()
 		tensor_t s;
 		const size_t sdim[4] = { 4, 5, 7, 6 };
 		AllocateTensor(4, sdim, &s);
-		status = ReadData("../test/tensor_test_t2.dat", s.data, sizeof(MKL_Complex16), NumTensorElements(&s));
+		status = ReadData("../test/tensor_test_t2.dat", s.data, sizeof(double complex), NumTensorElements(&s));
 		if (status < 0) { return status; }
 
 		// multiply tensors and store result in 'r'
@@ -118,7 +117,7 @@ int TensorTest()
 		const size_t refdim[4] = { 2, 3, 7, 6 };
 		tensor_t r_ref;
 		AllocateTensor(4, refdim, &r_ref);
-		status = ReadData("../test/tensor_test_t12prod.dat", r_ref.data, sizeof(MKL_Complex16), NumTensorElements(&r_ref));
+		status = ReadData("../test/tensor_test_t12prod.dat", r_ref.data, sizeof(double complex), NumTensorElements(&r_ref));
 		if (status < 0) { return status; }
 
 		// largest error
@@ -136,7 +135,7 @@ int TensorTest()
 		tensor_t s;
 		const size_t sdim[1] = { 5 };
 		AllocateTensor(1, sdim, &s);
-		status = ReadData("../test/tensor_test_t3.dat", s.data, sizeof(MKL_Complex16), NumTensorElements(&s));
+		status = ReadData("../test/tensor_test_t3.dat", s.data, sizeof(double complex), NumTensorElements(&s));
 		if (status < 0) { return status; }
 
 		// multiply tensors and store result in 'r'
@@ -147,7 +146,7 @@ int TensorTest()
 		const size_t refdim[3] = { 2, 3, 4 };
 		tensor_t r_ref;
 		AllocateTensor(3, refdim, &r_ref);
-		status = ReadData("../test/tensor_test_t13prod.dat", r_ref.data, sizeof(MKL_Complex16), NumTensorElements(&r_ref));
+		status = ReadData("../test/tensor_test_t13prod.dat", r_ref.data, sizeof(double complex), NumTensorElements(&r_ref));
 		if (status < 0) { return status; }
 
 		// largest error
@@ -165,7 +164,7 @@ int TensorTest()
 		tensor_t s;
 		const size_t sdim[1] = { 2 };
 		AllocateTensor(1, sdim, &s);
-		status = ReadData("../test/tensor_test_t4.dat", s.data, sizeof(MKL_Complex16), NumTensorElements(&s));
+		status = ReadData("../test/tensor_test_t4.dat", s.data, sizeof(double complex), NumTensorElements(&s));
 		if (status < 0) { return status; }
 
 		// multiply tensors and store result in 'r'
@@ -176,7 +175,7 @@ int TensorTest()
 		const size_t refdim[3] = { 3, 4, 5 };
 		tensor_t r_ref;
 		AllocateTensor(3, refdim, &r_ref);
-		status = ReadData("../test/tensor_test_t41prod.dat", r_ref.data, sizeof(MKL_Complex16), NumTensorElements(&r_ref));
+		status = ReadData("../test/tensor_test_t41prod.dat", r_ref.data, sizeof(double complex), NumTensorElements(&r_ref));
 		if (status < 0) { return status; }
 
 		// largest error
@@ -200,7 +199,7 @@ int TensorTest()
 		// create another tensor 's'
 		tensor_t s;
 		AllocateTensor(1, &nelem, &s);
-		status = ReadData("../test/tensor_test_t5.dat", s.data, sizeof(MKL_Complex16), NumTensorElements(&s));
+		status = ReadData("../test/tensor_test_t5.dat", s.data, sizeof(double complex), NumTensorElements(&s));
 		if (status < 0) { return status; }
 
 		// multiply tensors and store result in 'r'
@@ -210,8 +209,7 @@ int TensorTest()
 		// reference tensor for checking
 		tensor_t r_ref;
 		AllocateTensor(0, NULL, &r_ref);
-		r_ref.data[0].real = -5.730605734864588;
-		r_ref.data[0].imag =  2.495227138171611;
+		r_ref.data[0] = -5.730605734864588 + 2.495227138171611*_Complex_I;
 
 		// largest error
 		err = fmax(err, TensorDifference(&r, &r_ref));
@@ -229,7 +227,7 @@ int TensorTest()
 		tensor_t s;
 		const size_t sdim[4] = { 6, 5, 7, 2 };
 		AllocateTensor(4, sdim, &s);
-		status = ReadData("../test/tensor_test_t6.dat", s.data, sizeof(MKL_Complex16), NumTensorElements(&s));
+		status = ReadData("../test/tensor_test_t6.dat", s.data, sizeof(double complex), NumTensorElements(&s));
 		if (status < 0) { return status; }
 
 		tensor_t r;
@@ -239,7 +237,7 @@ int TensorTest()
 		tensor_t r_ref;
 		const size_t refdim[4] = { 12, 15, 28, 10 };
 		AllocateTensor(4, refdim, &r_ref);
-		status = ReadData("../test/tensor_test_t16prod.dat", r_ref.data, sizeof(MKL_Complex16), NumTensorElements(&r_ref));
+		status = ReadData("../test/tensor_test_t16prod.dat", r_ref.data, sizeof(double complex), NumTensorElements(&r_ref));
 		if (status < 0) { return status; }
 
 		// largest error
@@ -257,16 +255,16 @@ int TensorTest()
 		tensor_t s;
 		const size_t sdim[3] = { 5, 5, 5 };
 		AllocateTensor(3, sdim, &s);
-		status = ReadData("../test/tensor_test_t7.dat", s.data, sizeof(MKL_Complex16), NumTensorElements(&s));
+		status = ReadData("../test/tensor_test_t7.dat", s.data, sizeof(double complex), NumTensorElements(&s));
 		if (status < 0) { return status; }
 
-		MKL_Complex16 tr = TensorTrace(&s);
+		double complex tr = TensorTrace(&s);
 
 		// reference value for checking
-		MKL_Complex16 tr_ref = { 0.10510088120116468, 1.05270644643872 };
+		double complex tr_ref = 0.10510088120116468 + 1.05270644643872*_Complex_I;
 
 		// largest error
-		err = fmax(err, ComplexAbs(ComplexSubtract(tr, tr_ref)));
+		err = fmax(err, cabs(tr - tr_ref));
 
 		// clean up
 		DeleteTensor(&s);

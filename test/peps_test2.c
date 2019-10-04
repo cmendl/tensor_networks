@@ -1,5 +1,4 @@
 #include "peps.h"
-#include "complex.h"
 #include "util.h"
 #include <math.h>
 #include <stdlib.h>
@@ -28,8 +27,7 @@ int PEPSTest2()
 			const tensor_t *A = &psi.A[x + L*y];
 			const size_t nelem = NumTensorElements(A);
 			for (j = 0; j < nelem; j++) {
-				A->data[j].real = ((j % 2) - 0.5 + 1.0 / sqrt(1 + x*x + y*y)) / 16;
-				A->data[j].imag = (((j+1) % 5) - 2.5 + atan(x - y - 1)) / 16;
+				A->data[j] = ((j % 2) - 0.5 + 1.0 / sqrt(1 + x*x + y*y)) / 16 + (((j+1) % 5) - 2.5 + atan(x - y - 1)) / 16 * _Complex_I;
 			}
 		}
 	}
@@ -85,11 +83,11 @@ int PEPSTest2()
 	MultiplyTensor(&u[L-2], &mps_bottom, 1, &scalar_prod);
 	assert(scalar_prod.ndim == 0);
 
-	printf("scalar_prod.data[0]: (%g, %g)\n", scalar_prod.data[0].real, scalar_prod.data[0].imag);
+	printf("scalar_prod.data[0]: %g%+gi\n", creal(scalar_prod.data[0]), cimag(scalar_prod.data[0]));
 
 	// compare with reference
-	MKL_Complex16 sp_ref = { 28078.256738974185, 0 };
-	double err = ComplexAbs(ComplexSubtract(scalar_prod.data[0], sp_ref)) / ComplexAbs(sp_ref);
+	const double sp_ref = 28078.256738974185;
+	double err = cabs(scalar_prod.data[0] - sp_ref) / fabs(sp_ref);
 	printf("Relative error: %g\n", err);
 
 	// clean up

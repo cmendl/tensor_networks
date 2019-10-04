@@ -1,6 +1,5 @@
 #include "hamiltonian_bose_hubbard.h"
 #include "dynamics.h"
-#include "complex.h"
 #include "sim_params.h"
 #include "profiler.h"
 #include "dupio.h"
@@ -172,7 +171,7 @@ int main(int argc, char *argv[])
 		AllocateTensor(2, dim, &bd);
 		for (j = 0; j < d - 1; j++)
 		{
-			bd.data[(j+1) + j*d].real = sqrt(1.0 + j);
+			bd.data[(j+1) + j*d] = sqrt(1.0 + j);
 		}
 	}
 	// bosonic annihilation operator
@@ -182,7 +181,7 @@ int main(int argc, char *argv[])
 		AllocateTensor(2, dim, &b);
 		for (j = 0; j < d - 1; j++)
 		{
-			b.data[j + (j+1)*d].real = sqrt(1.0 + j);
+			b.data[j + (j+1)*d] = sqrt(1.0 + j);
 		}
 	}
 	// bosonic number operator
@@ -192,7 +191,7 @@ int main(int argc, char *argv[])
 		AllocateTensor(2, dim, &bn);
 		for (j = 0; j < d; j++)
 		{
-			bn.data[j + j*d].real = (double)j;
+			bn.data[j + j*d] = j;
 		}
 	}
 
@@ -213,10 +212,9 @@ int main(int argc, char *argv[])
 	{
 		// initialize exp_betaH by the scaled identity operation (such that Frobenius norm is 1)
 		CreateIdentityMPO(L, d, &exp_betaH);
-		const MKL_Complex16 invsqrt_d = { 1.0 / sqrt(d), 0 };
 		for (i = 0; i < L; i++)
 		{
-			ScaleTensor(invsqrt_d, &exp_betaH.A[i]);
+			ScaleTensor(1.0 / sqrt(d), &exp_betaH.A[i]);
 		}
 
 		// number of imaginary time steps
@@ -227,11 +225,9 @@ int main(int argc, char *argv[])
 			return -4;
 		}
 
-		const MKL_Complex16 dbeta = { params.dbeta, 0 };
-
 		// compute evolution dynamics data required for Strang splitting evolution
 		dynamics_data_t dyn;
-		ComputeDynamicsDataStrang(L, dbeta, d*d, (const double **)h, &dyn);
+		ComputeDynamicsDataStrang(L, params.dbeta, d*d, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
 		double *tol_eff_beta = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
@@ -253,7 +249,7 @@ int main(int argc, char *argv[])
 	}
 
 	// record trace of exp(-beta H)
-	const double Zbeta = ComplexReal(MPOTrace(&exp_betaH));
+	const double Zbeta = creal(MPOTrace(&exp_betaH));
 	duprintf("Trace of exp_betaH: %g\n", Zbeta);
 
 	// compute local density
@@ -269,7 +265,7 @@ int main(int argc, char *argv[])
 			// apply number operator at site i
 			ApplySingleSiteTopOperator(&bn, &exp_betaH_n.A[i]);
 
-			density[i] = ComplexReal(MPOTrace(&exp_betaH_n)) / Zbeta;
+			density[i] = creal(MPOTrace(&exp_betaH_n)) / Zbeta;
 
 			// restore original tensor at site i
 			DeleteTensor(&exp_betaH_n.A[i]);
@@ -291,7 +287,7 @@ int main(int argc, char *argv[])
 		mpo_t mpoH;
 		ConstructBoseHubbardMPO(L, d - 1, params.t, params.U, params.mu, &mpoH);
 
-		const double energy = ComplexReal(MPOTraceProduct(&exp_betaH, &mpoH)) / Zbeta;
+		const double energy = creal(MPOTraceProduct(&exp_betaH, &mpoH)) / Zbeta;
 		duprintf("Total energy Tr[exp(-beta H) H]: %g\n", energy);
 
 		// save energy to disk
@@ -318,8 +314,7 @@ int main(int argc, char *argv[])
 
 	// compute dynamics data for time evolution
 	dynamics_data_t dyn_time;
-	const MKL_Complex16 idt = { 0, params.dt };
-	ComputeDynamicsDataPRK(L, idt, d*d, (const double **)h, &dyn_time);
+	ComputeDynamicsDataPRK(L, params.dt*_Complex_I, d*d, (const double **)h, &dyn_time);
 
 	// perform time evolution and compute OTOCs at several time points
 
@@ -330,9 +325,9 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	MKL_Complex16 *otoc1 = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
-	MKL_Complex16 *otoc2 = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
-	MKL_Complex16 *gf    = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
+	double complex *otoc1 = (double complex *)algn_malloc((nsteps + 1)*sizeof(double complex));
+	double complex *otoc2 = (double complex *)algn_malloc((nsteps + 1)*sizeof(double complex));
+	double complex *gf    = (double complex *)algn_malloc((nsteps + 1)*sizeof(double complex));
 
 	// effective tolerance (truncation weight)
 	double *tol_eff_A = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
@@ -358,9 +353,9 @@ int main(int argc, char *argv[])
 			duprintf("Continuing simulation after time step %i...\n", nstart);
 
 			// read intermediate results to disk
-			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1_tmp.dat",     argv[4], L, d - 1); status = ReadData(filename, otoc1,     sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
-			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc2_tmp.dat",     argv[4], L, d - 1); status = ReadData(filename, otoc2,     sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
-			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_gf_tmp.dat",        argv[4], L, d - 1); status = ReadData(filename, gf,        sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1_tmp.dat",     argv[4], L, d - 1); status = ReadData(filename, otoc1,     sizeof(double complex), nstart + 1);    if (status < 0) { return status; }
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc2_tmp.dat",     argv[4], L, d - 1); status = ReadData(filename, otoc2,     sizeof(double complex), nstart + 1);    if (status < 0) { return status; }
+			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_gf_tmp.dat",        argv[4], L, d - 1); status = ReadData(filename, gf,        sizeof(double complex), nstart + 1);    if (status < 0) { return status; }
 			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXA_tmp.dat",       argv[4], L, d - 1); status = ReadData(filename, D_XA,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
 			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXB_tmp.dat",       argv[4], L, d - 1); status = ReadData(filename, D_XB,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
 			sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_A_tmp.dat", argv[4], L, d - 1); status = ReadData(filename, tol_eff_A, sizeof(double),  nstart     *(L - 1));  if (status < 0) { return status; }
@@ -374,8 +369,8 @@ int main(int argc, char *argv[])
 			AllocateMPO(L, dim, &D_XB[nstart*(L + 1)], &XB);
 			for (i = 0; i < L; i++)
 			{
-				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/A%i.dat", argv[4], L, d - 1, i); status = ReadData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]));  if (status < 0) { return status; }
-				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/A%i.dat", argv[4], L, d - 1, i); status = ReadData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]));  if (status < 0) { return status; }
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/A%i.dat", argv[4], L, d - 1, i); status = ReadData(filename, XA.A[i].data, sizeof(double complex), NumTensorElements(&XA.A[i]));  if (status < 0) { return status; }
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/A%i.dat", argv[4], L, d - 1, i); status = ReadData(filename, XB.A[i].data, sizeof(double complex), NumTensorElements(&XB.A[i]));  if (status < 0) { return status; }
 			}
 
 			// single step
@@ -406,7 +401,7 @@ int main(int argc, char *argv[])
 			ApplySingleSiteBottomOperator(&bd, &XA.A[i_site]);  //     creation operator at site i
 			ApplySingleSiteBottomOperator(&b,  &XB.A[i_site]);  // annihilation operator at site i
 
-			otoc1[n] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
+			otoc1[n] = MPOTraceProduct(&XA, &XB) / Zbeta;
 
 			// restore original tensors
 			DeleteTensor(&XA.A[i_site]);
@@ -417,8 +412,8 @@ int main(int argc, char *argv[])
 			ApplySingleSiteBottomOperator(&b,  &XA.A[i_site]);  // annihilation operator at site i
 			ApplySingleSiteBottomOperator(&bd, &XB.A[i_site]);  //     creation operator at site i
 
-			otoc2[n] = ComplexScale(1/Zbeta, MPOTraceProduct(&XA, &XB));
-			   gf[n] = ComplexScale(1/Zbeta, MPOTrace(&XA));
+			otoc2[n] = MPOTraceProduct(&XA, &XB) / Zbeta;
+			   gf[n] = MPOTrace(&XA) / Zbeta;
 
 			// restore original tensors
 			DeleteTensor(&XA.A[i_site]);
@@ -432,9 +427,9 @@ int main(int argc, char *argv[])
 		MPOBondDims(&XB, &D_XB[n*(L + 1)]);
 
 		// save intermediate results to disk
-		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1_tmp.dat", argv[4], L, d - 1); WriteData(filename, &otoc1[n], sizeof(MKL_Complex16), 1, true);
-		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc2_tmp.dat", argv[4], L, d - 1); WriteData(filename, &otoc2[n], sizeof(MKL_Complex16), 1, true);
-		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_gf_tmp.dat",    argv[4], L, d - 1); WriteData(filename, &gf[n],    sizeof(MKL_Complex16), 1, true);
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1_tmp.dat", argv[4], L, d - 1); WriteData(filename, &otoc1[n], sizeof(double complex), 1, true);
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc2_tmp.dat", argv[4], L, d - 1); WriteData(filename, &otoc2[n], sizeof(double complex), 1, true);
+		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_gf_tmp.dat",    argv[4], L, d - 1); WriteData(filename, &gf[n],    sizeof(double complex), 1, true);
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXA_tmp.dat",   argv[4], L, d - 1); WriteData(filename, &D_XA[n*(L + 1)], sizeof(size_t), L + 1, true);
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXB_tmp.dat",   argv[4], L, d - 1); WriteData(filename, &D_XB[n*(L + 1)], sizeof(size_t), L + 1, true);
 		if (n > 0) {
@@ -445,8 +440,8 @@ int main(int argc, char *argv[])
 		{
 			for (i = 0; i < L; i++)
 			{
-				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/A%i.dat", argv[4], L, d - 1, i); WriteData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]), false);
-				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/A%i.dat", argv[4], L, d - 1, i); WriteData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]), false);
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XA/A%i.dat", argv[4], L, d - 1, i); WriteData(filename, XA.A[i].data, sizeof(double complex), NumTensorElements(&XA.A[i]), false);
+				sprintf(filename, "%s/bose_hubbard_L%i_M%zu_XB/A%i.dat", argv[4], L, d - 1, i); WriteData(filename, XB.A[i].data, sizeof(double complex), NumTensorElements(&XB.A[i]), false);
 			}
 		}
 
@@ -464,9 +459,9 @@ int main(int argc, char *argv[])
 	}
 
 	duprintf("At t = %g:\n", params.tmax);
-	duprintf("<bj^dagger(t) bi^dagger(0) bj(t) bi(0)> = (%g, %g)\n", otoc1[nsteps].real, otoc1[nsteps].imag);
-	duprintf("<bj^dagger(t) bi(0) bj(t) bi^dagger(0)> = (%g, %g)\n", otoc2[nsteps].real, otoc2[nsteps].imag);
-	duprintf("<bj^dagger(t) bi(0)>                    = (%g, %g)\n",    gf[nsteps].real,    gf[nsteps].imag);
+	duprintf("<bj^dagger(t) bi^dagger(0) bj(t) bi(0)> = %g%+gi\n", creal(otoc1[nsteps]), cimag(otoc1[nsteps]));
+	duprintf("<bj^dagger(t) bi(0) bj(t) bi^dagger(0)> = %g%+gi\n", creal(otoc2[nsteps]), cimag(otoc2[nsteps]));
+	duprintf("<bj^dagger(t) bi(0)>                    = %g%+gi\n",    creal(gf[nsteps]),    cimag(gf[nsteps]));
 	duprintf("\n");
 
 	const clock_t t_cpu_end = clock();
@@ -483,9 +478,9 @@ int main(int argc, char *argv[])
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
 
 	// save results to disk
-	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1.dat",     argv[4], L, d - 1); WriteData(filename, otoc1, sizeof(MKL_Complex16),   nsteps + 1, false);
-	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc2.dat",     argv[4], L, d - 1); WriteData(filename, otoc2, sizeof(MKL_Complex16),   nsteps + 1, false);
-	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_gf.dat",        argv[4], L, d - 1); WriteData(filename, gf,    sizeof(MKL_Complex16),   nsteps + 1, false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1.dat",     argv[4], L, d - 1); WriteData(filename, otoc1, sizeof(double complex),  nsteps + 1, false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc2.dat",     argv[4], L, d - 1); WriteData(filename, otoc2, sizeof(double complex),  nsteps + 1, false);
+	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_gf.dat",        argv[4], L, d - 1); WriteData(filename, gf,    sizeof(double complex),  nsteps + 1, false);
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_A.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_A, sizeof(double),  nsteps*(L - 1), false);
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_B.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_B, sizeof(double),  nsteps*(L - 1), false);
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXA.dat",       argv[4], L, d - 1); WriteData(filename, D_XA, sizeof(size_t), (nsteps + 1)*(L + 1), false);

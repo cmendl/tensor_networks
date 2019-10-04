@@ -1,5 +1,4 @@
 #include "mpo.h"
-#include "complex.h"
 #include "util.h"
 #include <stdlib.h>
 #include <memory.h>
@@ -29,7 +28,7 @@ static double MPOBlockStructureError(const tensor_t *A, const qnumber_t *restric
 				{
 					if (qd[0][i] + qD0[k] != qd[1][j] + qD1[l])
 					{
-						err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*(k + A->dim[2]*l))]);
+						err += cabs(A->data[i + A->dim[0]*(j + A->dim[1]*(k + A->dim[2]*l))]);
 					}
 				}
 			}
@@ -97,21 +96,21 @@ int MPOTest()
 	{
 		char filename[1024];
 		sprintf(filename, "../test/mpo_test_A%i.dat", i);
-		status = ReadData(filename, X.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&X.A[i]));
+		status = ReadData(filename, X.A[i].data, sizeof(double complex), NumTensorElements(&X.A[i]));
 		if (status < 0) { return status; }
 	}
 	for (i = 0; i < L; i++)
 	{
 		char filename[1024];
 		sprintf(filename, "../test/mpo_test_B%i.dat", i);
-		status = ReadData(filename, Y.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&Y.A[i]));
+		status = ReadData(filename, Y.A[i].data, sizeof(double complex), NumTensorElements(&Y.A[i]));
 		if (status < 0) { return status; }
 	}
 	for (i = 0; i < L; i++)
 	{
 		char filename[1024];
 		sprintf(filename, "../test/mpo_test_C%i.dat", i);
-		status = ReadData(filename, Z.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&Z.A[i]));
+		status = ReadData(filename, Z.A[i].data, sizeof(double complex), NumTensorElements(&Z.A[i]));
 		if (status < 0) { return status; }
 	}
 
@@ -151,9 +150,9 @@ int MPOTest()
 
 			// non-zero entries of reference tensor
 			const size_t nnz = 9412;
-			MKL_Complex16 *val = (MKL_Complex16 *)algn_malloc(nnz*sizeof(MKL_Complex16));
+			double complex *val = (double complex *)algn_malloc(nnz*sizeof(double complex));
 			uint64_t      *ind =      (uint64_t *)algn_malloc(nnz*sizeof(uint64_t));
-			status = ReadData("../test/mpo_test_A_merged_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
+			status = ReadData("../test/mpo_test_A_merged_val.dat", val, sizeof(double complex), nnz); if (status < 0) { return status; }
 			status = ReadData("../test/mpo_test_A_merged_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
 			size_t j;
 			for (j = 0; j < nnz; j++)
@@ -172,7 +171,7 @@ int MPOTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&Am_ref), (double *)Am.data, (double *)Am_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&Am_ref), Am.data, Am_ref.data));
 		}
 
 		DeleteTensor(&Am_ref);
@@ -181,13 +180,13 @@ int MPOTest()
 
 	// trace
 	{
-		MKL_Complex16 tr = MPOTrace(&Z);
+		double complex tr = MPOTrace(&Z);
 
 		// reference value
-		const MKL_Complex16 tr_ref = { -0.3918459574696666, -2.4900774855912697 };
+		const double complex tr_ref = -0.3918459574696666 - 2.4900774855912697*_Complex_I;
 
 		// relative error
-		err = fmax(err, ComplexAbs(ComplexSubtract(tr, tr_ref)) / ComplexAbs(tr_ref));
+		err = fmax(err, cabs(tr - tr_ref) / cabs(tr_ref));
 	}
 
 	// reduction step required for trace of tensor product
@@ -198,7 +197,7 @@ int MPOTest()
 		dim[0] = 8;
 		dim[1] = 7;
 		AllocateTensor(2, dim, &R);
-		status = ReadData("../test/mpo_test_R0.dat", R.data, sizeof(MKL_Complex16), NumTensorElements(&R));
+		status = ReadData("../test/mpo_test_R0.dat", R.data, sizeof(double complex), NumTensorElements(&R));
 		if (status < 0) { return status; }
 
 		MPOTraceProductTensorReduce(&X.A[2], &Y.A[2], &R);
@@ -208,7 +207,7 @@ int MPOTest()
 		dim[0] = 6;
 		dim[1] = 9;
 		AllocateTensor(2, dim, &R_ref);
-		status = ReadData("../test/mpo_test_R1.dat", R_ref.data, sizeof(MKL_Complex16), NumTensorElements(&R_ref));
+		status = ReadData("../test/mpo_test_R1.dat", R_ref.data, sizeof(double complex), NumTensorElements(&R_ref));
 		if (status < 0) { return status; }
 
 		if (NumTensorElements(&R) != NumTensorElements(&R_ref))
@@ -218,7 +217,7 @@ int MPOTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&R), (double *)R.data, (double *)R_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&R), R.data, R_ref.data));
 		}
 
 		DeleteTensor(&R_ref);
@@ -227,13 +226,13 @@ int MPOTest()
 
 	// trace of tensor product
 	{
-		MKL_Complex16 tr = MPOTraceProduct(&X, &Y);
+		double complex tr = MPOTraceProduct(&X, &Y);
 
 		// reference value
-		const MKL_Complex16 tr_ref = { 0.0034089965364192724, 0.0010843561394613549 };
+		const double complex tr_ref = 0.0034089965364192724 + 0.0010843561394613549*_Complex_I;
 
 		// relative error
-		err = fmax(err, ComplexAbs(ComplexSubtract(tr, tr_ref)) / ComplexAbs(tr_ref));
+		err = fmax(err, cabs(tr - tr_ref) / cabs(tr_ref));
 	}
 
 	// Frobenius norm
@@ -266,18 +265,18 @@ int MPOTest()
 			{
 				char filename[1024];
 				sprintf(filename, "../test/mpo_test_F%i_%i.dat", j, i);
-				status = ReadData(filename, F[j].A[i].data, sizeof(MKL_Complex16), NumTensorElements(&F[j].A[i]));
+				status = ReadData(filename, F[j].A[i].data, sizeof(double complex), NumTensorElements(&F[j].A[i]));
 				if (status < 0) { return status; }
 			}
 		}
 
-		const MKL_Complex16 tr = MPOTraceQuadProduct(&F[0], &F[1], &F[2], &F[3]);
+		const double complex tr = MPOTraceQuadProduct(&F[0], &F[1], &F[2], &F[3]);
 
 		// reference value
-		const MKL_Complex16 tr_ref = { -0.18256141240166204, -0.03934545059094635 };
+		const double complex tr_ref = -0.18256141240166204 - 0.03934545059094635*_Complex_I;
 
 		// relative error
-		err = fmax(err, ComplexAbs(ComplexSubtract(tr, tr_ref)) / ComplexAbs(tr_ref));
+		err = fmax(err, cabs(tr - tr_ref) / cabs(tr_ref));
 
 		// clean up
 		for (j = 0; j < 4; j++)
@@ -317,9 +316,9 @@ int MPOTest()
 
 			// non-zero entries of reference tensor
 			const size_t nnz = 75233;
-			MKL_Complex16 *val = (MKL_Complex16 *)algn_malloc(nnz*sizeof(MKL_Complex16));
+			double complex *val = (double complex *)algn_malloc(nnz*sizeof(double complex));
 			uint64_t      *ind =      (uint64_t *)algn_malloc(nnz*sizeof(uint64_t));
-			status = ReadData("../test/mpo_test_ABsum_merged_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
+			status = ReadData("../test/mpo_test_ABsum_merged_val.dat", val, sizeof(double complex), nnz); if (status < 0) { return status; }
 			status = ReadData("../test/mpo_test_ABsum_merged_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
 			size_t j;
 			for (j = 0; j < nnz; j++)
@@ -338,7 +337,7 @@ int MPOTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&XYhm_ref), (double *)XYhm.data, (double *)XYhm_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&XYhm_ref), XYhm.data, XYhm_ref.data));
 		}
 
 		DeleteTensor(&XYhm_ref);
@@ -353,7 +352,7 @@ int MPOTest()
 		{
 			const size_t dim[4] = { d0 * d1, d0 * d1, 13, 11 };
 			AllocateTensor(4, dim, &G2);
-			status = ReadData("../test/mpo_test_G2.dat", G2.data, sizeof(MKL_Complex16), NumTensorElements(&G2));
+			status = ReadData("../test/mpo_test_G2.dat", G2.data, sizeof(double complex), NumTensorElements(&G2));
 			if (status < 0) { return status; }
 		}
 
@@ -421,7 +420,7 @@ int MPOTest()
 			else
 			{
 				// largest entrywise error
-				err = fmax(err, UniformDistance(2*NumTensorElements(&G2), (double *)G2mrg.data, (double *)G2.data));
+				err = fmax(err, UniformDistance(NumTensorElements(&G2), G2mrg.data, G2.data));
 			}
 			DeleteTensor(&G2mrg);
 
@@ -491,12 +490,12 @@ int MPOTest()
 				{
 					const size_t dim[4] = { G2.dim[0], G2.dim[1], G2.dim[2], G2.dim[3] };
 					AllocateTensor(4, dim, &G2mrg_ref);
-					status = ReadData("../test/mpo_test_G2_red.dat", G2mrg_ref.data, sizeof(MKL_Complex16), NumTensorElements(&G2mrg_ref));
+					status = ReadData("../test/mpo_test_G2_red.dat", G2mrg_ref.data, sizeof(double complex), NumTensorElements(&G2mrg_ref));
 					if (status < 0) { return status; }
 				}
 
 				// largest entrywise error
-				err = fmax(err, UniformDistance(2*NumTensorElements(&G2mrg_ref), (double *)G2mrg.data, (double *)G2mrg_ref.data));
+				err = fmax(err, UniformDistance(NumTensorElements(&G2mrg_ref), G2mrg.data, G2mrg_ref.data));
 
 				DeleteTensor(&G2mrg_ref);
 			}
@@ -517,12 +516,12 @@ int MPOTest()
 		{
 			const size_t dimK0[4] = { d0, d0, 5, 14 };
 			AllocateTensor(4, dimK0, &K0);
-			status = ReadData("../test/mpo_test_K0.dat", K0.data, sizeof(MKL_Complex16), NumTensorElements(&K0));
+			status = ReadData("../test/mpo_test_K0.dat", K0.data, sizeof(double complex), NumTensorElements(&K0));
 			if (status < 0) { return status; }
 
 			const size_t dimK1[4] = { d1, d1, 14, 7 };
 			AllocateTensor(4, dimK1, &K1);
-			status = ReadData("../test/mpo_test_K1.dat", K1.data, sizeof(MKL_Complex16), NumTensorElements(&K1));
+			status = ReadData("../test/mpo_test_K1.dat", K1.data, sizeof(double complex), NumTensorElements(&K1));
 			if (status < 0) { return status; }
 		}
 
@@ -592,12 +591,12 @@ int MPOTest()
 			tensor_t K2mrg_ref;
 			{
 				AllocateTensor(4, K2mrg.dim, &K2mrg_ref);
-				status = ReadData("../test/mpo_test_cK2.dat", K2mrg_ref.data, sizeof(MKL_Complex16), NumTensorElements(&K2mrg_ref));
+				status = ReadData("../test/mpo_test_cK2.dat", K2mrg_ref.data, sizeof(double complex), NumTensorElements(&K2mrg_ref));
 				if (status < 0) { return status; }
 			}
 
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&K2mrg_ref), (double *)K2mrg.data, (double *)K2mrg_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&K2mrg_ref), K2mrg.data, K2mrg_ref.data));
 
 			DeleteTensor(&K2mrg_ref);
 		}
@@ -621,7 +620,7 @@ int MPOTest()
 
 			// load modified 'Z' tensor data from disk
 			{
-				status = ReadData("../test/mpo_test_C2_mod.dat", Zmod.A[2].data, sizeof(MKL_Complex16), NumTensorElements(&Zmod.A[2]));
+				status = ReadData("../test/mpo_test_C2_mod.dat", Zmod.A[2].data, sizeof(double complex), NumTensorElements(&Zmod.A[2]));
 				if (status < 0) { return status; }
 			}
 
@@ -649,7 +648,7 @@ int MPOTest()
 			else
 			{
 				// largest entrywise error
-				err = fmax(err, UniformDistance(2*NumTensorElements(&Am_ref), (double *)Am.data, (double *)Am_ref.data));
+				err = fmax(err, UniformDistance(NumTensorElements(&Am_ref), Am.data, Am_ref.data));
 			}
 
 			DeleteTensor(&Am);
@@ -673,7 +672,7 @@ int MPOTest()
 		{
 			char filename[1024];
 			sprintf(filename, "../test/mpo_test_CA%i.dat", i);
-			status = ReadData(filename, ZX_ref.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&ZX_ref.A[i]));
+			status = ReadData(filename, ZX_ref.A[i].data, sizeof(double complex), NumTensorElements(&ZX_ref.A[i]));
 			if (status < 0) { return status; }
 		}
 
@@ -704,7 +703,7 @@ int MPOTest()
 			else
 			{
 				// largest entrywise error
-				err = fmax(err, UniformDistance(2*NumTensorElements(&ZX_ref.A[i]), (double *)ZX.A[i].data, (double *)ZX_ref.A[i].data));
+				err = fmax(err, UniformDistance(NumTensorElements(&ZX_ref.A[i]), ZX.A[i].data, ZX_ref.A[i].data));
 			}
 		}
 
@@ -750,7 +749,7 @@ int MPOTest()
 				{
 					char filename[1024];
 					sprintf(filename, "../test/mpo_test_opc%i_%i.dat", j, k);
-					status = ReadData(filename, opchains[j].op[k].data, sizeof(MKL_Complex16), NumTensorElements(&opchains[j].op[k]));
+					status = ReadData(filename, opchains[j].op[k].data, sizeof(double complex), NumTensorElements(&opchains[j].op[k]));
 					if (status < 0) { return status; }
 				}
 
@@ -781,7 +780,7 @@ int MPOTest()
 			{
 				char filename[1024];
 				sprintf(filename, "../test/mpo_test_W%i.dat", i);
-				status = ReadData(filename, W_ref.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&W_ref.A[i]));
+				status = ReadData(filename, W_ref.A[i].data, sizeof(double complex), NumTensorElements(&W_ref.A[i]));
 				if (status < 0) { return status; }
 			}
 
@@ -809,7 +808,7 @@ int MPOTest()
 			else
 			{
 				// largest entrywise error
-				err = fmax(err, UniformDistance(2*NumTensorElements(&W_ref.A[i]), (double *)W.A[i].data, (double *)W_ref.A[i].data));
+				err = fmax(err, UniformDistance(NumTensorElements(&W_ref.A[i]), W.A[i].data, W_ref.A[i].data));
 			}
 		}
 		// check virtual bond quantum numbers

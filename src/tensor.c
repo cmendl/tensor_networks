@@ -71,7 +71,7 @@ void AllocateTensor(const int ndim, const size_t *restrict dim, tensor_t *restri
 		const size_t nelem = NumTensorElements(t);
 		// dimensions must be strictly positive
 		assert(nelem > 0);
-		t->data = (MKL_Complex16 *)algn_calloc(nelem, sizeof(MKL_Complex16));
+		t->data = (double complex *)algn_calloc(nelem, sizeof(double complex));
 		assert(t->data != NULL);
 	}
 	else    // ndim == 0
@@ -84,7 +84,7 @@ void AllocateTensor(const int ndim, const size_t *restrict dim, tensor_t *restri
 		#endif
 
 		// allocate memory for a single number
-		t->data = (MKL_Complex16 *)algn_calloc(1, sizeof(MKL_Complex16));
+		t->data = (double complex *)algn_calloc(1, sizeof(double complex));
 		assert(t->data != NULL);
 	}
 
@@ -148,7 +148,7 @@ void CopyTensor(const tensor_t *restrict src, tensor_t *restrict dst)
 
 	__assume_aligned(src->data, MEM_DATA_ALIGN);
 	__assume_aligned(dst->data, MEM_DATA_ALIGN);
-	memcpy(dst->data, src->data, nelem*sizeof(MKL_Complex16));
+	memcpy(dst->data, src->data, nelem*sizeof(double complex));
 
 	#ifdef _DEBUG
 	int i;
@@ -180,11 +180,11 @@ void IdentityTensor(tensor_t *restrict t)
 	}
 	assert(NumTensorElements(t) == n*dp);
 
-	memset(t->data, 0, n*dp * sizeof(MKL_Complex16));
+	memset(t->data, 0, n*dp * sizeof(double complex));
 	size_t j;
 	for (j = 0; j < n; j++)
 	{
-		t->data[j*stride].real = 1;
+		t->data[j*stride] = 1;
 	}
 }
 
@@ -221,7 +221,7 @@ void ConjugateTensor(tensor_t *restrict t)
 	size_t i;
 	for (i = 0; i < nelem; i++)
 	{
-		t->data[i].imag = -t->data[i].imag;
+		t->data[i] = conj(t->data[i]);
 	}
 }
 
@@ -250,77 +250,42 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 	AllocateTensor(t->ndim, rdim, r);
 	algn_free(rdim);
 
-	// probe if we can use MKL transposition (only works if 'perm' exchanges the first two dimensions)
-	bool use_mkl_transpose = true;
-	if (t->ndim <= 1 || (perm[0] != 1) || (perm[1] != 0))
+	// stride (offset between successive elements) in new tensor 'r' corresponding to original first dimension
+	const size_t stride = IntProduct(r->dim, perm[0]);
+
+	const size_t nelem = NumTensorElements(t);
+
+	size_t *index_t = (size_t *)algn_calloc(t->ndim,  sizeof(size_t));
+	size_t *index_r = (size_t *)algn_malloc(t->ndim * sizeof(size_t));
+
+	size_t ot;
+	for (ot = 0; ot < nelem; ot += t->dim[0])
 	{
-		use_mkl_transpose = false;
-	}
-	else
-	{
-		for (i = 2; i < t->ndim; i++)
-		{
-			if (perm[i] != i) {
-				use_mkl_transpose = false;
-				break;
-			}
+		// map index of tensor 't' to index of tensor 'r'
+		for (i = 0; i < t->ndim; i++) {
+			index_r[perm[i]] = index_t[i];
 		}
-	}
+		// convert back to offset of tensor 'r'
+		const size_t or = IndexToOffset(r->ndim, r->dim, index_r);
 
-	if (use_mkl_transpose)
-	{
-		const size_t ntops = IntProduct(t->dim + 2, t->ndim - 2);
-
-		const size_t m = t->dim[0];
-		const size_t n = t->dim[1];
-
-		const MKL_Complex16 one = { 1, 0 };
-
+		// main copy loop
+		const size_t n = t->dim[0];
+		__assume_aligned(t->data, MEM_DATA_ALIGN);
+		__assume_aligned(r->data, MEM_DATA_ALIGN);
 		size_t j;
-		for (j = 0; j < ntops; j++)
+		#pragma ivdep
+		for (j = 0; j < n; j++)
 		{
-			MKL_Zomatcopy('C', 'T', m, n, one, t->data + m*n * j, m, r->data + m*n * j, n);
-		}
-	}
-	else
-	{
-		// stride (offset between successive elements) in new tensor 'r' corresponding to original first dimension
-		const size_t stride = IntProduct(r->dim, perm[0]);
-
-		const size_t nelem = NumTensorElements(t);
-
-		size_t *index_t = (size_t *)algn_calloc(t->ndim,  sizeof(size_t));
-		size_t *index_r = (size_t *)algn_malloc(t->ndim * sizeof(size_t));
-
-		size_t ot;
-		for (ot = 0; ot < nelem; ot += t->dim[0])
-		{
-			// map index of tensor 't' to index of tensor 'r'
-			for (i = 0; i < t->ndim; i++) {
-				index_r[perm[i]] = index_t[i];
-			}
-			// convert back to offset of tensor 'r'
-			const size_t or = IndexToOffset(r->ndim, r->dim, index_r);
-
-			// main copy loop
-			const size_t n = t->dim[0];
-			__assume_aligned(t->data, MEM_DATA_ALIGN);
-			__assume_aligned(r->data, MEM_DATA_ALIGN);
-			size_t j;
-			#pragma ivdep
-			for (j = 0; j < n; j++)
-			{
-				r->data[or + j*stride] = t->data[ot + j];
-			}
-
-			// advance index of tensor 't' by t->dim[0] elements
-			NextIndex(t->ndim - 1, t->dim + 1, index_t + 1);
+			r->data[or + j*stride] = t->data[ot + j];
 		}
 
-		// clean up
-		algn_free(index_r);
-		algn_free(index_t);
+		// advance index of tensor 't' by t->dim[0] elements
+		NextIndex(t->ndim - 1, t->dim + 1, index_t + 1);
 	}
+
+	// clean up
+	algn_free(index_r);
+	algn_free(index_t);
 
 	#ifdef _DEBUG
 	for (i = 0; i < t->ndim; i++) {
@@ -418,16 +383,9 @@ void SubTensor(const tensor_t *restrict t, const size_t *restrict sdim, const si
 ///
 /// \brief Scale tensor t by alpha
 ///
-void ScaleTensor(const MKL_Complex16 alpha, tensor_t *restrict t)
+void ScaleTensor(const double alpha, tensor_t *restrict t)
 {
-	const size_t nelem = NumTensorElements(t);
-	size_t i;
-	for (i = 0; i < nelem; i++)
-	{
-		MKL_Complex16 d = t->data[i];
-		t->data[i].real = alpha.real*d.real - alpha.imag*d.imag;
-		t->data[i].imag = alpha.real*d.imag + alpha.imag*d.real;
-	}
+	cblas_zdscal(NumTensorElements(t), alpha, t->data, 1);
 }
 
 
@@ -435,7 +393,7 @@ void ScaleTensor(const MKL_Complex16 alpha, tensor_t *restrict t)
 ///
 /// \brief Scalar multiply and add two tensors: t = alpha*s + t; dimensions of s and t must agree
 ///
-void ScalarMultiplyAddTensor(const MKL_Complex16 alpha, const tensor_t *restrict s, tensor_t *restrict t)
+void ScalarMultiplyAddTensor(const double complex alpha, const tensor_t *restrict s, tensor_t *restrict t)
 {
 	const size_t nelem = NumTensorElements(s);
 
@@ -515,8 +473,8 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 		else    // tdt > 1
 		{
 			// multiply vector 's' from left, i.e., (t^T * s)^T
-			const MKL_Complex16 one  = { 1, 0 };
-			const MKL_Complex16 zero = { 0, 0 };
+			const double complex one  = 1;
+			const double complex zero = 0;
 			cblas_zgemv(CblasColMajor, CblasTrans, (int)ldt, (int)tdt, &one, t->data, (int)ldt, s->data, 1, &zero, r->data, 1);
 		}
 	}
@@ -525,15 +483,15 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 		if (tdt == 1)
 		{
 			// matrix-vector multiplication
-			const MKL_Complex16 one  = { 1, 0 };
-			const MKL_Complex16 zero = { 0, 0 };
+			const double complex one  = 1;
+			const double complex zero = 0;
 			cblas_zgemv(CblasColMajor, CblasNoTrans, (int)lds, (int)ldt, &one, s->data, (int)lds, t->data, 1, &zero, r->data, 1);
 		}
 		else    // tdt > 1
 		{
 			// matrix-matrix multiplication
-			const MKL_Complex16 one  = { 1, 0 };
-			const MKL_Complex16 zero = { 0, 0 };
+			const double complex one  = 1;
+			const double complex zero = 0;
 			cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, (int)lds, (int)tdt, (int)ldt, &one, s->data, (int)lds, t->data, (int)ldt, &zero, r->data, (int)lds);
 		}
 	}
@@ -573,7 +531,7 @@ void TensorKroneckerProduct(const tensor_t *restrict s, const tensor_t *restrict
 	assert(NumTensorElements(&u) == m*n);
 
 	// outer product; u.data must have been initialized with zeros
-	const MKL_Complex16 one = { 1, 0 };
+	const double complex one = 1;
 	cblas_zgeru(CblasColMajor, (int)m, (int)n, &one, s->data, 1, t->data, 1, u.data, (int)m);
 
 	// reorder levels of 'u' and store result in 'r'
@@ -608,7 +566,7 @@ void TensorKroneckerProduct(const tensor_t *restrict s, const tensor_t *restrict
 ///
 /// \brief Compute the 'trace' of a tensor (generalization of the matrix trace); all dimensions of the tensor must agree
 ///
-MKL_Complex16 TensorTrace(const tensor_t *restrict t)
+double complex TensorTrace(const tensor_t *restrict t)
 {
 	int i;
 	assert(t->ndim >= 1);
@@ -625,11 +583,10 @@ MKL_Complex16 TensorTrace(const tensor_t *restrict t)
 	}
 
 	size_t j;
-	MKL_Complex16 tr = { 0 };
+	double complex tr = 0;
 	for (j = 0; j < n; j++)
 	{
-		tr.real += t->data[j*stride].real;
-		tr.imag += t->data[j*stride].imag;
+		tr += t->data[j*stride];
 	}
 
 	return tr;

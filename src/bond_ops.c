@@ -89,7 +89,7 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 		AllocateTensor(2, dimR, R);
 
 		// single column of 'Q' should have norm 1
-		Q->data[0].real = 1;
+		Q->data[0] = 1;
 
 		(*qinterm) = (qnumber_t *)algn_malloc(sizeof(qnumber_t));
 		// ensure non-zero entry in 'Q' formally matches quantum numbers
@@ -162,7 +162,7 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 
 		// perform a QR decomposition
 		size_t k = (m <= n ? m : n);    // min(m, n)
-		MKL_Complex16 *tau = (MKL_Complex16 *)algn_malloc(k * sizeof(MKL_Complex16));
+		double complex *tau = (double complex *)algn_malloc(k * sizeof(double complex));
 		int info = LAPACKE_zgeqrf(LAPACK_COL_MAJOR, m, n, Asub.data, m, tau);
 		if (info != 0) {
 			duprintf("Call of LAPACK function 'zgeqrf()' in 'QRDecomposition()' failed, return value: %i\n", info);
@@ -758,8 +758,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		{
 			for (i = 0; i < Dtrunc; i++)
 			{
-				A1->data[i + Dtrunc*j].real *= S[indtr[i]];
-				A1->data[i + Dtrunc*j].imag *= S[indtr[i]];
+				A1->data[i + Dtrunc*j] *= S[indtr[i]];
 			}
 		}
 	}
@@ -779,8 +778,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		{
 			for (i = 0; i < Dtrunc; i++)
 			{
-				A1->data[i + Dtrunc*j].real *= sqrt_sigma[i];
-				A1->data[i + Dtrunc*j].imag *= sqrt_sigma[i];
+				A1->data[i + Dtrunc*j] *= sqrt_sigma[i];
 			}
 		}
 

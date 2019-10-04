@@ -1,6 +1,5 @@
 #include "hamiltonian_bose_hubbard.h"
 #include "dynamics.h"
-#include "complex.h"
 #include "sim_params.h"
 #include "profiler.h"
 #include "dupio.h"
@@ -120,7 +119,7 @@ int main(int argc, char *argv[])
 		AllocateTensor(2, dim, &bn);
 		for (j = 0; j < d; j++)
 		{
-			bn.data[j + j*d].real = (double)j;
+			bn.data[j + j*d] = j;
 		}
 	}
 
@@ -141,10 +140,9 @@ int main(int argc, char *argv[])
 
 	// initialize rho_beta by the scaled identity operation (such that Frobenius norm is 1)
 	CreateIdentityMPO(L, d, &rho_beta);
-	const MKL_Complex16 invsqrt_d = { 1.0 / sqrt(d), 0 };
 	for (i = 0; i < L; i++)
 	{
-		ScaleTensor(invsqrt_d, &rho_beta.A[i]);
+		ScaleTensor(1.0 / sqrt(d), &rho_beta.A[i]);
 	}
 	memcpy(rho_beta.qd[0], qd, d*sizeof(qnumber_t));
 	memcpy(rho_beta.qd[1], qd, d*sizeof(qnumber_t));
@@ -157,11 +155,9 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	const MKL_Complex16 dbeta = { params.dbeta, 0 };
-
 	// compute evolution dynamics data required for Strang splitting evolution
 	dynamics_data_t dyn;
-	ComputeDynamicsDataStrang(L, dbeta, d*d, (const double **)h, &dyn);
+	ComputeDynamicsDataStrang(L, params.dbeta, d*d, (const double **)h, &dyn);
 
 	// effective tolerance (truncation weight)
 	double *tol_eff = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
@@ -195,7 +191,7 @@ int main(int argc, char *argv[])
 	for (i = 0; i < L; i++)
 	{
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_beta%g_A%i.dat", argv[2], L, d - 1, params.beta, i);
-		WriteData(filename, rho_beta.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&rho_beta.A[i]), false);
+		WriteData(filename, rho_beta.A[i].data, sizeof(double complex), NumTensorElements(&rho_beta.A[i]), false);
 	}
 	for (i = 0; i < L + 1; i++)
 	{

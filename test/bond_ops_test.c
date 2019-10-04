@@ -1,5 +1,4 @@
 #include "bond_ops.h"
-#include "complex.h"
 #include "util.h"
 #include <stdio.h>
 
@@ -21,7 +20,7 @@ static double MatrixBlockStructureError(const tensor_t *A, const qnumber_t *rest
 		{
 			if (q0[i] != q1[j])
 			{
-				err += ComplexAbs(A->data[i + A->dim[0]*j]);
+				err += cabs(A->data[i + A->dim[0]*j]);
 			}
 		}
 	}
@@ -44,7 +43,7 @@ int BondOperationsTest()
 	{
 		const size_t dim[2] = { 15, 13 };
 		AllocateTensor(2, dim,  &A);
-		status = ReadData("../test/bond_ops_test_A.dat", A.data, sizeof(MKL_Complex16), NumTensorElements(&A));
+		status = ReadData("../test/bond_ops_test_A.dat", A.data, sizeof(double complex), NumTensorElements(&A));
 		if (status < 0) { return status; }
 	}
 
@@ -127,7 +126,7 @@ int BondOperationsTest()
 		tensor_t A01_ref;
 		const size_t dim[2] = { 15, 13 };
 		AllocateTensor(2, dim,  &A01_ref);
-		status = ReadData("../test/bond_ops_test_A01.dat", A01_ref.data, sizeof(MKL_Complex16), NumTensorElements(&A01_ref));
+		status = ReadData("../test/bond_ops_test_A01.dat", A01_ref.data, sizeof(double complex), NumTensorElements(&A01_ref));
 		if (status < 0) { return status; }
 
 		// probe all SVD distribution modes
@@ -161,7 +160,7 @@ int BondOperationsTest()
 				// compare product of A0 and A1 with reference (instead of A0 and A1 directly, since SVD is not unique)
 				tensor_t A01;
 				MultiplyTensor(&A0, &A1, 1, &A01);
-				err = fmax(err, UniformDistance(2*NumTensorElements(&A01_ref), (double *)A01.data, (double *)A01_ref.data));
+				err = fmax(err, UniformDistance(NumTensorElements(&A01_ref), A01.data, A01_ref.data));
 				DeleteTensor(&A01);
 			}
 
@@ -203,7 +202,7 @@ int BondOperationsTest()
 		}
 		else
 		{
-			err = fmax(err, UniformDistance(2*NumTensorElements(&A), (double *)QR.data, (double *)A.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&A), QR.data, A.data));
 		}
 		DeleteTensor(&QR);
 
@@ -221,7 +220,7 @@ int BondOperationsTest()
 			AllocateTensor(2, QHQ.dim, &id);
 			IdentityTensor(&id);
 
-			err = fmax(err, UniformDistance(2*NumTensorElements(&QHQ), (double *)QHQ.data, (double *)id.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&QHQ), QHQ.data, id.data));
 
 			DeleteTensor(&id);
 			DeleteTensor(&QHQ);

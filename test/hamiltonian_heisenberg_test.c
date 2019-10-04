@@ -1,5 +1,4 @@
 #include "hamiltonian_heisenberg.h"
-#include "complex.h"
 #include "util.h"
 #include <stdio.h>
 
@@ -25,7 +24,7 @@ static double MPOBlockStructureError(const tensor_t *A, const qnumber_t *restric
 				{
 					if (qd[0][i] + qD0[k] != qd[1][j] + qD1[l])
 					{
-						err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*(k + A->dim[2]*l))]);
+						err += cabs(A->data[i + A->dim[0]*(j + A->dim[1]*(k + A->dim[2]*l))]);
 					}
 				}
 			}
@@ -74,7 +73,11 @@ int HamiltonianHeisenbergTest()
 		if (status < 0) { return status; }
 
 		// largest entrywise error
-		err = fmax(err, UniformDistance(4*4, h[i], h_ref_i));
+		int j;
+		for (j = 0; j < 4*4; j++)
+		{
+			err = fmax(err, fabs(h[i][j] - h_ref_i[j]));
+		}
 
 		algn_free(h_ref_i);
 	}
@@ -89,14 +92,14 @@ int HamiltonianHeisenbergTest()
 		const size_t num = NumTensorElements(&mpoH.A[i]);
 
 		// load reference 'W' tensor from disk
-		MKL_Complex16 *W_ref_i = (MKL_Complex16 *)algn_malloc(num * sizeof(MKL_Complex16));
+		double complex *W_ref_i = (double complex *)algn_malloc(num * sizeof(double complex));
 		char filename[1024];
 		sprintf(filename, "../test/hamiltonian_heisenberg_test_W%i.dat", i);
-		status = ReadData(filename, W_ref_i, sizeof(MKL_Complex16), num);
+		status = ReadData(filename, W_ref_i, sizeof(double complex), num);
 		if (status < 0) { return status; }
 
 		// largest entrywise error
-		err = fmax(err, UniformDistance(2*num, (double *)mpoH.A[i].data, (double *)W_ref_i));
+		err = fmax(err, UniformDistance(num, mpoH.A[i].data, W_ref_i));
 
 		algn_free(W_ref_i);
 	}

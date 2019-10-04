@@ -6,9 +6,10 @@
 
 #include <stdlib.h>
 #include <math.h>
-#include <mkl.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <complex.h>
+#include <mkl.h>
 #include <assert.h>
 
 
@@ -55,14 +56,14 @@ inline size_t IntProduct(const size_t *x, const int n)
 double Norm(const size_t n, const double *restrict x);
 
 
-double UniformDistance(const size_t n, const double *restrict x, const double *restrict y);
+double UniformDistance(const size_t n, const double complex *restrict x, const double complex *restrict y);
 
 
 //________________________________________________________________________________________________________________________
 //
 
 
-int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, MKL_Complex16 *restrict ret);
+int MatrixExp(const size_t n, const double complex t, const double *restrict A, double complex *restrict ret);
 
 
 //________________________________________________________________________________________________________________________
@@ -79,7 +80,7 @@ void KroneckerProductRealSquare(const int d, const double *restrict A, const dou
 //
 
 
-void CopyRealToComplexMatrix(const size_t m, const size_t n, const double *restrict A, const size_t lda, MKL_Complex16 *restrict B, const size_t ldb);
+void CopyRealToComplexMatrix(const size_t m, const size_t n, const double *restrict A, const size_t lda, double complex *restrict B, const size_t ldb);
 
 
 //________________________________________________________________________________________________________________________

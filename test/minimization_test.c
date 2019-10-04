@@ -1,6 +1,5 @@
 #include "minimization.h"
 #include "hamiltonian_heisenberg.h"
-#include "complex.h"
 #include "operation.h"
 #include "util.h"
 #include <stdio.h>
@@ -47,8 +46,9 @@ int MinimizationTest()
 			size_t j;
 			for (j = 0; j < n; j++)
 			{
-				psi0.A[i].data[j].real = 0.2*((double)c/3083 - 0.5);	c = (c + 181) % 3083;
-				psi0.A[i].data[j].imag = 0.2*((double)c/3083 - 0.5);	c = (c + 181) % 3083;
+				double re = 0.2*((double)c/3083 - 0.5);  c = (c + 181) % 3083;
+				double im = 0.2*((double)c/3083 - 0.5);  c = (c + 181) % 3083;
+				psi0.A[i].data[j] = re + im*_Complex_I;
 			}
 		}
 	}
@@ -58,7 +58,7 @@ int MinimizationTest()
 	{
 		const size_t len = 0x1 << L;
 		AllocateTensor(1, &len, &psi_ref);
-		int status = ReadData("../test/minimization_test_psi.dat", psi_ref.data, sizeof(MKL_Complex16), len);
+		int status = ReadData("../test/minimization_test_psi.dat", psi_ref.data, sizeof(double complex), len);
 		if (status < 0) { return status; }
 	}
 
@@ -142,14 +142,14 @@ int MinimizationTest()
 		MergeMPSFull(&psi, &psi_full);
 		// scale by phase factor (entries can be choosen real-valued)
 		{
-			MKL_Complex16 z = { 0 };
+			double complex z = 0;
 			// select largest entry
 			double a_max = 0;
 			size_t j_max = 0;
 			size_t j;
 			for (j = 0; j < psi_full.dim[0]; j++)
 			{
-				double a = ComplexAbs(psi_full.data[j]);
+				double a = cabs(psi_full.data[j]);
 				if (a > a_max)
 				{
 					a_max = a;
@@ -158,13 +158,13 @@ int MinimizationTest()
 				}
 			}
 			// normalize
-			z = ComplexScale(1.0 / ComplexAbs(z), z);
+			z /= cabs(z);
 			// complex conjugate (inverse phase shift)
-			z.imag = -z.imag;
+			z = conj(z);
 			// actually scale by phase factor
 			cblas_zscal(psi_full.dim[0], &z, psi_full.data, 1);
 			// flip (arbitrary) sign to match reference wavefunction
-			if (psi_full.data[j_max].real * psi_ref.data[j_max].real < 0)
+			if (creal(psi_full.data[j_max]) * creal(psi_ref.data[j_max]) < 0)
 			{
 				cblas_dscal(2*psi_full.dim[0], -1, (double *)psi_full.data, 1);
 			}
@@ -176,7 +176,7 @@ int MinimizationTest()
 		else
 		{
 			// largest entrywise error
-			err_psi = fmax(err_psi, UniformDistance(2*NumTensorElements(&psi_ref), (double *)psi_full.data, (double *)psi_ref.data));
+			err_psi = fmax(err_psi, UniformDistance(NumTensorElements(&psi_ref), psi_full.data, psi_ref.data));
 		}
 
 		// norm computed via vector representation (should be 1)
@@ -188,8 +188,8 @@ int MinimizationTest()
 		err = fmax(err, fabs(nrm - 1));
 
 		// explicitly compute Hamiltonian average, to compare with optimized energy
-		const MKL_Complex16 avrE = OperatorAverage(&psi, &mpoH);
-		err = fmax(err, fabs(avrE.real - E0) + fabs(avrE.imag));
+		const double complex avrE = OperatorAverage(&psi, &mpoH);
+		err = fmax(err, cabs(avrE - E0));
 
 		DeleteTensor(&psi_full);
 		DeleteMPS(&psi);

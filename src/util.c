@@ -44,13 +44,13 @@ double Norm(const size_t n, const double *restrict x)
 ///
 /// \brief Uniform distance (infinity norm) between 'x' and 'y'
 ///
-double UniformDistance(const size_t n, const double *restrict x, const double *restrict y)
+double UniformDistance(const size_t n, const double complex *restrict x, const double complex *restrict y)
 {
 	double d = 0;
 	size_t i;
 	for (i = 0; i < n; i++)
 	{
-		d = fmax(d, fabs(x[i] - y[i]));
+		d = fmax(d, cabs(x[i] - y[i]));
 	}
 
 	return d;
@@ -61,7 +61,7 @@ double UniformDistance(const size_t n, const double *restrict x, const double *r
 ///
 /// \brief Compute the matrix exponential exp(-t A) with 'A' real symmetric and 't' real or complex
 ///
-int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, MKL_Complex16 *restrict ret)
+int MatrixExp(const size_t n, const double complex t, const double *restrict A, double complex *restrict ret)
 {
 	__assume_aligned(A, MEM_DATA_ALIGN);
 
@@ -80,35 +80,33 @@ int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, M
 	}
 
 	// apply exponential to eigenvalues
-	MKL_Complex16 *exp_tw = algn_malloc(n * sizeof(MKL_Complex16));
+	double complex *exp_tw = algn_malloc(n * sizeof(double complex));
 	size_t i;
 	for (i = 0; i < n; i++)
 	{
-		const double exp_retw = exp(-t.real*w[i]);
-		exp_tw[i].real = exp_retw * cos(-t.imag*w[i]);
-		exp_tw[i].imag = exp_retw * sin(-t.imag*w[i]);
+		exp_tw[i] = cexp(-t*w[i]);
 	}
 
 	// expand 'U' to a complex matrix
-	MKL_Complex16 *Ucplx = algn_calloc(n*n, sizeof(MKL_Complex16));
+	double complex *Ucplx = algn_calloc(n*n, sizeof(double complex));
 	__assume_aligned(Ucplx, MEM_DATA_ALIGN);
 	for (i = 0; i < n*n; i++)
 	{
-		Ucplx[i].real = U[i];
+		Ucplx[i] = U[i];
 	}
 
 	// compute U * diag(exp(-t lambda_i))
-	MKL_Complex16 *UexpD = algn_malloc(n*n * sizeof(MKL_Complex16));
+	double complex *UexpD = algn_malloc(n*n * sizeof(double complex));
 	__assume_aligned(UexpD, MEM_DATA_ALIGN);
-	memcpy(UexpD, Ucplx, n*n * sizeof(MKL_Complex16));
+	memcpy(UexpD, Ucplx, n*n * sizeof(double complex));
 	for (i = 0; i < n; i++)
 	{
 		cblas_zscal((int)n, &exp_tw[i], &UexpD[i*n], 1);
 	}
 
 	// compute U * diag(exp(-t lambda_i)) * U^H
-	const MKL_Complex16 one  = { 1, 0 };
-	const MKL_Complex16 zero = { 0, 0 };
+	const double complex one  = 1;
+	const double complex zero = 0;
 	cblas_zgemm(CblasColMajor, CblasNoTrans, CblasTrans, (int)n, (int)n, (int)n, &one, UexpD, (int)n, Ucplx, (int)n, &zero, ret, (int)n);
 
 	// clean up
@@ -162,7 +160,7 @@ void KroneckerProductRealSquare(const int d, const double *restrict A, const dou
 ///
 /// \brief Copy a real to a complex matrix, setting imaginary entries to zero
 ///
-void CopyRealToComplexMatrix(const size_t m, const size_t n, const double *restrict A, const size_t lda, MKL_Complex16 *restrict B, const size_t ldb)
+void CopyRealToComplexMatrix(const size_t m, const size_t n, const double *restrict A, const size_t lda, double complex *restrict B, const size_t ldb)
 {
 	size_t i, j;
 
@@ -170,8 +168,7 @@ void CopyRealToComplexMatrix(const size_t m, const size_t n, const double *restr
 	{
 		for (i = 0; i < m; i++)
 		{
-			B[i + j*ldb].real = A[i + j*lda];
-			B[i + j*ldb].imag = 0;
+			B[i + j*ldb] = A[i + j*lda];
 		}
 	}
 }

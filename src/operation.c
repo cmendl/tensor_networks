@@ -8,7 +8,7 @@
 ///
 /// \brief Compute the expectation value <psi | op | psi>
 ///
-MKL_Complex16 OperatorAverage(const mps_t *restrict psi, const mpo_t *restrict op)
+double complex OperatorAverage(const mps_t *restrict psi, const mpo_t *restrict op)
 {
 	const int L = psi->L;
 	assert(L == op->L);
@@ -24,7 +24,7 @@ MKL_Complex16 OperatorAverage(const mps_t *restrict psi, const mpo_t *restrict o
 	size_t j;
 	for (j = 0; j < psi->A[L-1].dim[2]; j++)
 	{
-		t.data[j + j*psi->A[L-1].dim[2]].real = 1;
+		t.data[j + j*psi->A[L-1].dim[2]] = 1;
 	}
 
 	int i;
@@ -40,7 +40,7 @@ MKL_Complex16 OperatorAverage(const mps_t *restrict psi, const mpo_t *restrict o
 	assert(t.ndim == 3);
 	assert(t.dim[0] == 1 && t.dim[1] == 1 && t.dim[2] == 1);
 
-	const MKL_Complex16 avr = t.data[0];
+	const double complex avr = t.data[0];
 
 	DeleteTensor(&t);
 
@@ -66,7 +66,7 @@ void ComputeLeftOperatorBlocks(const mps_t *restrict psi, const mpo_t *restrict 
 	size_t j;
 	for (j = 0; j < psi->A[0].dim[1]; j++)
 	{
-		BL[0].data[j + j*psi->A[0].dim[1]].real = 1;
+		BL[0].data[j + j*psi->A[0].dim[1]] = 1;
 	}
 
 	int i;
@@ -95,7 +95,7 @@ void ComputeRightOperatorBlocks(const mps_t *restrict psi, const mpo_t *restrict
 	size_t j;
 	for (j = 0; j < psi->A[L-1].dim[2]; j++)
 	{
-		BR[L-1].data[j + j*psi->A[L-1].dim[2]].real = 1;
+		BR[L-1].data[j + j*psi->A[L-1].dim[2]] = 1;
 	}
 
 	int i;

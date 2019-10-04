@@ -27,7 +27,7 @@ local_hamiltonian_data_t;
 ///
 /// \brief Wrapper function for applying site-local Hamiltonian operator, required for Lanczos iteration
 ///
-static void ApplyLocalHamiltonianWrapper(const size_t n, const void *restrict data, const MKL_Complex16 *restrict v, MKL_Complex16 *restrict ret)
+static void ApplyLocalHamiltonianWrapper(const size_t n, const void *restrict data, const double complex *restrict v, double complex *restrict ret)
 {
 	const local_hamiltonian_data_t *hdata = (local_hamiltonian_data_t *)data;
 
@@ -35,7 +35,7 @@ static void ApplyLocalHamiltonianWrapper(const size_t n, const void *restrict da
 	tensor_t M;
 	M.ndim = 3;
 	M.dim  = (size_t *)hdata->Mdim;
-	M.data = (MKL_Complex16 *)v;
+	M.data = (double complex *)v;
 	#ifdef _DEBUG
 	string_t dnames[3] = { 0 };
 	M.dnames = dnames;
@@ -45,7 +45,7 @@ static void ApplyLocalHamiltonianWrapper(const size_t n, const void *restrict da
 	tensor_t HM;
 	ApplyLocalHamiltonian(hdata->L, hdata->R, hdata->W, &M, &HM);
 	assert(n == NumTensorElements(&HM));
-	memcpy(ret, HM.data, n*sizeof(MKL_Complex16));
+	memcpy(ret, HM.data, n*sizeof(double complex));
 
 	DeleteTensor(&HM);
 }
@@ -106,7 +106,7 @@ void CalculateGroundStateLocalSinglesite(const mpo_t *restrict H, const int maxi
 		tensor_t t;
 		const size_t dim[3] = { 1, 1, 1 };
 		AllocateTensor(3, dim, &t);
-		t.data[0].real = 1;
+		t.data[0] = 1;
 
 		MPSUnitaryRightProjection(&psi->A[0], &t);
 
@@ -123,7 +123,7 @@ void CalculateGroundStateLocalSinglesite(const mpo_t *restrict H, const int maxi
 	{
 		const size_t dim[3] = { 1, 1, 1 };
 		AllocateTensor(3, dim, &BL[i]);
-		BL[i].data[0].real = 1;
+		BL[i].data[0] = 1;
 	}
 
 	// TODO: number of iterations should be determined by tolerance and some convergence measure
@@ -172,7 +172,7 @@ void CalculateGroundStateLocalSinglesite(const mpo_t *restrict H, const int maxi
 			tensor_t t;
 			const size_t dim[3] = { 1, 1, 1 };
 			AllocateTensor(3, dim, &t);
-			t.data[0].real = 1;
+			t.data[0] = 1;
 
 			MPSUnitaryRightProjection(&psi->A[0], &t);
 
@@ -235,7 +235,7 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 		tensor_t t;
 		const size_t dim[3] = { 1, 1, 1 };
 		AllocateTensor(3, dim, &t);
-		t.data[0].real = 1;
+		t.data[0] = 1;
 
 		MPSUnitaryRightProjection(&psi->A[0], &t);
 
@@ -252,7 +252,7 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 	{
 		const size_t dim[3] = { 1, 1, 1 };
 		AllocateTensor(3, dim, &BL[i]);
-		BL[i].data[0].real = 1;
+		BL[i].data[0] = 1;
 	}
 
 	// TODO: number of iterations should be determined by tolerance and some convergence measure
@@ -335,7 +335,7 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 			tensor_t t;
 			const size_t dim[3] = { 1, 1, 1 };
 			AllocateTensor(3, dim, &t);
-			t.data[0].real = 1;
+			t.data[0] = 1;
 
 			MPSUnitaryRightProjection(&psi->A[0], &t);
 

@@ -5,7 +5,7 @@
 #define TENSOR_H
 
 #include "util.h"
-#include <mkl_types.h>
+#include <complex.h>
 #include <assert.h>
 
 
@@ -27,7 +27,7 @@ string_t;
 ///
 typedef struct
 {
-	MKL_Complex16 *data;    //!< data entries, array of size dim[0] x ... x dim[ndim-1]
+	double complex *data;   //!< data entries, array of size dim[0] x ... x dim[ndim-1]
 	size_t *dim;            //!< dimensions (width, height, ...)
 	int ndim;               //!< number of dimensions
 	#ifdef _DEBUG
@@ -88,15 +88,15 @@ void SubTensor(const tensor_t *restrict t, const size_t *restrict sdim, const si
 //
 
 
-void ScaleTensor(const MKL_Complex16 alpha, tensor_t *restrict t);
+void ScaleTensor(const double alpha, tensor_t *restrict t);
 
-void ScalarMultiplyAddTensor(const MKL_Complex16 alpha, const tensor_t *restrict s, tensor_t *restrict t);
+void ScalarMultiplyAddTensor(const double complex alpha, const tensor_t *restrict s, tensor_t *restrict t);
 
 void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, const int ndim_mult, tensor_t *restrict r);
 
 void TensorKroneckerProduct(const tensor_t *restrict s, const tensor_t *restrict t, tensor_t *restrict r);
 
-MKL_Complex16 TensorTrace(const tensor_t *restrict t);
+double complex TensorTrace(const tensor_t *restrict t);
 
 
 

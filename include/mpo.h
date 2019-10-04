@@ -92,12 +92,12 @@ void MergeMPOFull(const mpo_t *restrict mpo, tensor_t *restrict A);
 //
 
 
-MKL_Complex16 MPOTrace(const mpo_t *restrict X);
+double complex MPOTrace(const mpo_t *restrict X);
 
 
 void MPOTraceProductTensorReduce(const tensor_t *restrict A, const tensor_t *restrict B, tensor_t *restrict R);
 
-MKL_Complex16 MPOTraceProduct(const mpo_t *restrict X, const mpo_t *restrict Y);
+double complex MPOTraceProduct(const mpo_t *restrict X, const mpo_t *restrict Y);
 
 double MPOFrobeniusNorm(const mpo_t *X);
 
@@ -106,7 +106,7 @@ double MPOFrobeniusNorm(const mpo_t *X);
 //
 
 
-MKL_Complex16 MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict Y, const mpo_t *restrict Z, const mpo_t *restrict W);
+double complex MPOTraceQuadProduct(const mpo_t *restrict X, const mpo_t *restrict Y, const mpo_t *restrict Z, const mpo_t *restrict W);
 
 
 //________________________________________________________________________________________________________________________

@@ -1,5 +1,4 @@
 #include "mps.h"
-#include "complex.h"
 #include <stdlib.h>
 #include <memory.h>
 #include <math.h>
@@ -26,7 +25,7 @@ static double MPSBlockStructureError(const tensor_t *A, const qnumber_t *restric
 			{
 				if (qd[i] + qD0[j] != qD1[k])
 				{
-					err += ComplexAbs(A->data[i + A->dim[0]*(j + A->dim[1]*k)]);
+					err += cabs(A->data[i + A->dim[0]*(j + A->dim[1]*k)]);
 				}
 			}
 		}
@@ -58,7 +57,7 @@ int MPSTest()
 	{
 		char filename[1024];
 		sprintf(filename, "../test/mps_test_A%i.dat", i);
-		int status = ReadData(filename, mps.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&mps.A[i]));
+		int status = ReadData(filename, mps.A[i].data, sizeof(double complex), NumTensorElements(&mps.A[i]));
 		if (status < 0) { return status; }
 	}
 
@@ -86,14 +85,14 @@ int MPSTest()
 		{
 			const size_t dim[3] = { d, 2, 8 };
 			AllocateTensor(3, dim, &B1_ref);
-			int status = ReadData("../test/mps_test_B1.dat", B1_ref.data, sizeof(MKL_Complex16), NumTensorElements(&B1_ref));
+			int status = ReadData("../test/mps_test_B1.dat", B1_ref.data, sizeof(double complex), NumTensorElements(&B1_ref));
 			if (status < 0) { return status; }
 		}
 		tensor_t B2_ref;
 		{
 			const size_t dim[3] = { d, 8, 6 };
 			AllocateTensor(3, dim, &B2_ref);
-			int status = ReadData("../test/mps_test_B2.dat", B2_ref.data, sizeof(MKL_Complex16), NumTensorElements(&B2_ref));
+			int status = ReadData("../test/mps_test_B2.dat", B2_ref.data, sizeof(double complex), NumTensorElements(&B2_ref));
 			if (status < 0) { return status; }
 		}
 
@@ -105,7 +104,7 @@ int MPSTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&B1_ref), (double *)B1.data, (double *)B1_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&B1_ref), B1.data, B1_ref.data));
 		}
 
 		// check dimensions
@@ -116,7 +115,7 @@ int MPSTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&B2_ref), (double *)B2.data, (double *)B2_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&B2_ref), B2.data, B2_ref.data));
 		}
 
 		DeleteTensor(&B2_ref);
@@ -138,14 +137,14 @@ int MPSTest()
 		{
 			const size_t dim[3] = { d, 9, 6 };
 			AllocateTensor(3, dim, &C2_ref);
-			int status = ReadData("../test/mps_test_C2.dat", C2_ref.data, sizeof(MKL_Complex16), NumTensorElements(&C2_ref));
+			int status = ReadData("../test/mps_test_C2.dat", C2_ref.data, sizeof(double complex), NumTensorElements(&C2_ref));
 			if (status < 0) { return status; }
 		}
 		tensor_t C3_ref;
 		{
 			const size_t dim[3] = { d, 6, 5 };
 			AllocateTensor(3, dim, &C3_ref);
-			int status = ReadData("../test/mps_test_C3.dat", C3_ref.data, sizeof(MKL_Complex16), NumTensorElements(&C3_ref));
+			int status = ReadData("../test/mps_test_C3.dat", C3_ref.data, sizeof(double complex), NumTensorElements(&C3_ref));
 			if (status < 0) { return status; }
 		}
 
@@ -157,7 +156,7 @@ int MPSTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&C2_ref), (double *)C2.data, (double *)C2_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&C2_ref), C2.data, C2_ref.data));
 		}
 
 		// check dimensions
@@ -168,7 +167,7 @@ int MPSTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&C3_ref), (double *)C3.data, (double *)C3_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&C3_ref), C3.data, C3_ref.data));
 		}
 
 		DeleteTensor(&C3_ref);
@@ -190,14 +189,14 @@ int MPSTest()
 		{
 			const size_t dim[3] = { d, 6, 5 };
 			AllocateTensor(3, dim, &D3_ref);
-			int status = ReadData("../test/mps_test_D3.dat", D3_ref.data, sizeof(MKL_Complex16), NumTensorElements(&D3_ref));
+			int status = ReadData("../test/mps_test_D3.dat", D3_ref.data, sizeof(double complex), NumTensorElements(&D3_ref));
 			if (status < 0) { return status; }
 		}
 		tensor_t D4_ref;
 		{
 			const size_t dim[3] = { d, 5, 3 };
 			AllocateTensor(3, dim, &D4_ref);
-			int status = ReadData("../test/mps_test_D4.dat", D4_ref.data, sizeof(MKL_Complex16), NumTensorElements(&D4_ref));
+			int status = ReadData("../test/mps_test_D4.dat", D4_ref.data, sizeof(double complex), NumTensorElements(&D4_ref));
 			if (status < 0) { return status; }
 		}
 
@@ -209,7 +208,7 @@ int MPSTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&D3_ref), (double *)D3.data, (double *)D3_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&D3_ref), D3.data, D3_ref.data));
 		}
 
 		// check dimensions
@@ -220,7 +219,7 @@ int MPSTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&D4_ref), (double *)D4.data, (double *)D4_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&D4_ref), D4.data, D4_ref.data));
 		}
 
 		DeleteTensor(&D4_ref);
@@ -238,8 +237,8 @@ int MPSTest()
 			AllocateTensor(2, dimL, &BL);
 			AllocateTensor(2, dimR, &BR);
 			int status;
-			status = ReadData("../test/mps_test_BLcontr0.dat", BL.data, sizeof(MKL_Complex16), NumTensorElements(&BL)); if (status < 0) { return status; }
-			status = ReadData("../test/mps_test_BRcontr0.dat", BR.data, sizeof(MKL_Complex16), NumTensorElements(&BR)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BLcontr0.dat", BL.data, sizeof(double complex), NumTensorElements(&BL)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BRcontr0.dat", BR.data, sizeof(double complex), NumTensorElements(&BR)); if (status < 0) { return status; }
 		}
 
 		tensor_t BLnext, BRnext;
@@ -254,8 +253,8 @@ int MPSTest()
 			AllocateTensor(2, dimL, &BLref);
 			AllocateTensor(2, dimR, &BRref);
 			int status;
-			status = ReadData("../test/mps_test_BLcontr1.dat", BLref.data, sizeof(MKL_Complex16), NumTensorElements(&BLref)); if (status < 0) { return status; }
-			status = ReadData("../test/mps_test_BRcontr1.dat", BRref.data, sizeof(MKL_Complex16), NumTensorElements(&BRref)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BLcontr1.dat", BLref.data, sizeof(double complex), NumTensorElements(&BLref)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BRcontr1.dat", BRref.data, sizeof(double complex), NumTensorElements(&BRref)); if (status < 0) { return status; }
 		}
 
 		// check dimensions
@@ -266,7 +265,7 @@ int MPSTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&BLref), (double *)BLnext.data, (double *)BLref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&BLref), BLnext.data, BLref.data));
 		}
 
 		// check dimensions
@@ -277,7 +276,7 @@ int MPSTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&BRref), (double *)BRnext.data, (double *)BRref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&BRref), BRnext.data, BRref.data));
 		}
 
 		DeleteTensor(&BRref);
@@ -294,7 +293,7 @@ int MPSTest()
 		{
 			const size_t dim[4] = { d, d, 7, 13 };
 			AllocateTensor(4, dim, &W);
-			int status = ReadData("../test/mps_test_W.dat", W.data, sizeof(MKL_Complex16), NumTensorElements(&W));
+			int status = ReadData("../test/mps_test_W.dat", W.data, sizeof(double complex), NumTensorElements(&W));
 			if (status < 0) { return status; }
 		}
 
@@ -305,8 +304,8 @@ int MPSTest()
 			AllocateTensor(3, dimL, &BL);
 			AllocateTensor(3, dimR, &BR);
 			int status;
-			status = ReadData("../test/mps_test_BLopcontr0.dat", BL.data, sizeof(MKL_Complex16), NumTensorElements(&BL)); if (status < 0) { return status; }
-			status = ReadData("../test/mps_test_BRopcontr0.dat", BR.data, sizeof(MKL_Complex16), NumTensorElements(&BR)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BLopcontr0.dat", BL.data, sizeof(double complex), NumTensorElements(&BL)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BRopcontr0.dat", BR.data, sizeof(double complex), NumTensorElements(&BR)); if (status < 0) { return status; }
 		}
 
 		tensor_t BLnext, BRnext;
@@ -321,8 +320,8 @@ int MPSTest()
 			AllocateTensor(3, dimL, &BLref);
 			AllocateTensor(3, dimR, &BRref);
 			int status;
-			status = ReadData("../test/mps_test_BLopcontr1.dat", BLref.data, sizeof(MKL_Complex16), NumTensorElements(&BLref)); if (status < 0) { return status; }
-			status = ReadData("../test/mps_test_BRopcontr1.dat", BRref.data, sizeof(MKL_Complex16), NumTensorElements(&BRref)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BLopcontr1.dat", BLref.data, sizeof(double complex), NumTensorElements(&BLref)); if (status < 0) { return status; }
+			status = ReadData("../test/mps_test_BRopcontr1.dat", BRref.data, sizeof(double complex), NumTensorElements(&BRref)); if (status < 0) { return status; }
 		}
 
 		// check dimensions
@@ -333,7 +332,7 @@ int MPSTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&BLref), (double *)BLnext.data, (double *)BLref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&BLref), BLnext.data, BLref.data));
 		}
 
 		// check dimensions
@@ -344,7 +343,7 @@ int MPSTest()
 		else
 		{
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&BRref), (double *)BRnext.data, (double *)BRref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&BRref), BRnext.data, BRref.data));
 		}
 
 		DeleteTensor(&BRref);
@@ -367,7 +366,7 @@ int MPSTest()
 		{
 			const size_t dim[3] = { d0 * d1, 13, 11 };
 			AllocateTensor(3, dim, &G2);
-			status = ReadData("../test/mps_test_G2.dat", G2.data, sizeof(MKL_Complex16), NumTensorElements(&G2));
+			status = ReadData("../test/mps_test_G2.dat", G2.data, sizeof(double complex), NumTensorElements(&G2));
 			if (status < 0) { return status; }
 		}
 
@@ -439,7 +438,7 @@ int MPSTest()
 			else
 			{
 				// largest entrywise error
-				err = fmax(err, UniformDistance(2*NumTensorElements(&G2), (double *)G2mrg.data, (double *)G2.data));
+				err = fmax(err, UniformDistance(NumTensorElements(&G2), G2mrg.data, G2.data));
 			}
 			DeleteTensor(&G2mrg);
 
@@ -507,12 +506,12 @@ int MPSTest()
 				{
 					AllocateTensor(3, G2.dim, &G2mrg_ref);
 					int status;
-					status = ReadData("../test/mps_test_G2_red.dat", G2mrg_ref.data, sizeof(MKL_Complex16), NumTensorElements(&G2mrg_ref));
+					status = ReadData("../test/mps_test_G2_red.dat", G2mrg_ref.data, sizeof(double complex), NumTensorElements(&G2mrg_ref));
 					if (status < 0) { return status; }
 				}
 
 				// largest entrywise error
-				err = fmax(err, UniformDistance(2*NumTensorElements(&G2mrg_ref), (double *)G2mrg.data, (double *)G2mrg_ref.data));
+				err = fmax(err, UniformDistance(NumTensorElements(&G2mrg_ref), G2mrg.data, G2mrg_ref.data));
 
 				DeleteTensor(&G2mrg_ref);
 			}
@@ -540,12 +539,12 @@ int MPSTest()
 		{
 			const size_t dimK0[3] = { d0, 5, 14 };
 			AllocateTensor(3, dimK0, &K0);
-			status = ReadData("../test/mps_test_K0.dat", K0.data, sizeof(MKL_Complex16), NumTensorElements(&K0));
+			status = ReadData("../test/mps_test_K0.dat", K0.data, sizeof(double complex), NumTensorElements(&K0));
 			if (status < 0) { return status; }
 
 			const size_t dimK1[3] = { d1, 14, 7 };
 			AllocateTensor(3, dimK1, &K1);
-			status = ReadData("../test/mps_test_K1.dat", K1.data, sizeof(MKL_Complex16), NumTensorElements(&K1));
+			status = ReadData("../test/mps_test_K1.dat", K1.data, sizeof(double complex), NumTensorElements(&K1));
 			if (status < 0) { return status; }
 		}
 
@@ -620,12 +619,12 @@ int MPSTest()
 			{
 				AllocateTensor(3, K2mrg.dim, &K2mrg_ref);
 				int status;
-				status = ReadData("../test/mps_test_cK2.dat", K2mrg_ref.data, sizeof(MKL_Complex16), NumTensorElements(&K2mrg_ref));
+				status = ReadData("../test/mps_test_cK2.dat", K2mrg_ref.data, sizeof(double complex), NumTensorElements(&K2mrg_ref));
 				if (status < 0) { return status; }
 			}
 
 			// largest entrywise error
-			err = fmax(err, UniformDistance(2*NumTensorElements(&K2mrg_ref), (double *)K2mrg.data, (double *)K2mrg_ref.data));
+			err = fmax(err, UniformDistance(NumTensorElements(&K2mrg_ref), K2mrg.data, K2mrg_ref.data));
 
 			DeleteTensor(&K2mrg_ref);
 		}

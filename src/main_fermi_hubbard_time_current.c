@@ -1,6 +1,5 @@
 #include "hamiltonian_fermi_hubbard.h"
 #include "dynamics.h"
-#include "complex.h"
 #include "sim_params.h"
 #include "profiler.h"
 #include "dupio.h"
@@ -127,12 +126,8 @@ static void ConstructLocalCurrentOperators(const double t, tensor_t *restrict Jc
 		for (i = 0; i < 16; i++)
 		{
 			// factor 't' from commutator with Hamiltonian
-
-			Jc->data[i + j*16].real = 0;
-			Jc->data[i + j*16].imag = t * (- adFa_I[i + j*16] + a_FadI[i + j*16] - IadF_a[i + j*16] + I_aFad[i + j*16]);
-
-			Js->data[i + j*16].real = 0;
-			Js->data[i + j*16].imag = t * (- adFa_I[i + j*16] + a_FadI[i + j*16] + IadF_a[i + j*16] - I_aFad[i + j*16]);
+			Jc->data[i + j*16] = t * (- adFa_I[i + j*16] + a_FadI[i + j*16] - IadF_a[i + j*16] + I_aFad[i + j*16]) * _Complex_I;
+			Js->data[i + j*16] = t * (- adFa_I[i + j*16] + a_FadI[i + j*16] + IadF_a[i + j*16] - I_aFad[i + j*16]) * _Complex_I;
 		}
 	}
 }
@@ -300,7 +295,7 @@ int main(int argc, char *argv[])
 		for (i = 0; i < L; i++)
 		{
 			sprintf(filename, "%s/fermi_hubbard_L%i_beta%g_A%i.dat", argv[2], L, params.beta, i);
-			status = ReadData(filename, rho_beta.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&rho_beta.A[i]));
+			status = ReadData(filename, rho_beta.A[i].data, sizeof(double complex), NumTensorElements(&rho_beta.A[i]));
 			if (status < 0)
 			{
 				duprintf("Error reading %i-th MPO tensor of rho_beta from directory '%s', exiting...\n", i, argv[2]);
@@ -348,8 +343,7 @@ int main(int argc, char *argv[])
 
 	// compute dynamics data for time evolution
 	dynamics_data_t dyn_time;
-	const MKL_Complex16 idt = { 0, params.dt };
-	ComputeDynamicsDataPRK(L, idt, 4*4, (const double **)h, &dyn_time);
+	ComputeDynamicsDataPRK(L, params.dt*_Complex_I, 4*4, (const double **)h, &dyn_time);
 
 	// perform time evolution and compute response function at several time points
 
@@ -360,9 +354,9 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	MKL_Complex16 *chi  = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
-	MKL_Complex16 *chiA = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
-	MKL_Complex16 *chiB = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
+	double complex *chi  = (double complex *)algn_malloc((nsteps + 1)*sizeof(double complex));
+	double complex *chiA = (double complex *)algn_malloc((nsteps + 1)*sizeof(double complex));
+	double complex *chiB = (double complex *)algn_malloc((nsteps + 1)*sizeof(double complex));
 
 	// effective tolerance (truncation weight)
 	double *tol_eff_A = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
@@ -388,9 +382,9 @@ int main(int argc, char *argv[])
 			duprintf("Continuing simulation after time step %i...\n", nstart);
 
 			// read intermediate results to disk
-			sprintf(filename, "%s/fermi_hubbard_L%i_chi_tmp.dat",       argv[6], L); status = ReadData(filename, chi,       sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
-			sprintf(filename, "%s/fermi_hubbard_L%i_chiA_tmp.dat",      argv[6], L); status = ReadData(filename, chiA,      sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
-			sprintf(filename, "%s/fermi_hubbard_L%i_chiB_tmp.dat",      argv[6], L); status = ReadData(filename, chiB,      sizeof(MKL_Complex16), nstart + 1);     if (status < 0) { return status; }
+			sprintf(filename, "%s/fermi_hubbard_L%i_chi_tmp.dat",       argv[6], L); status = ReadData(filename, chi,       sizeof(double complex), nstart + 1);    if (status < 0) { return status; }
+			sprintf(filename, "%s/fermi_hubbard_L%i_chiA_tmp.dat",      argv[6], L); status = ReadData(filename, chiA,      sizeof(double complex), nstart + 1);    if (status < 0) { return status; }
+			sprintf(filename, "%s/fermi_hubbard_L%i_chiB_tmp.dat",      argv[6], L); status = ReadData(filename, chiB,      sizeof(double complex), nstart + 1);    if (status < 0) { return status; }
 			sprintf(filename, "%s/fermi_hubbard_L%i_DXA_tmp.dat",       argv[6], L); status = ReadData(filename, D_XA,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
 			sprintf(filename, "%s/fermi_hubbard_L%i_DXB_tmp.dat",       argv[6], L); status = ReadData(filename, D_XB,      sizeof(size_t), (nstart + 1)*(L + 1));  if (status < 0) { return status; }
 			sprintf(filename, "%s/fermi_hubbard_L%i_tol_eff_A_tmp.dat", argv[6], L); status = ReadData(filename, tol_eff_A, sizeof(double),  nstart     *(L - 1));  if (status < 0) { return status; }
@@ -410,8 +404,8 @@ int main(int argc, char *argv[])
 			// read tensor data from disk
 			for (i = 0; i < L; i++)
 			{
-				sprintf(filename, "%s/fermi_hubbard_L%i_XA/A%i.dat", argv[6], L, i); status = ReadData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]));  if (status < 0) { return status; }
-				sprintf(filename, "%s/fermi_hubbard_L%i_XB/A%i.dat", argv[6], L, i); status = ReadData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]));  if (status < 0) { return status; }
+				sprintf(filename, "%s/fermi_hubbard_L%i_XA/A%i.dat", argv[6], L, i); status = ReadData(filename, XA.A[i].data, sizeof(double complex), NumTensorElements(&XA.A[i]));  if (status < 0) { return status; }
+				sprintf(filename, "%s/fermi_hubbard_L%i_XB/A%i.dat", argv[6], L, i); status = ReadData(filename, XB.A[i].data, sizeof(double complex), NumTensorElements(&XB.A[i]));  if (status < 0) { return status; }
 			}
 			// read virtual bond quantum numbers from disk
 			for (i = 0; i < L + 1; i++)
@@ -439,18 +433,18 @@ int main(int argc, char *argv[])
 		duprintf("time step %i / %i\n", n, nsteps);
 
 		// response function
-		chi [n] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
-		chiA[n] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &rho_beta));
-		chiB[n] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&rho_beta, &XB));
+		chi [n] = MPOTraceProduct(&XA, &XB)       / square(norm_rho);
+		chiA[n] = MPOTraceProduct(&XA, &rho_beta) / square(norm_rho);
+		chiB[n] = MPOTraceProduct(&rho_beta, &XB) / square(norm_rho);
 
 		// record virtual bond dimensions
 		MPOBondDims(&XA, &D_XA[n*(L + 1)]);
 		MPOBondDims(&XB, &D_XB[n*(L + 1)]);
 
 		// save intermediate results to disk
-		sprintf(filename, "%s/fermi_hubbard_L%i_chi_tmp.dat",  argv[6], L); WriteData(filename, &chi [n], sizeof(MKL_Complex16), 1, true);
-		sprintf(filename, "%s/fermi_hubbard_L%i_chiA_tmp.dat", argv[6], L); WriteData(filename, &chiA[n], sizeof(MKL_Complex16), 1, true);
-		sprintf(filename, "%s/fermi_hubbard_L%i_chiB_tmp.dat", argv[6], L); WriteData(filename, &chiB[n], sizeof(MKL_Complex16), 1, true);
+		sprintf(filename, "%s/fermi_hubbard_L%i_chi_tmp.dat",  argv[6], L); WriteData(filename, &chi [n], sizeof(double complex), 1, true);
+		sprintf(filename, "%s/fermi_hubbard_L%i_chiA_tmp.dat", argv[6], L); WriteData(filename, &chiA[n], sizeof(double complex), 1, true);
+		sprintf(filename, "%s/fermi_hubbard_L%i_chiB_tmp.dat", argv[6], L); WriteData(filename, &chiB[n], sizeof(double complex), 1, true);
 		sprintf(filename, "%s/fermi_hubbard_L%i_DXA_tmp.dat",  argv[6], L); WriteData(filename, &D_XA[n*(L + 1)], sizeof(size_t), L + 1, true);
 		sprintf(filename, "%s/fermi_hubbard_L%i_DXB_tmp.dat",  argv[6], L); WriteData(filename, &D_XB[n*(L + 1)], sizeof(size_t), L + 1, true);
 		if (n > 0) {
@@ -462,8 +456,8 @@ int main(int argc, char *argv[])
 			// save tensor data to disk
 			for (i = 0; i < L; i++)
 			{
-				sprintf(filename, "%s/fermi_hubbard_L%i_XA/A%i.dat", argv[6], L, i); WriteData(filename, XA.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XA.A[i]), false);
-				sprintf(filename, "%s/fermi_hubbard_L%i_XB/A%i.dat", argv[6], L, i); WriteData(filename, XB.A[i].data, sizeof(MKL_Complex16), NumTensorElements(&XB.A[i]), false);
+				sprintf(filename, "%s/fermi_hubbard_L%i_XA/A%i.dat", argv[6], L, i); WriteData(filename, XA.A[i].data, sizeof(double complex), NumTensorElements(&XA.A[i]), false);
+				sprintf(filename, "%s/fermi_hubbard_L%i_XB/A%i.dat", argv[6], L, i); WriteData(filename, XB.A[i].data, sizeof(double complex), NumTensorElements(&XB.A[i]), false);
 			}
 
 			// save virtual bond quantum numbers to disk
@@ -487,8 +481,8 @@ int main(int argc, char *argv[])
 		EvolveLiouvilleMPOPRK(&dyn_time, 1, false, &bond_op_params, &XB, &tol_eff_B[n*(L - 1)]);
 	}
 
-	const MKL_Complex16 chi_cum = ComplexSubtract(chi[nsteps], ComplexMultiply(chiA[nsteps], chiB[nsteps]));
-	duprintf("chi at t = %g: (%g, %g), corresponding cumulant: (%g, %g)\n", params.tmax, chi[nsteps].real, chi[nsteps].imag, chi_cum.real, chi_cum.imag);
+	const double complex chi_cum = chi[nsteps] - chiA[nsteps]*chiB[nsteps];
+	duprintf("chi at t = %g: %g%+gi, corresponding cumulant: %g%+gi\n", params.tmax, creal(chi[nsteps]), cimag(chi[nsteps]), creal(chi_cum), cimag(chi_cum));
 	duprintf("\n");
 
 	const clock_t t_cpu_end = clock();
@@ -506,9 +500,9 @@ int main(int argc, char *argv[])
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
 
 	// save results to disk
-	sprintf(filename, "%s/fermi_hubbard_L%i_chi.dat",       argv[6], L); WriteData(filename, chi,  sizeof(MKL_Complex16), nsteps + 1, false);
-	sprintf(filename, "%s/fermi_hubbard_L%i_chiA.dat",      argv[6], L); WriteData(filename, chiA, sizeof(MKL_Complex16), nsteps + 1, false);
-	sprintf(filename, "%s/fermi_hubbard_L%i_chiB.dat",      argv[6], L); WriteData(filename, chiB, sizeof(MKL_Complex16), nsteps + 1, false);
+	sprintf(filename, "%s/fermi_hubbard_L%i_chi.dat",       argv[6], L); WriteData(filename, chi,  sizeof(double complex), nsteps + 1, false);
+	sprintf(filename, "%s/fermi_hubbard_L%i_chiA.dat",      argv[6], L); WriteData(filename, chiA, sizeof(double complex), nsteps + 1, false);
+	sprintf(filename, "%s/fermi_hubbard_L%i_chiB.dat",      argv[6], L); WriteData(filename, chiB, sizeof(double complex), nsteps + 1, false);
 	sprintf(filename, "%s/fermi_hubbard_L%i_tol_eff_A.dat", argv[6], L); WriteData(filename, tol_eff_A, sizeof(double), nsteps*(L - 1), false);
 	sprintf(filename, "%s/fermi_hubbard_L%i_tol_eff_B.dat", argv[6], L); WriteData(filename, tol_eff_B, sizeof(double), nsteps*(L - 1), false);
 	sprintf(filename, "%s/fermi_hubbard_L%i_DXA.dat",       argv[6], L); WriteData(filename, D_XA, sizeof(size_t), (nsteps + 1)*(L + 1), false);
