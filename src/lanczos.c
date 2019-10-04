@@ -4,7 +4,6 @@
 #include "lanczos.h"
 #include "util.h"
 #include "dupio.h"
-#include <mkl.h>
 #include <memory.h>
 #include <assert.h>
 
@@ -15,12 +14,12 @@
 ///
 void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adata, MKL_Complex16 *restrict v_start, const int maxiter, double *restrict lambda_min, MKL_Complex16 *restrict v_min)
 {
-	double *alpha = (double *)MKL_calloc(maxiter, sizeof(double), MEM_DATA_ALIGN);
-	double *beta  = (double *)MKL_calloc(maxiter, sizeof(double), MEM_DATA_ALIGN);
+	double *alpha = (double *)algn_calloc(maxiter, sizeof(double));
+	double *beta  = (double *)algn_calloc(maxiter, sizeof(double));
 
 	// logical index shifted by one vector in 'V'
-	MKL_Complex16 *V = (MKL_Complex16 *)MKL_malloc(n*(maxiter+1) * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-	MKL_Complex16 *w = (MKL_Complex16 *)MKL_malloc(n             * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *V = (MKL_Complex16 *)algn_malloc(n*(maxiter+1) * sizeof(MKL_Complex16));
+	MKL_Complex16 *w = (MKL_Complex16 *)algn_malloc(n             * sizeof(MKL_Complex16));
 
 	// set first "v" vector to zero and second "v" vector to starting vector
 	memset(V, 0, n*sizeof(MKL_Complex16));
@@ -77,7 +76,7 @@ void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adat
 
 	// postprocessing to obtain approximate eigenvalues and -vectors
 
-	double *U = (double *)MKL_malloc(maxiter*maxiter * sizeof(double), MEM_DATA_ALIGN);
+	double *U = (double *)algn_malloc(maxiter*maxiter * sizeof(double));
 	lapack_int info = LAPACKE_dsteqr(LAPACK_COL_MAJOR, 'I', maxiter, alpha, beta + 1, U, maxiter);
 	if (info != 0) {
 		duprintf("Call of LAPACK function 'dsteqr()' in 'LanczosIteration()' failed, return value: %i\n", info);
@@ -87,7 +86,7 @@ void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adat
 	(*lambda_min) = alpha[0];
 
 	// embed smallest 'U' eigenvector into a complex vector
-	MKL_Complex16 *u0 = (MKL_Complex16 *)MKL_malloc(maxiter * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *u0 = (MKL_Complex16 *)algn_malloc(maxiter * sizeof(MKL_Complex16));
 	for (j = 0; j < maxiter; j++)
 	{
 		u0[j].real = U[j];
@@ -100,10 +99,10 @@ void LanczosIteration(const size_t n, op_func_t Afunc, const void *restrict Adat
 	cblas_zgemv(CblasColMajor, CblasNoTrans, n, maxiter, &one, &V[n], n, u0, 1, &zero, v_min, 1);
 
 	// clean up
-	MKL_free(u0);
-	MKL_free(U);
-	MKL_free(w);
-	MKL_free(V);
-	MKL_free(beta);
-	MKL_free(alpha);
+	algn_free(u0);
+	algn_free(U);
+	algn_free(w);
+	algn_free(V);
+	algn_free(beta);
+	algn_free(alpha);
 }

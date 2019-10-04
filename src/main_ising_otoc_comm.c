@@ -54,7 +54,7 @@ static void ConstructOperatorSumMPO(const int L, const int i0, const int i1, con
 	// allocate matrix product operator
 	{
 		// virtual bond dimensions
-		size_t *D = (size_t *)MKL_malloc((L + 1)*sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *D = (size_t *)algn_malloc((L + 1)*sizeof(size_t));
 		D[0] = 1;
 		for (i = 1; i < L; i++)
 		{
@@ -71,7 +71,7 @@ static void ConstructOperatorSumMPO(const int L, const int i0, const int i1, con
 
 		const size_t dim[2] = { 2, 2 };
 		AllocateMPO(L, dim, D, mpo);
-		MKL_free(D);
+		algn_free(D);
 	}
 
 	// local identity operator
@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
 	}
 
 	// construct two-site Ising Hamiltonian operators
-	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)algn_malloc((L - 1)*sizeof(double *));
 	ConstructLocalIsingOperators(L, params.J, params.hext, params.gext, h);
 
 	// start timer
@@ -317,21 +317,21 @@ int main(int argc, char *argv[])
 		ComputeDynamicsDataStrang(L, dbeta, 4, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
-		double *tol_eff_beta = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+		double *tol_eff_beta = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 		// perform imaginary time evolution; using "normalization" to keep A[0] matrix entries of order 1
 		EvolveMPOStrang(&dyn, nsteps, &bond_op_params, true, &exp_betaH, tol_eff_beta);
 
 		// record virtual bond dimensions
-		size_t *D_beta = (size_t *)MKL_malloc((L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *D_beta = (size_t *)algn_malloc((L + 1) * sizeof(size_t));
 		MPOBondDims(&exp_betaH, D_beta);
 
 		// save effective tolerances and virtual bond dimensions to disk
 		sprintf(filename, "%s/ising_L%i_tol_eff_beta.dat", argv[5], L); WriteData(filename, tol_eff_beta, sizeof(double), nsteps*(L - 1), false);
 		sprintf(filename, "%s/ising_L%i_D_beta.dat",       argv[5], L); WriteData(filename, D_beta, sizeof(size_t), L + 1, false);
 
-		MKL_free(D_beta);
-		MKL_free(tol_eff_beta);
+		algn_free(D_beta);
+		algn_free(tol_eff_beta);
 		DeleteDynamicsData(&dyn);
 	}
 
@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
 
 	// compute local magnetization
 	{
-		double *magnetization = (double *)MKL_malloc(L*sizeof(double), MEM_DATA_ALIGN);
+		double *magnetization = (double *)algn_malloc(L*sizeof(double));
 
 		mpo_t exp_betaH_n;
 		CopyMPO(&exp_betaH, &exp_betaH_n);
@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
 
 		// clean up
 		DeleteMPO(&exp_betaH_n);
-		MKL_free(magnetization);
+		algn_free(magnetization);
 	}
 
 	// compute total energy
@@ -410,14 +410,14 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	MKL_Complex16 *otoc = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-	MKL_Complex16 *gf   = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *otoc = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
+	MKL_Complex16 *gf   = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
 
 	// effective tolerance (truncation weight)
-	double *tol_eff_W = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+	double *tol_eff_W = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 	// record virtual bond dimensions
-	size_t *D_XW = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *D_XW = (size_t *)algn_malloc((nsteps + 1)*(L + 1) * sizeof(size_t));
 
 	int nstart = 0;
 
@@ -551,15 +551,15 @@ int main(int argc, char *argv[])
 	sprintf(filename, "%s/ising_L%i_DXW.dat",       argv[5], L); WriteData(filename, D_XW, sizeof(size_t), (nsteps + 1)*(L + 1), false);
 
 	// clean up
-	MKL_free(D_XW);
-	MKL_free(tol_eff_W);
-	MKL_free(gf);
-	MKL_free(otoc);
+	algn_free(D_XW);
+	algn_free(tol_eff_W);
+	algn_free(gf);
+	algn_free(otoc);
 	DeleteDynamicsData(&dyn_time);
 	DeleteMPO(&XW);
 	DeleteMPO(&exp_betaH);
 	DeleteLocalIsingOperators(L, h);
-	MKL_free(h);
+	algn_free(h);
 	DeleteMPO(&op);
 	DeleteTensor(&sigma_z);
 	DeleteTensor(&sigma_y);

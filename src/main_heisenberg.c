@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 	}
 
 	// construct two-site Heisenberg Hamiltonian operators
-	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)algn_malloc((L - 1)*sizeof(double *));
 	ConstructLocalHeisenbergOperators(L, params.Jx, params.Jy, params.Jz, params.hext, h);
 
 	// start timer
@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
 		ComputeDynamicsDataStrang(L, dbeta, 4, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
-		double *tol_eff_beta = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+		double *tol_eff_beta = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 		// perform evolution
 		EvolveMPOStrang(&dyn, nsteps, &bond_op_params, true, &rho_beta, tol_eff_beta);
@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
 		sprintf(filename, "%s/heisenberg_L%i_tol_eff_beta.dat", argv[4], L);
 		WriteData(filename, tol_eff_beta, sizeof(double), nsteps*(L - 1), false);
 
-		MKL_free(tol_eff_beta);
+		algn_free(tol_eff_beta);
 		DeleteDynamicsData(&dyn);
 	}
 
@@ -252,15 +252,15 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	MKL_Complex16 *chi = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *chi = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
 
 	// effective tolerance (truncation weight)
-	double *tol_eff_A = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
-	double *tol_eff_B = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+	double *tol_eff_A = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
+	double *tol_eff_B = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 	// record virtual bond dimensions
-	size_t *D_XA = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
-	size_t *D_XB = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *D_XA = (size_t *)algn_malloc((nsteps + 1)*(L + 1) * sizeof(size_t));
+	size_t *D_XB = (size_t *)algn_malloc((nsteps + 1)*(L + 1) * sizeof(size_t));
 
 	// response function at time t = 0
 	chi[0] = ComplexScale(1/square(norm_rho), MPOTraceProduct(&XA, &XB));
@@ -305,17 +305,17 @@ int main(int argc, char *argv[])
 	sprintf(filename, "%s/heisenberg_L%i_DXB.dat", argv[4], L); WriteData(filename, D_XB, sizeof(size_t), (nsteps + 1)*(L + 1), false);
 
 	// clean up
-	MKL_free(D_XB);
-	MKL_free(D_XA);
-	MKL_free(tol_eff_B);
-	MKL_free(tol_eff_A);
-	MKL_free(chi);
+	algn_free(D_XB);
+	algn_free(D_XA);
+	algn_free(tol_eff_B);
+	algn_free(tol_eff_A);
+	algn_free(chi);
 	DeleteDynamicsData(&dyn_time);
 	DeleteMPO(&XB);
 	DeleteMPO(&XA);
 	DeleteMPO(&rho_beta);
 	DeleteLocalHeisenbergOperators(L, h);
-	MKL_free(h);
+	algn_free(h);
 	DeleteTensor(&Sdn);
 	DeleteTensor(&Sup);
 

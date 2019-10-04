@@ -1,6 +1,5 @@
 #include "dynamics.h"
 #include "complex.h"
-#include <mkl.h>
 #include <stdint.h>
 #include <memory.h>
 #include <stdio.h>
@@ -61,10 +60,10 @@ int DynamicsTest()
 	const qnumber_t qd[] = { 1, 0, -2, 1 };
 
 	// load two-site Hamiltonian operators from disk
-	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)algn_malloc((L - 1)*sizeof(double *));
 	for (i = 0; i < L - 1; i++)
 	{
-		h[i] = (double *)MKL_malloc(d*d*d*d*sizeof(double), MEM_DATA_ALIGN);
+		h[i] = (double *)algn_malloc(d*d*d*d*sizeof(double));
 
 		char filename[1024];
 		sprintf(filename, "../test/dynamics_test_h%i.dat", i);
@@ -115,7 +114,7 @@ int DynamicsTest()
 		ComputeDynamicsDataStrang(L, dt, d*d, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
-		double *tol_eff = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+		double *tol_eff = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 		mpo_t Y;
 		CopyMPO(&X, &Y);
@@ -133,8 +132,8 @@ int DynamicsTest()
 
 			// non-zero entries of reference tensor
 			const size_t nnz = 108532;
-			MKL_Complex16 *val = (MKL_Complex16 *)MKL_malloc(nnz*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-			uint64_t      *ind =      (uint64_t *)MKL_malloc(nnz*sizeof(uint64_t),      MEM_DATA_ALIGN);
+			MKL_Complex16 *val = (MKL_Complex16 *)algn_malloc(nnz*sizeof(MKL_Complex16));
+			uint64_t      *ind =      (uint64_t *)algn_malloc(nnz*sizeof(uint64_t));
 			status = ReadData("../test/dynamics_test_A_strang5i8_m_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
 			status = ReadData("../test/dynamics_test_A_strang5i8_m_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
 			size_t j;
@@ -142,8 +141,8 @@ int DynamicsTest()
 			{
 				Am_ref.data[ind[j]] = val[j];
 			}
-			MKL_free(ind);
-			MKL_free(val);
+			algn_free(ind);
+			algn_free(val);
 		}
 
 		// check dimensions
@@ -166,7 +165,7 @@ int DynamicsTest()
 		DeleteTensor(&Am_ref);
 		DeleteTensor(&Am);
 		DeleteMPO(&Y);
-		MKL_free(tol_eff);
+		algn_free(tol_eff);
 		DeleteDynamicsData(&dyn);
 	}
 
@@ -180,7 +179,7 @@ int DynamicsTest()
 		ComputeDynamicsDataStrang(L, dt, d*d, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
-		double *tol_eff = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+		double *tol_eff = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 		mpo_t Y;
 		CopyMPO(&X, &Y);
@@ -198,8 +197,8 @@ int DynamicsTest()
 
 			// non-zero entries of reference tensor
 			const size_t nnz = 108532;
-			MKL_Complex16 *val = (MKL_Complex16 *)MKL_malloc(nnz*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-			uint64_t      *ind =      (uint64_t *)MKL_malloc(nnz*sizeof(uint64_t),      MEM_DATA_ALIGN);
+			MKL_Complex16 *val = (MKL_Complex16 *)algn_malloc(nnz*sizeof(MKL_Complex16));
+			uint64_t      *ind =      (uint64_t *)algn_malloc(nnz*sizeof(uint64_t));
 			status = ReadData("../test/dynamics_test_A_Lstrang6i7_m_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
 			status = ReadData("../test/dynamics_test_A_Lstrang6i7_m_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
 			size_t j;
@@ -207,8 +206,8 @@ int DynamicsTest()
 			{
 				Am_ref.data[ind[j]] = val[j];
 			}
-			MKL_free(ind);
-			MKL_free(val);
+			algn_free(ind);
+			algn_free(val);
 		}
 
 		// check dimensions
@@ -231,7 +230,7 @@ int DynamicsTest()
 		DeleteTensor(&Am_ref);
 		DeleteTensor(&Am);
 		DeleteMPO(&Y);
-		MKL_free(tol_eff);
+		algn_free(tol_eff);
 		DeleteDynamicsData(&dyn);
 	}
 
@@ -246,7 +245,7 @@ int DynamicsTest()
 		ComputeDynamicsDataPRK(L, dt, d*d, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
-		double *tol_eff = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+		double *tol_eff = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 		mpo_t Y;
 		CopyMPO(&X, &Y);
@@ -264,8 +263,8 @@ int DynamicsTest()
 
 			// non-zero entries of reference tensor
 			const size_t nnz = 108532;
-			MKL_Complex16 *val = (MKL_Complex16 *)MKL_malloc(nnz*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-			uint64_t      *ind =      (uint64_t *)MKL_malloc(nnz*sizeof(uint64_t),      MEM_DATA_ALIGN);
+			MKL_Complex16 *val = (MKL_Complex16 *)algn_malloc(nnz*sizeof(MKL_Complex16));
+			uint64_t      *ind =      (uint64_t *)algn_malloc(nnz*sizeof(uint64_t));
 			status = ReadData("../test/dynamics_test_A_prk11i9_m_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
 			status = ReadData("../test/dynamics_test_A_prk11i9_m_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
 			size_t j;
@@ -273,8 +272,8 @@ int DynamicsTest()
 			{
 				Am_ref.data[ind[j]] = val[j];
 			}
-			MKL_free(ind);
-			MKL_free(val);
+			algn_free(ind);
+			algn_free(val);
 		}
 
 		// check dimensions
@@ -297,7 +296,7 @@ int DynamicsTest()
 		DeleteTensor(&Am_ref);
 		DeleteTensor(&Am);
 		DeleteMPO(&Y);
-		MKL_free(tol_eff);
+		algn_free(tol_eff);
 		DeleteDynamicsData(&dyn);
 	}
 
@@ -311,7 +310,7 @@ int DynamicsTest()
 		ComputeDynamicsDataPRK(L, dt, d*d, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
-		double *tol_eff = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+		double *tol_eff = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 		mpo_t Y;
 		CopyMPO(&X, &Y);
@@ -329,8 +328,8 @@ int DynamicsTest()
 
 			// non-zero entries of reference tensor
 			const size_t nnz = 109036;
-			MKL_Complex16 *val = (MKL_Complex16 *)MKL_malloc(nnz*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-			uint64_t      *ind =      (uint64_t *)MKL_malloc(nnz*sizeof(uint64_t),      MEM_DATA_ALIGN);
+			MKL_Complex16 *val = (MKL_Complex16 *)algn_malloc(nnz*sizeof(MKL_Complex16));
+			uint64_t      *ind =      (uint64_t *)algn_malloc(nnz*sizeof(uint64_t));
 			status = ReadData("../test/dynamics_test_A_Lprk3i5_m_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
 			status = ReadData("../test/dynamics_test_A_Lprk3i5_m_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
 			size_t j;
@@ -338,8 +337,8 @@ int DynamicsTest()
 			{
 				Am_ref.data[ind[j]] = val[j];
 			}
-			MKL_free(ind);
-			MKL_free(val);
+			algn_free(ind);
+			algn_free(val);
 		}
 
 		// check dimensions
@@ -362,7 +361,7 @@ int DynamicsTest()
 		DeleteTensor(&Am_ref);
 		DeleteTensor(&Am);
 		DeleteMPO(&Y);
-		MKL_free(tol_eff);
+		algn_free(tol_eff);
 		DeleteDynamicsData(&dyn);
 	}*/
 
@@ -372,9 +371,9 @@ int DynamicsTest()
 	DeleteMPO(&X);
 	for (i = 0; i < L - 1; i++)
 	{
-		MKL_free(h[i]);
+		algn_free(h[i]);
 	}
-	MKL_free(h);
+	algn_free(h);
 
 	return (err < 5e-13 ? 0 : 1);
 }

@@ -3,7 +3,6 @@
 
 #include "hamiltonian_bose_hubbard.h"
 #include "util.h"
-#include <mkl.h>
 #include <memory.h>
 #include <assert.h>
 
@@ -89,36 +88,36 @@ void ConstructLocalBoseHubbardOperators(const int L, const size_t M, const doubl
 	const size_t d = M + 1;
 	const size_t d2 = d*d;
 
-	double *id = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
-	double *b  = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
-	double *bd = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
-	double *bn = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	double *id = algn_malloc(d2 * sizeof(double));
+	double *b  = algn_malloc(d2 * sizeof(double));
+	double *bd = algn_malloc(d2 * sizeof(double));
+	double *bn = algn_malloc(d2 * sizeof(double));
 	RealIdentityMatrix(d, id);
 	BoseAnnihilationOperator(d, b);
 	BoseCreationOperator(d, bd);
 	BoseNumberOperator(d, bn);
 
 	// construct kinetic term -t (b^dagger b + b b^dagger)
-	double *tkin = MKL_calloc(d2*d2, sizeof(double), MEM_DATA_ALIGN);
+	double *tkin = algn_calloc(d2*d2, sizeof(double));
 	KroneckerProductRealSquare((MKL_INT)d, bd, b,  tkin);
 	KroneckerProductRealSquare((MKL_INT)d, b,  bd, tkin);
 	cblas_dscal((MKL_INT)(d2*d2), -t, tkin, 1);     // scale by -t
 
 	// construct single-site term U/2 n (n - 1) - mu n
-	double *hs = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	double *hs = algn_malloc(d2 * sizeof(double));
 	BoseInteractionOperator(d, hs);
 	cblas_dscal((MKL_INT)d2, 0.5*U, hs, 1);
 	cblas_daxpy((MKL_INT)d2, -mu, bn, 1, hs, 1);
 
 	// Kronecker products of hs with identity matrix
-	double *hs_id = MKL_calloc(d2*d2, sizeof(double), MEM_DATA_ALIGN);
-	double *id_hs = MKL_calloc(d2*d2, sizeof(double), MEM_DATA_ALIGN);
+	double *hs_id = algn_calloc(d2*d2, sizeof(double));
+	double *id_hs = algn_calloc(d2*d2, sizeof(double));
 	KroneckerProductRealSquare((MKL_INT)d, hs, id, hs_id);
 	KroneckerProductRealSquare((MKL_INT)d, id, hs, id_hs);
 
 	for (i = 0; i < L - 1; i++)
 	{
-		h[i] = MKL_malloc(d2*d2 * sizeof(double), MEM_DATA_ALIGN);
+		h[i] = algn_malloc(d2*d2 * sizeof(double));
 		memcpy(h[i], tkin, d2*d2 * sizeof(double));
 	}
 
@@ -150,14 +149,14 @@ void ConstructLocalBoseHubbardOperators(const int L, const size_t M, const doubl
 	}
 
 	// clean up
-	MKL_free(id_hs);
-	MKL_free(hs_id);
-	MKL_free(hs);
-	MKL_free(tkin);
-	MKL_free(bn);
-	MKL_free(bd);
-	MKL_free(b);
-	MKL_free(id);
+	algn_free(id_hs);
+	algn_free(hs_id);
+	algn_free(hs);
+	algn_free(tkin);
+	algn_free(bn);
+	algn_free(bd);
+	algn_free(b);
+	algn_free(id);
 }
 
 
@@ -170,7 +169,7 @@ void DeleteLocalBoseHubbardOperators(const int L, double **h)
 	int i;
 	for (i = 0; i < L - 1; i++)
 	{
-		MKL_free(h[i]);
+		algn_free(h[i]);
 		h[i] = NULL;
 	}
 }
@@ -185,27 +184,27 @@ void ConstructLocalBoseHubbardEnergyOperator(const size_t M, const double t, con
 	const size_t d = M + 1;
 	const size_t d2 = d*d;
 
-	double *id = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
-	double *b  = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
-	double *bd = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	double *id = algn_malloc(d2 * sizeof(double));
+	double *b  = algn_malloc(d2 * sizeof(double));
+	double *bd = algn_malloc(d2 * sizeof(double));
 	RealIdentityMatrix(d, id);
 	BoseAnnihilationOperator(d, b);
 	BoseCreationOperator(d, bd);
 
 	// construct kinetic term -t (b^dagger b + b b^dagger)
-	double *tkin = MKL_calloc(d2*d2, sizeof(double), MEM_DATA_ALIGN);
+	double *tkin = algn_calloc(d2*d2, sizeof(double));
 	KroneckerProductRealSquare((MKL_INT)d, bd, b,  tkin);
 	KroneckerProductRealSquare((MKL_INT)d, b,  bd, tkin);
 	cblas_dscal((MKL_INT)(d2*d2), -t, tkin, 1);     // scale by -t
 
 	// construct single-site term U/2 n (n - 1)
-	double *hs = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	double *hs = algn_malloc(d2 * sizeof(double));
 	BoseInteractionOperator(d, hs);
 	cblas_dscal((MKL_INT)d2, 0.5*U, hs, 1);
 
 	// Kronecker products of hs with identity matrix
-	double *hs_id = MKL_calloc(d2*d2, sizeof(double), MEM_DATA_ALIGN);
-	double *id_hs = MKL_calloc(d2*d2, sizeof(double), MEM_DATA_ALIGN);
+	double *hs_id = algn_calloc(d2*d2, sizeof(double));
+	double *id_hs = algn_calloc(d2*d2, sizeof(double));
 	KroneckerProductRealSquare((MKL_INT)d, hs, id, hs_id);
 	KroneckerProductRealSquare((MKL_INT)d, id, hs, id_hs);
 
@@ -215,13 +214,13 @@ void ConstructLocalBoseHubbardEnergyOperator(const size_t M, const double t, con
 	cblas_daxpy((MKL_INT)(d2*d2), 0.5, id_hs, 1, h, 1);
 
 	// clean up
-	MKL_free(id_hs);
-	MKL_free(hs_id);
-	MKL_free(hs);
-	MKL_free(tkin);
-	MKL_free(bd);
-	MKL_free(b);
-	MKL_free(id);
+	algn_free(id_hs);
+	algn_free(hs_id);
+	algn_free(hs);
+	algn_free(tkin);
+	algn_free(bd);
+	algn_free(b);
+	algn_free(id);
 }
 
 
@@ -240,7 +239,7 @@ void ConstructBoseHubbardMPO(const int L, const size_t M, const double t, const 
 	// allocate matrix product operator
 	{
 		// virtual bond dimensions
-		size_t *D = (size_t *)MKL_malloc((L + 1)*sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *D = (size_t *)algn_malloc((L + 1)*sizeof(size_t));
 		D[0] = 1;
 		for (i = 1; i < L; i++) {
 			D[i] = 4;
@@ -249,12 +248,12 @@ void ConstructBoseHubbardMPO(const int L, const size_t M, const double t, const 
 
 		const size_t dim[2] = { d, d };
 		AllocateMPO(L, dim, D, H);
-		MKL_free(D);
+		algn_free(D);
 
 		// set quantum numbers
 
 		// physical quantum numbers (occupation numbers)
-		qnumber_t *qd = (qnumber_t *)MKL_malloc(d * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qd = (qnumber_t *)algn_malloc(d * sizeof(qnumber_t));
 		size_t j;
 		for (j = 0; j < d; j++)
 		{
@@ -262,7 +261,7 @@ void ConstructBoseHubbardMPO(const int L, const size_t M, const double t, const 
 		}
 		memcpy(H->qd[0], qd, d*sizeof(qnumber_t));
 		memcpy(H->qd[1], qd, d*sizeof(qnumber_t));
-		MKL_free(qd);
+		algn_free(qd);
 
 		// virtual bond quantum numbers
 		const qnumber_t qD[] = { 0, 1, -1, 0 };
@@ -273,25 +272,25 @@ void ConstructBoseHubbardMPO(const int L, const size_t M, const double t, const 
 	}
 
 	// identity and basic bosonic operators
-	double *id = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
-	double *b  = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
-	double *bd = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
-	double *bn = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	double *id = algn_malloc(d2 * sizeof(double));
+	double *b  = algn_malloc(d2 * sizeof(double));
+	double *bd = algn_malloc(d2 * sizeof(double));
+	double *bn = algn_malloc(d2 * sizeof(double));
 	RealIdentityMatrix(d, id);
 	BoseAnnihilationOperator(d, b);
 	BoseCreationOperator(d, bd);
 	BoseNumberOperator(d, bn);
 
 	// construct -t b_j and -t b^dagger_j operators
-	double *tb  = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
-	double *tbd = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	double *tb  = algn_malloc(d2 * sizeof(double));
+	double *tbd = algn_malloc(d2 * sizeof(double));
 	memcpy(tb,  b,  d2 * sizeof(double));
 	memcpy(tbd, bd, d2 * sizeof(double));
 	cblas_dscal((MKL_INT)d2, -t, tb,  1);
 	cblas_dscal((MKL_INT)d2, -t, tbd, 1);
 
 	// construct single-site term U/2 n (n - 1) - mu n
-	double *hs = MKL_malloc(d2 * sizeof(double), MEM_DATA_ALIGN);
+	double *hs = algn_malloc(d2 * sizeof(double));
 	BoseInteractionOperator(d, hs);
 	cblas_dscal((MKL_INT)d2, 0.5*U, hs, 1);
 	cblas_daxpy((MKL_INT)d2, -mu, bn, 1, hs, 1);
@@ -330,11 +329,11 @@ void ConstructBoseHubbardMPO(const int L, const size_t M, const double t, const 
 	}
 
 	// clean up
-	MKL_free(hs);
-	MKL_free(tbd);
-	MKL_free(tb);
-	MKL_free(bn);
-	MKL_free(bd);
-	MKL_free(b);
-	MKL_free(id);
+	algn_free(hs);
+	algn_free(tbd);
+	algn_free(tb);
+	algn_free(bn);
+	algn_free(bd);
+	algn_free(b);
+	algn_free(id);
 }

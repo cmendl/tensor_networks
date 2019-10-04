@@ -3,7 +3,6 @@
 
 #include "util.h"
 #include "dupio.h"
-#include <mkl.h>
 #include <memory.h>
 #include <stdlib.h>
 #include <time.h>
@@ -67,10 +66,10 @@ int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, M
 	__assume_aligned(A, MEM_DATA_ALIGN);
 
 	// eigenvalues
-	double *w = MKL_malloc(n * sizeof(double), MEM_DATA_ALIGN);
+	double *w = algn_malloc(n * sizeof(double));
 
 	// copy 'A' matrix (will be overwritten by eigenvectors)
-	double *U = MKL_malloc(n*n * sizeof(double), MEM_DATA_ALIGN);
+	double *U = algn_malloc(n*n * sizeof(double));
 	__assume_aligned(U, MEM_DATA_ALIGN);
 	memcpy(U, A, n*n * sizeof(double));
 
@@ -81,7 +80,7 @@ int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, M
 	}
 
 	// apply exponential to eigenvalues
-	MKL_Complex16 *exp_tw = MKL_malloc(n * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *exp_tw = algn_malloc(n * sizeof(MKL_Complex16));
 	size_t i;
 	for (i = 0; i < n; i++)
 	{
@@ -91,7 +90,7 @@ int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, M
 	}
 
 	// expand 'U' to a complex matrix
-	MKL_Complex16 *Ucplx = MKL_calloc(n*n, sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *Ucplx = algn_calloc(n*n, sizeof(MKL_Complex16));
 	__assume_aligned(Ucplx, MEM_DATA_ALIGN);
 	for (i = 0; i < n*n; i++)
 	{
@@ -99,7 +98,7 @@ int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, M
 	}
 
 	// compute U * diag(exp(-t lambda_i))
-	MKL_Complex16 *UexpD = MKL_malloc(n*n * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *UexpD = algn_malloc(n*n * sizeof(MKL_Complex16));
 	__assume_aligned(UexpD, MEM_DATA_ALIGN);
 	memcpy(UexpD, Ucplx, n*n * sizeof(MKL_Complex16));
 	for (i = 0; i < n; i++)
@@ -113,11 +112,11 @@ int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, M
 	cblas_zgemm(CblasColMajor, CblasNoTrans, CblasTrans, (MKL_INT)n, (MKL_INT)n, (MKL_INT)n, &one, UexpD, (MKL_INT)n, Ucplx, (MKL_INT)n, &zero, ret, (MKL_INT)n);
 
 	// clean up
-	MKL_free(UexpD);
-	MKL_free(Ucplx);
-	MKL_free(exp_tw);
-	MKL_free(U);
-	MKL_free(w);
+	algn_free(UexpD);
+	algn_free(Ucplx);
+	algn_free(exp_tw);
+	algn_free(U);
+	algn_free(w);
 
 	return 0;
 }

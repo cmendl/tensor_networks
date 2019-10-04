@@ -2,9 +2,9 @@
 /// \brief Quantum numbers and corresponding utility functions
 
 #include "qnumber.h"
+#include "util.h"
 #include <stdint.h>
 #include <memory.h>
-#include <mkl.h>
 #include <assert.h>
 
 
@@ -66,7 +66,7 @@ bool IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, cons
 
 	// sort quantum numbers in q0 and remove duplicates
 	// TODO: could use mergesort to remove duplicates directly
-	qnumber_t *q0s = (qnumber_t *)MKL_malloc(n0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q0s = (qnumber_t *)algn_malloc(n0 * sizeof(qnumber_t));
 	memcpy(q0s, q0, n0 * sizeof(qnumber_t));
 	qsort(q0s, n0, sizeof(qnumber_t), CompareQuantumNumbers);
 	// remove duplicates in sorted array
@@ -91,7 +91,7 @@ bool IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, cons
 	}
 
 	// mark elements of q1 in sorted array
-	uint8_t *mark = (uint8_t *)MKL_calloc(n0s, sizeof(uint8_t), MEM_DATA_ALIGN);
+	uint8_t *mark = (uint8_t *)algn_calloc(n0s, sizeof(uint8_t));
 	for (i = 0; i < (int)n1; i++)
 	{
 		if (q1[i] != q1[0]) {
@@ -138,7 +138,7 @@ bool IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, cons
 	}
 
 	// collect common quantum numbers
-	(*qis) = (qnumber_t *)MKL_malloc((*nis) * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	(*qis) = (qnumber_t *)algn_malloc((*nis) * sizeof(qnumber_t));
 	int j = 0;
 	for (i = 0; i < n0s; i++)
 	{
@@ -151,8 +151,8 @@ bool IntersectQuantumNumbers(const qnumber_t *restrict q0, const size_t n0, cons
 	assert(j == (*nis));
 
 	// clean up
-	MKL_free(mark);
-	MKL_free(q0s);
+	algn_free(mark);
+	algn_free(q0s);
 
 	return ret;
 }

@@ -4,7 +4,6 @@
 #include "dynamics.h"
 #include "complex.h"
 #include "util.h"
-#include <mkl.h>
 
 
 //________________________________________________________________________________________________________________________
@@ -21,7 +20,7 @@ void AllocateDynamicsData(const int L, const int m, const MKL_Complex16 dt, dyna
 	dyn->dt = dt;
 
 	// allocate memory for array; individual tensors must be allocated separately
-	dyn->exp_h = MKL_calloc((L - 1)*m, sizeof(tensor_t), MEM_DATA_ALIGN);
+	dyn->exp_h = algn_calloc((L - 1)*m, sizeof(tensor_t));
 }
 
 
@@ -36,7 +35,7 @@ void DeleteDynamicsData(dynamics_data_t *dyn)
 	{
 		DeleteTensor(&dyn->exp_h[i]);
 	}
-	MKL_free(dyn->exp_h);
+	algn_free(dyn->exp_h);
 
 	dyn->m = 0;
 	dyn->L = 0;
@@ -82,7 +81,7 @@ static void EvenOddUpdate(const tensor_t *restrict opT, const tensor_t *restrict
 			MergeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], &A);
 			DeleteTensor(&mpo->A[i]);
 			DeleteTensor(&mpo->A[i+1]);
-			MKL_free(mpo->qD[i+1]);
+			algn_free(mpo->qD[i+1]);
 
 			if (opT != NULL)
 			{
@@ -107,7 +106,7 @@ static void EvenOddUpdate(const tensor_t *restrict opT, const tensor_t *restrict
 		{
 			qnumber_t *qDi1_new;
 			ti = CompressMPOTensors(&mpo->A[i], &mpo->A[i+1], mpo->qD[i], mpo->qD[i+1], mpo->qD[i+2], mpo->qd[0], mpo->qd[0], distr, params, &qDi1_new);
-			MKL_free(mpo->qD[i+1]);
+			algn_free(mpo->qD[i+1]);
 			mpo->qD[i+1] = qDi1_new;
 		}
 		tol_eff[i] = fmax(tol_eff[i], ti.tol_eff);
@@ -154,7 +153,7 @@ static double LatticeTwoSiteSweep(const tensor_t *restrict opT, const tensor_t *
 		MergeMPOTensorPair(&mpo->A[i], &mpo->A[i+1], &A);
 		DeleteTensor(&mpo->A[i]);
 		DeleteTensor(&mpo->A[i+1]);
-		MKL_free(mpo->qD[i+1]);
+		algn_free(mpo->qD[i+1]);
 
 		if (opT != NULL)
 		{

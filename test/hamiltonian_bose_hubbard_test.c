@@ -1,7 +1,6 @@
 #include "hamiltonian_bose_hubbard.h"
 #include "complex.h"
 #include "util.h"
-#include <mkl.h>
 #include <stdio.h>
 
 
@@ -60,14 +59,14 @@ int HamiltonianBoseHubbardTest()
 	const double mu = 1.3;
 
 	// construct two-site Bose-Hubbard Hamiltonian operators
-	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)algn_malloc((L - 1)*sizeof(double *));
 	ConstructLocalBoseHubbardOperators(L, d - 1, t, U, mu, h);
 
 	// compare with reference
 	for (i = 0; i < L - 1; i++)
 	{
 		// load reference two-site Hamiltonian operators from disk
-		double *h_ref_i = (double *)MKL_malloc(d*d*d*d*sizeof(double), MEM_DATA_ALIGN);
+		double *h_ref_i = (double *)algn_malloc(d*d*d*d*sizeof(double));
 		char filename[1024];
 		sprintf(filename, "../test/hamiltonian_bose_hubbard_test_h%i.dat", i);
 		status = ReadData(filename, h_ref_i, sizeof(double), d*d*d*d);
@@ -76,7 +75,7 @@ int HamiltonianBoseHubbardTest()
 		// largest entrywise error
 		err = fmax(err, UniformDistance(d*d*d*d, h[i], h_ref_i));
 
-		MKL_free(h_ref_i);
+		algn_free(h_ref_i);
 	}
 
 	// construct matrix product operator representation
@@ -89,7 +88,7 @@ int HamiltonianBoseHubbardTest()
 		const size_t num = NumTensorElements(&mpoH.A[i]);
 
 		// load reference 'W' tensor from disk
-		MKL_Complex16 *W_ref_i = (MKL_Complex16 *)MKL_malloc(num * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *W_ref_i = (MKL_Complex16 *)algn_malloc(num * sizeof(MKL_Complex16));
 		char filename[1024];
 		sprintf(filename, "../test/hamiltonian_bose_hubbard_test_W%i.dat", i);
 		status = ReadData(filename, W_ref_i, sizeof(MKL_Complex16), num);
@@ -98,7 +97,7 @@ int HamiltonianBoseHubbardTest()
 		// largest entrywise error
 		err = fmax(err, UniformDistance(2*num, (double *)mpoH.A[i].data, (double *)W_ref_i));
 
-		MKL_free(W_ref_i);
+		algn_free(W_ref_i);
 	}
 
 	// test block structure
@@ -112,7 +111,7 @@ int HamiltonianBoseHubbardTest()
 	// clean up
 	DeleteMPO(&mpoH);
 	DeleteLocalBoseHubbardOperators(L, h);
-	MKL_free(h);
+	algn_free(h);
 
 	// large required tolerance presumably due to interaction term U/2 n (n - 1)
 	return (err < 1e-14 ? 0 : 1);

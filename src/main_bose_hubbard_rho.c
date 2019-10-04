@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 	bond_op_params.renormalize = params.renormalize;
 
 	// physical quantum numbers
-	qnumber_t *qd = (qnumber_t *)MKL_malloc(d * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *qd = (qnumber_t *)algn_malloc(d * sizeof(qnumber_t));
 	for (j = 0; j < d; j++)
 	{
 		qd[j] = j;
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 	}
 
 	// construct two-site Bose-Hubbard Hamiltonian operators
-	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)algn_malloc((L - 1)*sizeof(double *));
 	ConstructLocalBoseHubbardOperators(L, d - 1, params.t, params.U, params.mu, h);
 
 	// start timer
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 	ComputeDynamicsDataStrang(L, dbeta, d*d, (const double **)h, &dyn);
 
 	// effective tolerance (truncation weight)
-	double *tol_eff = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+	double *tol_eff = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 	// perform imaginary time evolution
 	EvolveMPOStrang(&dyn, nsteps, &bond_op_params, true, &rho_beta, tol_eff);
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
 
 	// record virtual bond dimensions
-	size_t *D_beta = (size_t *)MKL_malloc((L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *D_beta = (size_t *)algn_malloc((L + 1) * sizeof(size_t));
 	MPOBondDims(&rho_beta, D_beta);
 
 	// record Frobenius norm
@@ -206,14 +206,14 @@ int main(int argc, char *argv[])
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_beta%g_tol_eff.dat", argv[2], L, d - 1, params.beta);  WriteData(filename, tol_eff, sizeof(double), nsteps*(L - 1), false);
 
 	// clean up
-	MKL_free(D_beta);
-	MKL_free(tol_eff);
+	algn_free(D_beta);
+	algn_free(tol_eff);
 	DeleteDynamicsData(&dyn);
 	DeleteMPO(&rho_beta);
 	DeleteLocalBoseHubbardOperators(L, h);
-	MKL_free(h);
+	algn_free(h);
 	DeleteTensor(&bn);
-	MKL_free(qd);
+	algn_free(qd);
 
 	MKL_Free_Buffers();
 

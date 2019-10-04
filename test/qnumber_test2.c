@@ -1,6 +1,5 @@
 #include "qnumber.h"
 #include "util.h"
-#include <mkl.h>
 #include <stdio.h>
 
 
@@ -16,8 +15,8 @@ int QuantumNumberTest2()
 	// load quantum numbers from disk
 	const size_t n0 = 16;
 	const size_t n1 = 17;
-	qnumber_t *q0 = (qnumber_t *)MKL_malloc(n0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	qnumber_t *q1 = (qnumber_t *)MKL_malloc(n1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q0 = (qnumber_t *)algn_malloc(n0 * sizeof(qnumber_t));
+	qnumber_t *q1 = (qnumber_t *)algn_malloc(n1 * sizeof(qnumber_t));
 	status = ReadData("../test/qnumber_test2_q0.dat", q0, sizeof(qnumber_t), n0); if (status < 0) { return status; }
 	status = ReadData("../test/qnumber_test2_q1.dat", q1, sizeof(qnumber_t), n1); if (status < 0) { return status; }
 
@@ -29,7 +28,7 @@ int QuantumNumberTest2()
 
 		// load reference data from disk
 		const size_t nis_ref = 4;
-		qnumber_t *qis_ref = (qnumber_t *)MKL_malloc(nis_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qis_ref = (qnumber_t *)algn_malloc(nis_ref * sizeof(qnumber_t));
 		status = ReadData("../test/qnumber_test2_qis.dat", qis_ref, sizeof(qnumber_t), nis_ref);
 		if (status < 0) { return status; }
 
@@ -48,15 +47,15 @@ int QuantumNumberTest2()
 		}
 
 		// clean up
-		MKL_free(qis_ref);
-		MKL_free(qis);
+		algn_free(qis_ref);
+		algn_free(qis);
 	}
 
 	printf("Error: %i\n", err);
 
 	// clean up
-	MKL_free(q1);
-	MKL_free(q0);
+	algn_free(q1);
+	algn_free(q0);
 
 	return (err == 0 ? 0 : 1);
 }

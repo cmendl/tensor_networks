@@ -1,6 +1,6 @@
 #include "mpo.h"
 #include "complex.h"
-#include <mkl.h>
+#include "util.h"
 #include <stdlib.h>
 #include <memory.h>
 #include <math.h>
@@ -56,8 +56,8 @@ int MPOTest()
 	const size_t d1 = 5;
 
 	// load physical quantum numbers from disk
-	qnumber_t *qd0 = (qnumber_t *)MKL_malloc(d0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	qnumber_t *qd1 = (qnumber_t *)MKL_malloc(d1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *qd0 = (qnumber_t *)algn_malloc(d0 * sizeof(qnumber_t));
+	qnumber_t *qd1 = (qnumber_t *)algn_malloc(d1 * sizeof(qnumber_t));
 	{
 		status = ReadData("../test/mpo_test_qd0.dat", qd0, sizeof(qnumber_t), d0); if (status < 0) { return status; }
 		status = ReadData("../test/mpo_test_qd1.dat", qd1, sizeof(qnumber_t), d1); if (status < 0) { return status; }
@@ -151,8 +151,8 @@ int MPOTest()
 
 			// non-zero entries of reference tensor
 			const size_t nnz = 9412;
-			MKL_Complex16 *val = (MKL_Complex16 *)MKL_malloc(nnz*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-			uint64_t      *ind =      (uint64_t *)MKL_malloc(nnz*sizeof(uint64_t),      MEM_DATA_ALIGN);
+			MKL_Complex16 *val = (MKL_Complex16 *)algn_malloc(nnz*sizeof(MKL_Complex16));
+			uint64_t      *ind =      (uint64_t *)algn_malloc(nnz*sizeof(uint64_t));
 			status = ReadData("../test/mpo_test_A_merged_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
 			status = ReadData("../test/mpo_test_A_merged_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
 			size_t j;
@@ -160,8 +160,8 @@ int MPOTest()
 			{
 				Am_ref.data[ind[j]] = val[j];
 			}
-			MKL_free(ind);
-			MKL_free(val);
+			algn_free(ind);
+			algn_free(val);
 		}
 
 		// check dimensions
@@ -317,8 +317,8 @@ int MPOTest()
 
 			// non-zero entries of reference tensor
 			const size_t nnz = 75233;
-			MKL_Complex16 *val = (MKL_Complex16 *)MKL_malloc(nnz*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-			uint64_t      *ind =      (uint64_t *)MKL_malloc(nnz*sizeof(uint64_t),      MEM_DATA_ALIGN);
+			MKL_Complex16 *val = (MKL_Complex16 *)algn_malloc(nnz*sizeof(MKL_Complex16));
+			uint64_t      *ind =      (uint64_t *)algn_malloc(nnz*sizeof(uint64_t));
 			status = ReadData("../test/mpo_test_ABsum_merged_val.dat", val, sizeof(MKL_Complex16), nnz); if (status < 0) { return status; }
 			status = ReadData("../test/mpo_test_ABsum_merged_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
 			size_t j;
@@ -326,8 +326,8 @@ int MPOTest()
 			{
 				XYhm_ref.data[ind[j]] = val[j];
 			}
-			MKL_free(ind);
-			MKL_free(val);
+			algn_free(ind);
+			algn_free(val);
 		}
 
 		// check dimensions
@@ -358,8 +358,8 @@ int MPOTest()
 		}
 
 		// load virtual quantum numbers from disk
-		qnumber_t *qG0 = (qnumber_t *)MKL_malloc(G2.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qG2 = (qnumber_t *)MKL_malloc(G2.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qG0 = (qnumber_t *)algn_malloc(G2.dim[2] * sizeof(qnumber_t));
+		qnumber_t *qG2 = (qnumber_t *)algn_malloc(G2.dim[3] * sizeof(qnumber_t));
 		status = ReadData("../test/mpo_test_qG0.dat", qG0, sizeof(qnumber_t), G2.dim[2]); if (status < 0) { return status; }
 		status = ReadData("../test/mpo_test_qG2.dat", qG2, sizeof(qnumber_t), G2.dim[3]); if (status < 0) { return status; }
 
@@ -382,7 +382,7 @@ int MPOTest()
 
 			// check bond quantum numbers
 			const size_t D_ref = 175;
-			qnumber_t *qG1_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+			qnumber_t *qG1_ref = (qnumber_t *)algn_malloc(D_ref * sizeof(qnumber_t));
 			status = ReadData("../test/mpo_test_qG1.dat", qG1_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
 			if (G0.dim[3] != D_ref)
 			{
@@ -397,8 +397,8 @@ int MPOTest()
 					}
 				}
 			}
-			MKL_free(qG1_ref);
-			MKL_free(qG1);
+			algn_free(qG1_ref);
+			algn_free(qG1);
 
 			// norm and von Neumann entropy of singular values
 			{
@@ -448,7 +448,7 @@ int MPOTest()
 
 			// check bond quantum numbers
 			const size_t D_ref = 102;
-			qnumber_t *qG1_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+			qnumber_t *qG1_ref = (qnumber_t *)algn_malloc(D_ref * sizeof(qnumber_t));
 			status = ReadData("../test/mpo_test_qG1_red.dat", qG1_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
 			if (G0.dim[3] != D_ref)
 			{
@@ -463,8 +463,8 @@ int MPOTest()
 					}
 				}
 			}
-			MKL_free(qG1_ref);
-			MKL_free(qG1);
+			algn_free(qG1_ref);
+			algn_free(qG1);
 
 			// norm and von Neumann entropy of singular values
 			{
@@ -506,8 +506,8 @@ int MPOTest()
 			DeleteTensor(&G0);
 		}
 
-		MKL_free(qG0);
-		MKL_free(qG2);
+		algn_free(qG0);
+		algn_free(qG2);
 		DeleteTensor(&G2);
 	}
 
@@ -527,9 +527,9 @@ int MPOTest()
 		}
 
 		// load virtual quantum numbers from disk
-		qnumber_t *qK0 = (qnumber_t *)MKL_malloc(K0.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qK1 = (qnumber_t *)MKL_malloc(K0.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qK2 = (qnumber_t *)MKL_malloc(K1.dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qK0 = (qnumber_t *)algn_malloc(K0.dim[2] * sizeof(qnumber_t));
+		qnumber_t *qK1 = (qnumber_t *)algn_malloc(K0.dim[3] * sizeof(qnumber_t));
+		qnumber_t *qK2 = (qnumber_t *)algn_malloc(K1.dim[3] * sizeof(qnumber_t));
 		status = ReadData("../test/mpo_test_qK0.dat", qK0, sizeof(qnumber_t), K0.dim[2]); if (status < 0) { return status; }
 		status = ReadData("../test/mpo_test_qK1.dat", qK1, sizeof(qnumber_t), K0.dim[3]); if (status < 0) { return status; }
 		status = ReadData("../test/mpo_test_qK2.dat", qK2, sizeof(qnumber_t), K1.dim[3]); if (status < 0) { return status; }
@@ -541,7 +541,7 @@ int MPOTest()
 		params.maxD = INT32_MAX;
 		params.renormalize = false;
 		trunc_info_t ti = CompressMPOTensors(&K0, &K1, qK0, qK1, qK2, qd0, qd1, SVD_DISTR_SQRT, &params, &qcK1);
-		MKL_free(qK1);
+		algn_free(qK1);
 
 		// block structure error
 		const qnumber_t *qd0_pair[2] = { qd0, qd0 }; 
@@ -551,7 +551,7 @@ int MPOTest()
 
 		// check bond quantum numbers
 		const size_t D_ref = 10;
-		qnumber_t *qcK1_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qcK1_ref = (qnumber_t *)algn_malloc(D_ref * sizeof(qnumber_t));
 		status = ReadData("../test/mpo_test_qcK1.dat", qcK1_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
 		if (K0.dim[3] != D_ref)
 		{
@@ -566,7 +566,7 @@ int MPOTest()
 				}
 			}
 		}
-		MKL_free(qcK1_ref);
+		algn_free(qcK1_ref);
 
 		// norm and von Neumann entropy of singular values
 		{
@@ -604,9 +604,9 @@ int MPOTest()
 		DeleteTensor(&K2mrg);
 
 		// clean up
-		MKL_free(qK2);
-		MKL_free(qcK1);
-		MKL_free(qK0);
+		algn_free(qK2);
+		algn_free(qcK1);
+		algn_free(qK0);
 		DeleteTensor(&K1);
 		DeleteTensor(&K0);
 	}
@@ -630,7 +630,7 @@ int MPOTest()
 			MergeMPOFull(&Zmod, &Am_ref);
 
 			// modified 'Z' tensor is redundant, such that lossless compression should be possible
-			trunc_info_t *ti = (trunc_info_t *)MKL_malloc((L - 1) * sizeof(trunc_info_t), MEM_DATA_ALIGN);
+			trunc_info_t *ti = (trunc_info_t *)algn_malloc((L - 1) * sizeof(trunc_info_t));
 			bond_op_params_t params;
 			params.tol  = 0;
 			params.maxD = INT32_MAX;
@@ -653,7 +653,7 @@ int MPOTest()
 			}
 
 			DeleteTensor(&Am);
-			MKL_free(ti);
+			algn_free(ti);
 			DeleteTensor(&Am_ref);
 			DeleteMPO(&Zmod);
 		}
@@ -733,10 +733,10 @@ int MPOTest()
 		const qnumber_t qd[4] = { 1, 0, -2, 0 };
 
 		// load operator chains from disk
-		opchain_t *opchains = (opchain_t *)MKL_calloc(nopc, sizeof(opchain_t), MEM_DATA_ALIGN);
+		opchain_t *opchains = (opchain_t *)algn_calloc(nopc, sizeof(opchain_t));
 		{
-			int *length = (int *)MKL_malloc(nopc * sizeof(int), MEM_DATA_ALIGN);
-			int *start  = (int *)MKL_malloc(nopc * sizeof(int), MEM_DATA_ALIGN);
+			int *length = (int *)algn_malloc(nopc * sizeof(int));
+			int *start  = (int *)algn_malloc(nopc * sizeof(int));
 			status = ReadData("../test/mpo_test_opc_length.dat", length, sizeof(int), nopc);    if (status < 0) { return status; }
 			status = ReadData("../test/mpo_test_opc_start.dat",  start,  sizeof(int), nopc);    if (status < 0) { return status; }
 
@@ -760,8 +760,8 @@ int MPOTest()
 				if (status < 0) { return status; }
 			}
 
-			MKL_free(start);
-			MKL_free(length);
+			algn_free(start);
+			algn_free(length);
 		}
 
 		// construct MPO representation
@@ -832,7 +832,7 @@ int MPOTest()
 		{
 			DeleteOpchain(&opchains[j]);
 		}
-		MKL_free(opchains);
+		algn_free(opchains);
 	}
 
 	printf("Largest error: %g\n", err);
@@ -841,8 +841,8 @@ int MPOTest()
 	DeleteMPO(&Z);
 	DeleteMPO(&Y);
 	DeleteMPO(&X);
-	MKL_free(qd0);
-	MKL_free(qd1);
+	algn_free(qd0);
+	algn_free(qd1);
 
 	return (err < 2e-14 ? 0 : 1);
 }

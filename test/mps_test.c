@@ -1,6 +1,5 @@
 #include "mps.h"
 #include "complex.h"
-#include <mkl.h>
 #include <stdlib.h>
 #include <memory.h>
 #include <math.h>
@@ -374,13 +373,13 @@ int MPSTest()
 
 		// load quantum numbers from disk
 		// physical
-		qnumber_t *qd0 = (qnumber_t *)MKL_malloc(d0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qd1 = (qnumber_t *)MKL_malloc(d1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qd0 = (qnumber_t *)algn_malloc(d0 * sizeof(qnumber_t));
+		qnumber_t *qd1 = (qnumber_t *)algn_malloc(d1 * sizeof(qnumber_t));
 		status = ReadData("../test/mps_test_qd0.dat", qd0, sizeof(qnumber_t), d0); if (status < 0) { return status; }
 		status = ReadData("../test/mps_test_qd1.dat", qd1, sizeof(qnumber_t), d1); if (status < 0) { return status; }
 		// virtual
-		qnumber_t *qG0 = (qnumber_t *)MKL_malloc(G2.dim[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qG2 = (qnumber_t *)MKL_malloc(G2.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qG0 = (qnumber_t *)algn_malloc(G2.dim[1] * sizeof(qnumber_t));
+		qnumber_t *qG2 = (qnumber_t *)algn_malloc(G2.dim[2] * sizeof(qnumber_t));
 		status = ReadData("../test/mps_test_qG0.dat", qG0, sizeof(qnumber_t), G2.dim[1]); if (status < 0) { return status; }
 		status = ReadData("../test/mps_test_qG2.dat", qG2, sizeof(qnumber_t), G2.dim[2]); if (status < 0) { return status; }
 
@@ -401,7 +400,7 @@ int MPSTest()
 
 			// check bond quantum numbers
 			const size_t D_ref = 37;
-			qnumber_t *qG1_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+			qnumber_t *qG1_ref = (qnumber_t *)algn_malloc(D_ref * sizeof(qnumber_t));
 			status = ReadData("../test/mps_test_qG1.dat", qG1_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
 			if (G0.dim[2] != D_ref)
 			{
@@ -416,8 +415,8 @@ int MPSTest()
 					}
 				}
 			}
-			MKL_free(qG1_ref);
-			MKL_free(qG1);
+			algn_free(qG1_ref);
+			algn_free(qG1);
 
 			// norm and von Neumann entropy of singular values
 			{
@@ -465,7 +464,7 @@ int MPSTest()
 
 			// check bond quantum numbers
 			const size_t D_ref = 25;
-			qnumber_t *qG1_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+			qnumber_t *qG1_ref = (qnumber_t *)algn_malloc(D_ref * sizeof(qnumber_t));
 			status = ReadData("../test/mps_test_qG1_red.dat", qG1_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
 			if (G0.dim[2] != D_ref)
 			{
@@ -480,8 +479,8 @@ int MPSTest()
 					}
 				}
 			}
-			MKL_free(qG1_ref);
-			MKL_free(qG1);
+			algn_free(qG1_ref);
+			algn_free(qG1);
 
 			// norm and von Neumann entropy of singular values
 			{
@@ -523,10 +522,10 @@ int MPSTest()
 			DeleteTensor(&G0);
 		}
 
-		MKL_free(qd0);
-		MKL_free(qd1);
-		MKL_free(qG0);
-		MKL_free(qG2);
+		algn_free(qd0);
+		algn_free(qd1);
+		algn_free(qG0);
+		algn_free(qG2);
 		DeleteTensor(&G2);
 	}
 
@@ -552,14 +551,14 @@ int MPSTest()
 
 		// load quantum numbers from disk
 		// physical
-		qnumber_t *qd0 = (qnumber_t *)MKL_malloc(d0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qd1 = (qnumber_t *)MKL_malloc(d1 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qd0 = (qnumber_t *)algn_malloc(d0 * sizeof(qnumber_t));
+		qnumber_t *qd1 = (qnumber_t *)algn_malloc(d1 * sizeof(qnumber_t));
 		status = ReadData("../test/mps_test_qd0.dat", qd0, sizeof(qnumber_t), d0); if (status < 0) { return status; }
 		status = ReadData("../test/mps_test_qd1.dat", qd1, sizeof(qnumber_t), d1); if (status < 0) { return status; }
 		// virtual
-		qnumber_t *qK0 = (qnumber_t *)MKL_malloc(K0.dim[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qK1 = (qnumber_t *)MKL_malloc(K0.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-		qnumber_t *qK2 = (qnumber_t *)MKL_malloc(K1.dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qK0 = (qnumber_t *)algn_malloc(K0.dim[1] * sizeof(qnumber_t));
+		qnumber_t *qK1 = (qnumber_t *)algn_malloc(K0.dim[2] * sizeof(qnumber_t));
+		qnumber_t *qK2 = (qnumber_t *)algn_malloc(K1.dim[2] * sizeof(qnumber_t));
 		status = ReadData("../test/mps_test_qK0.dat", qK0, sizeof(qnumber_t), K0.dim[1]); if (status < 0) { return status; }
 		status = ReadData("../test/mps_test_qK1.dat", qK1, sizeof(qnumber_t), K0.dim[2]); if (status < 0) { return status; }
 		status = ReadData("../test/mps_test_qK2.dat", qK2, sizeof(qnumber_t), K1.dim[2]); if (status < 0) { return status; }
@@ -571,7 +570,7 @@ int MPSTest()
 		params.maxD = INT32_MAX;
 		params.renormalize = false;
 		trunc_info_t ti = CompressMPSTensors(&K0, &K1, qK0, qK1, qK2, qd0, qd1, SVD_DISTR_SQRT, &params, &qcK1);
-		MKL_free(qK1);
+		algn_free(qK1);
 
 		// block structure error
 		err = fmax(err, MPSBlockStructureError(&K0, qd0, qK0, qcK1));
@@ -579,7 +578,7 @@ int MPSTest()
 
 		// check bond quantum numbers
 		const size_t D_ref = 6;
-		qnumber_t *qcK1_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qcK1_ref = (qnumber_t *)algn_malloc(D_ref * sizeof(qnumber_t));
 		status = ReadData("../test/mps_test_qcK1.dat", qcK1_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
 		if (K0.dim[2] != D_ref)
 		{
@@ -594,7 +593,7 @@ int MPSTest()
 				}
 			}
 		}
-		MKL_free(qcK1_ref);
+		algn_free(qcK1_ref);
 
 		// norm and von Neumann entropy of singular values
 		{
@@ -633,11 +632,11 @@ int MPSTest()
 		DeleteTensor(&K2mrg);
 
 		// clean up
-		MKL_free(qK2);
-		MKL_free(qcK1);
-		MKL_free(qK0);
-		MKL_free(qd1);
-		MKL_free(qd0);
+		algn_free(qK2);
+		algn_free(qcK1);
+		algn_free(qK0);
+		algn_free(qd1);
+		algn_free(qd0);
 		DeleteTensor(&K1);
 		DeleteTensor(&K0);
 	}

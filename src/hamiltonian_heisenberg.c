@@ -3,7 +3,6 @@
 
 #include "hamiltonian_heisenberg.h"
 #include "util.h"
-#include <mkl.h>
 #include <memory.h>
 #include <assert.h>
 
@@ -25,7 +24,7 @@ void ConstructLocalHeisenbergOperators(const int L, const double Jx, const doubl
 			Jx/4 - Jy/4,      0,                0,                Jz/4 + hext
 		};
 
-		h[0] = MKL_malloc(4*4 * sizeof(double), MEM_DATA_ALIGN);
+		h[0] = algn_malloc(4*4 * sizeof(double));
 		memcpy(h[0], hL2, 4*4 * sizeof(double));
 	}
 	else    // general case L > 2
@@ -51,7 +50,7 @@ void ConstructLocalHeisenbergOperators(const int L, const double Jx, const doubl
 
 		// leftmost two sites
 		{
-			h[0] = MKL_malloc(4*4 * sizeof(double), MEM_DATA_ALIGN);
+			h[0] = algn_malloc(4*4 * sizeof(double));
 			memcpy(h[0], hL,  4*4 * sizeof(double));
 		}
 
@@ -59,13 +58,13 @@ void ConstructLocalHeisenbergOperators(const int L, const double Jx, const doubl
 		int i;
 		for (i = 1; i < L - 2; i++)
 		{
-			h[i] = MKL_malloc(4*4 * sizeof(double), MEM_DATA_ALIGN);
+			h[i] = algn_malloc(4*4 * sizeof(double));
 			memcpy(h[i], hI, 4*4 * sizeof(double));
 		}
 
 		// rightmost two sites
 		{
-			h[L-2] = MKL_malloc(4*4 * sizeof(double), MEM_DATA_ALIGN);
+			h[L-2] = algn_malloc(4*4 * sizeof(double));
 			memcpy(h[L-2], hR,  4*4 * sizeof(double));
 		}
 	}
@@ -81,7 +80,7 @@ void DeleteLocalHeisenbergOperators(const int L, double **h)
 	int i;
 	for (i = 0; i < L - 1; i++)
 	{
-		MKL_free(h[i]);
+		algn_free(h[i]);
 		h[i] = NULL;
 	}
 }
@@ -100,7 +99,7 @@ void ConstructHeisenbergMPO(const int L, const double J, const double Jz, const 
 	// allocate matrix product operator
 	{
 		// virtual bond dimensions
-		size_t *D = (size_t *)MKL_malloc((L + 1)*sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *D = (size_t *)algn_malloc((L + 1)*sizeof(size_t));
 		D[0] = 1;
 		for (i = 1; i < L; i++) {
 			D[i] = 5;
@@ -109,7 +108,7 @@ void ConstructHeisenbergMPO(const int L, const double J, const double Jz, const 
 
 		const size_t dim[2] = { 2, 2 };
 		AllocateMPO(L, dim, D, H);
-		MKL_free(D);
+		algn_free(D);
 
 		// set quantum numbers (scaled by 2 for integers)
 

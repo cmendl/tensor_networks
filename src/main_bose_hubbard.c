@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
 	bond_op_params.renormalize = params.renormalize;
 
 	// physical quantum numbers
-	qnumber_t *qd = (qnumber_t *)MKL_malloc(d * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *qd = (qnumber_t *)algn_malloc(d * sizeof(qnumber_t));
 	for (j = 0; j < d; j++)
 	{
 		qd[j] = j;
@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
 	}
 
 	// construct two-site Bose-Hubbard Hamiltonian operators
-	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)algn_malloc((L - 1)*sizeof(double *));
 	ConstructLocalBoseHubbardOperators(L, d - 1, params.t, params.U, params.mu, h);
 
 	// start timer
@@ -224,21 +224,21 @@ int main(int argc, char *argv[])
 		ComputeDynamicsDataStrang(L, dbeta, d*d, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
-		double *tol_eff_beta = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+		double *tol_eff_beta = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 		// perform imaginary time evolution
 		EvolveMPOStrang(&dyn, nsteps, &bond_op_params, true, &rho_beta, tol_eff_beta);
 
 		// record virtual bond dimensions
-		size_t *D_beta = (size_t *)MKL_malloc((L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *D_beta = (size_t *)algn_malloc((L + 1) * sizeof(size_t));
 		MPOBondDims(&rho_beta, D_beta);
 
 		// save effective tolerances and virtual bond dimensions to disk
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_beta.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_beta, sizeof(double), nsteps*(L - 1), false);
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_D_beta.dat",       argv[4], L, d - 1); WriteData(filename, D_beta, sizeof(size_t), L + 1, false);
 
-		MKL_free(D_beta);
-		MKL_free(tol_eff_beta);
+		algn_free(D_beta);
+		algn_free(tol_eff_beta);
 		DeleteDynamicsData(&dyn);
 	}
 
@@ -275,17 +275,17 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	MKL_Complex16 *chi  = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-	MKL_Complex16 *chiA = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-	MKL_Complex16 *chiB = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *chi  = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
+	MKL_Complex16 *chiA = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
+	MKL_Complex16 *chiB = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
 
 	// effective tolerance (truncation weight)
-	double *tol_eff_A = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
-	double *tol_eff_B = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+	double *tol_eff_A = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
+	double *tol_eff_B = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 	// record virtual bond dimensions
-	size_t *D_XA = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
-	size_t *D_XB = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *D_XA = (size_t *)algn_malloc((nsteps + 1)*(L + 1) * sizeof(size_t));
+	size_t *D_XB = (size_t *)algn_malloc((nsteps + 1)*(L + 1) * sizeof(size_t));
 
 	int nstart = 0;
 
@@ -429,21 +429,21 @@ int main(int argc, char *argv[])
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXB.dat",       argv[4], L, d - 1); WriteData(filename, D_XB, sizeof(size_t), (nsteps + 1)*(L + 1), false);
 
 	// clean up
-	MKL_free(D_XB);
-	MKL_free(D_XA);
-	MKL_free(tol_eff_B);
-	MKL_free(tol_eff_A);
-	MKL_free(chiB);
-	MKL_free(chiA);
-	MKL_free(chi);
+	algn_free(D_XB);
+	algn_free(D_XA);
+	algn_free(tol_eff_B);
+	algn_free(tol_eff_A);
+	algn_free(chiB);
+	algn_free(chiA);
+	algn_free(chi);
 	DeleteDynamicsData(&dyn_time);
 	DeleteMPO(&XB);
 	DeleteMPO(&XA);
 	DeleteMPO(&rho_beta);
 	DeleteLocalBoseHubbardOperators(L, h);
-	MKL_free(h);
+	algn_free(h);
 	DeleteTensor(&bn);
-	MKL_free(qd);
+	algn_free(qd);
 
 	MKL_Free_Buffers();
 

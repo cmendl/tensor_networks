@@ -3,7 +3,7 @@
 
 #include "mps.h"
 #include "dupio.h"
-#include <mkl.h>
+#include "util.h"
 #include <stdlib.h>
 #include <memory.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@ void AllocateMPS(const int L, const size_t d, const size_t *D, mps_t *restrict m
 
 	assert(L >= 1);
 
-	mps->A = (tensor_t *)MKL_calloc(L, sizeof(tensor_t), MEM_DATA_ALIGN);
+	mps->A = (tensor_t *)algn_calloc(L, sizeof(tensor_t));
 
 	int i;
 	for (i = 0; i < L; i++)
@@ -30,11 +30,11 @@ void AllocateMPS(const int L, const size_t d, const size_t *D, mps_t *restrict m
 	}
 
 	// initialize quantum numbers with zeros
-	mps->qd = (qnumber_t *)MKL_calloc(d, sizeof(qnumber_t), MEM_DATA_ALIGN);
-	mps->qD = (qnumber_t **)MKL_malloc((L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	mps->qd = (qnumber_t *)algn_calloc(d, sizeof(qnumber_t));
+	mps->qD = (qnumber_t **)algn_malloc((L + 1) * sizeof(qnumber_t *));
 	for (i = 0; i < L + 1; i++)
 	{
-		mps->qD[i] = (qnumber_t *)MKL_calloc(D[i], sizeof(qnumber_t), MEM_DATA_ALIGN);
+		mps->qD[i] = (qnumber_t *)algn_calloc(D[i], sizeof(qnumber_t));
 	}
 }
 
@@ -49,16 +49,16 @@ void DeleteMPS(mps_t *restrict mps)
 
 	for (i = 0; i < mps->L + 1; i++)
 	{
-		MKL_free(mps->qD[i]);
+		algn_free(mps->qD[i]);
 	}
-	MKL_free(mps->qD);
-	MKL_free(mps->qd);
+	algn_free(mps->qD);
+	algn_free(mps->qd);
 
 	for (i = 0; i < mps->L; i++)
 	{
 		DeleteTensor(&mps->A[i]);
 	}
-	MKL_free(mps->A);
+	algn_free(mps->A);
 
 	mps->d = 0;
 	mps->L = 0;
@@ -74,7 +74,7 @@ void CopyMPS(const mps_t *restrict src, mps_t *restrict dst)
 	dst->L = src->L;
 	dst->d = src->d;
 
-	dst->A = (tensor_t *)MKL_calloc(src->L, sizeof(tensor_t), MEM_DATA_ALIGN);
+	dst->A = (tensor_t *)algn_calloc(src->L, sizeof(tensor_t));
 
 	int i;
 	for (i = 0; i < src->L; i++)
@@ -83,14 +83,14 @@ void CopyMPS(const mps_t *restrict src, mps_t *restrict dst)
 	}
 
 	// copy physical quantum numbers
-	dst->qd = (qnumber_t *)MKL_malloc(src->d * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	dst->qd = (qnumber_t *)algn_malloc(src->d * sizeof(qnumber_t));
 	memcpy(dst->qd, src->qd, src->d * sizeof(qnumber_t));
 	// copy virtual bond quantum numbers
-	dst->qD = (qnumber_t **)MKL_malloc((src->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	dst->qD = (qnumber_t **)algn_malloc((src->L + 1) * sizeof(qnumber_t *));
 	for (i = 0; i < src->L + 1; i++)
 	{
 		const size_t D = MPSBondDim(src, i);
-		dst->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		dst->qD[i] = (qnumber_t *)algn_malloc(D * sizeof(qnumber_t));
 		memcpy(dst->qD[i], src->qD[i], D * sizeof(qnumber_t));
 	}
 }
@@ -329,8 +329,8 @@ void MPSUnitaryLeftProjection(tensor_t *restrict A, tensor_t *restrict Anext)
 	const size_t n = A->dim[2];
 	const size_t k = (m <= n ? m : n);  // min(m, n)
 
-	double *sigma = MKL_malloc(k * sizeof(double), MEM_DATA_ALIGN);
-	double *superb = MKL_malloc((k - 1) * sizeof(double), MEM_DATA_ALIGN);
+	double *sigma = algn_malloc(k * sizeof(double));
+	double *superb = algn_malloc((k - 1) * sizeof(double));
 	tensor_t vt;
 	const size_t dim_kn[2] = { k, n };
 	AllocateTensor(2, dim_kn, &vt);
@@ -340,7 +340,7 @@ void MPSUnitaryLeftProjection(tensor_t *restrict A, tensor_t *restrict Anext)
 		duprintf("Call of LAPACK function 'zgesvd()' in 'MPSUnitaryLeftProjection()' failed, return value: %i\n", info);
 		exit(-1);
 	}
-	MKL_free(superb);
+	algn_free(superb);
 
 	// adjust last dimension of 'A'
 	A->dim[2] = k;
@@ -375,7 +375,7 @@ void MPSUnitaryLeftProjection(tensor_t *restrict A, tensor_t *restrict Anext)
 
 	// clean up
 	DeleteTensor(&vt);
-	MKL_free(sigma);
+	algn_free(sigma);
 }
 
 
@@ -522,12 +522,12 @@ trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restric
 		const size_t dim[4] = { d0, d1, A->dim[1], A->dim[2] };
 
 		As.ndim = 4;
-		As.dim = (size_t *)MKL_malloc(4 * sizeof(size_t), MEM_DATA_ALIGN);
+		As.dim = (size_t *)algn_malloc(4 * sizeof(size_t));
 		memcpy(As.dim, dim, 4*sizeof(size_t));
 		assert(NumTensorElements(&As) == NumTensorElements(A));
 
 		#ifdef _DEBUG
-		As.dnames = (string_t *)MKL_calloc(As.ndim, sizeof(string_t), MEM_DATA_ALIGN);
+		As.dnames = (string_t *)algn_calloc(As.ndim, sizeof(string_t));
 		#endif
 
 		// just copy data pointers
@@ -546,13 +546,13 @@ trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restric
 
 	// 'As' no longer needed
 	#ifdef _DEBUG
-	MKL_free(As.dnames);
+	algn_free(As.dnames);
 	#endif
-	MKL_free(As.dim);
+	algn_free(As.dim);
 
 	// compute quantum numbers of matrix representation
-	qnumber_t *q0 = (qnumber_t *)MKL_malloc(d0 * A->dim[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	qnumber_t *q2 = (qnumber_t *)MKL_malloc(d1 * A->dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q0 = (qnumber_t *)algn_malloc(d0 * A->dim[1] * sizeof(qnumber_t));
+	qnumber_t *q2 = (qnumber_t *)algn_malloc(d1 * A->dim[2] * sizeof(qnumber_t));
 	size_t i, j;
 	// q0
 	for (j = 0; j < A->dim[1]; j++)
@@ -581,8 +581,8 @@ trunc_info_t SplitMPSTensor(const tensor_t *restrict A, const qnumber_t *restric
 	assert(A0->dim[1] == A1t.dim[0]);
 
 	// quantum numbers of matrix representation and 'Ar' no longer needed
-	MKL_free(q2);
-	MKL_free(q0);
+	algn_free(q2);
+	algn_free(q0);
 	DeleteTensor(&Ar);
 
 	// reshape (and transpose) A0 and A1 to restore original physical dimensions
@@ -634,8 +634,8 @@ trunc_info_t CompressMPSTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	const size_t D2 = A1->dim[2];
 
 	// compute quantum numbers of matrix representation
-	qnumber_t *q0 = (qnumber_t *)MKL_malloc(d0 * D0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	qnumber_t *q2 = (qnumber_t *)MKL_malloc(d1 * D2 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q0 = (qnumber_t *)algn_malloc(d0 * D0 * sizeof(qnumber_t));
+	qnumber_t *q2 = (qnumber_t *)algn_malloc(d1 * D2 * sizeof(qnumber_t));
 	size_t i, j;
 	// q0
 	for (j = 0; j < D0; j++)
@@ -690,8 +690,8 @@ trunc_info_t CompressMPSTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	}
 
 	DeleteTensor(&A1t);
-	MKL_free(q2);
-	MKL_free(q0);
+	algn_free(q2);
+	algn_free(q0);
 
 	return ti;
 }

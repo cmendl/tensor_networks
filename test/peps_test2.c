@@ -1,6 +1,6 @@
 #include "peps.h"
 #include "complex.h"
-#include <mkl.h>
+#include "util.h"
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -59,7 +59,7 @@ int PEPSTest2()
 	ReshapeTensor(1, &nelem, &mps_bottom);
 
 	// construct matrix product operators and multiply by MPS
-	tensor_t *u = (tensor_t *)MKL_malloc((L-1) * sizeof(tensor_t), MEM_DATA_ALIGN);     // accumulate products
+	tensor_t *u = (tensor_t *)algn_malloc((L-1) * sizeof(tensor_t));    // accumulate products
 	CopyTensor(&mps_top, &u[0]);        // initial state is 'mps_top'
 	for (y = 1; y < L-1; y++)
 	{
@@ -98,7 +98,7 @@ int PEPSTest2()
 	{
 		DeleteTensor(&u[y]);
 	}
-	MKL_free(u);
+	algn_free(u);
 	DeleteTensor(&mps_bottom);
 	DeleteTensor(&mps_top);
 	DeletePEPS2D(&psi);

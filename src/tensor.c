@@ -2,8 +2,8 @@
 /// \brief Tensor structure, using column-major storage convention (first x, then y, z, ...)
 
 #include "tensor.h"
+#include "util.h"
 #include "profiler.h"
-#include <mkl.h>
 #include <stdlib.h>
 #include <memory.h>
 
@@ -61,22 +61,22 @@ void AllocateTensor(const int ndim, const size_t *restrict dim, tensor_t *restri
 
 	if (ndim > 0)
 	{
-		t->dim = (size_t *)MKL_malloc(ndim * sizeof(size_t), MEM_DATA_ALIGN);
+		t->dim = (size_t *)algn_malloc(ndim * sizeof(size_t));
 		memcpy(t->dim, dim, ndim * sizeof(size_t));
 
 		#ifdef _DEBUG
-		t->dnames = (string_t *)MKL_calloc(ndim, sizeof(string_t), MEM_DATA_ALIGN);
+		t->dnames = (string_t *)algn_calloc(ndim, sizeof(string_t));
 		#endif
 
 		const size_t nelem = NumTensorElements(t);
 		// dimensions must be strictly positive
 		assert(nelem > 0);
-		t->data = (MKL_Complex16 *)MKL_calloc(nelem, sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		t->data = (MKL_Complex16 *)algn_calloc(nelem, sizeof(MKL_Complex16));
 		assert(t->data != NULL);
 	}
 	else    // ndim == 0
 	{
-		// MKL_malloc(0) not guaranteed to return NULL
+		// algn_malloc(0) not guaranteed to return NULL
 		t->dim = NULL;
 
 		#ifdef _DEBUG
@@ -84,7 +84,7 @@ void AllocateTensor(const int ndim, const size_t *restrict dim, tensor_t *restri
 		#endif
 
 		// allocate memory for a single number
-		t->data = (MKL_Complex16 *)MKL_calloc(1, sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		t->data = (MKL_Complex16 *)algn_calloc(1, sizeof(MKL_Complex16));
 		assert(t->data != NULL);
 	}
 
@@ -101,14 +101,14 @@ void DeleteTensor(tensor_t *restrict t)
 	if (t->ndim > 0)
 	{
 		#ifdef _DEBUG
-		MKL_free(t->dnames);
+		algn_free(t->dnames);
 		#endif
 
-		MKL_free(t->dim);
+		algn_free(t->dim);
 	}
 	t->ndim = 0;
 
-	MKL_free(t->data);
+	algn_free(t->data);
 	t->data = NULL;
 }
 
@@ -200,13 +200,13 @@ void ReshapeTensor(const int ndim, const size_t *restrict dim, tensor_t *restric
 
 	// new dimensions
 	t->ndim = ndim;
-	MKL_free(t->dim);
-	t->dim = (size_t *)MKL_malloc(ndim * sizeof(size_t), MEM_DATA_ALIGN);
+	algn_free(t->dim);
+	t->dim = (size_t *)algn_malloc(ndim * sizeof(size_t));
 	memcpy(t->dim, dim, ndim * sizeof(size_t));
 
 	#ifdef _DEBUG
-	MKL_free(t->dnames);
-	t->dnames = (string_t *)MKL_calloc(ndim, sizeof(string_t), MEM_DATA_ALIGN);
+	algn_free(t->dnames);
+	t->dnames = (string_t *)algn_calloc(ndim, sizeof(string_t));
 	#endif
 }
 
@@ -240,7 +240,7 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 	StartProfilingBlock(&std_profiler, PROFILE_TRANSPOSE_TENSOR);
 
 	// dimensions of new tensor 'r'
-	size_t *rdim = (size_t *)MKL_malloc(t->ndim * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *rdim = (size_t *)algn_malloc(t->ndim * sizeof(size_t));
 	for (i = 0; i < t->ndim; i++)
 	{
 		assert(0 <= perm[i] && perm[i] < t->ndim);
@@ -248,7 +248,7 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 	}
 	// create new tensor 'r'
 	AllocateTensor(t->ndim, rdim, r);
-	MKL_free(rdim);
+	algn_free(rdim);
 
 	// probe if we can use MKL transposition (only works if 'perm' exchanges the first two dimensions)
 	bool use_mkl_transpose = true;
@@ -289,8 +289,8 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 
 		const size_t nelem = NumTensorElements(t);
 
-		size_t *index_t = (size_t *)MKL_calloc(t->ndim,  sizeof(size_t), MEM_DATA_ALIGN);
-		size_t *index_r = (size_t *)MKL_malloc(t->ndim * sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *index_t = (size_t *)algn_calloc(t->ndim,  sizeof(size_t));
+		size_t *index_r = (size_t *)algn_malloc(t->ndim * sizeof(size_t));
 
 		size_t ot;
 		for (ot = 0; ot < nelem; ot += t->dim[0])
@@ -318,8 +318,8 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 		}
 
 		// clean up
-		MKL_free(index_r);
-		MKL_free(index_t);
+		algn_free(index_r);
+		algn_free(index_t);
 	}
 
 	#ifdef _DEBUG
@@ -365,8 +365,8 @@ void SubTensor(const tensor_t *restrict t, const size_t *restrict sdim, const si
 
 	int i;
 
-	size_t *index_t = (size_t *)MKL_calloc(t->ndim, sizeof(size_t), MEM_DATA_ALIGN);
-	size_t *index_s = (size_t *)MKL_calloc(s->ndim, sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *index_t = (size_t *)algn_calloc(t->ndim, sizeof(size_t));
+	size_t *index_s = (size_t *)algn_calloc(s->ndim, sizeof(size_t));
 
 	// map first index of tensor 's' to index of tensor 't', except for first dimension (will be handled in copy loop)
 	for (i = 1; i < t->ndim; i++)
@@ -409,8 +409,8 @@ void SubTensor(const tensor_t *restrict t, const size_t *restrict sdim, const si
 	#endif
 
 	// clean up
-	MKL_free(index_s);
-	MKL_free(index_t);
+	algn_free(index_s);
+	algn_free(index_t);
 }
 
 
@@ -466,7 +466,7 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 	}
 
 	// dimensions of new tensor 'r'
-	size_t *rdim = (size_t *)MKL_malloc((s->ndim + t->ndim - 2*ndim_mult) * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *rdim = (size_t *)algn_malloc((s->ndim + t->ndim - 2*ndim_mult) * sizeof(size_t));
 	for (i = 0; i < s->ndim - ndim_mult; i++)
 	{
 		rdim[i] = s->dim[i];
@@ -477,7 +477,7 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 	}
 	// create new tensor 'r'
 	AllocateTensor(s->ndim + t->ndim - 2*ndim_mult, rdim, r);
-	MKL_free(rdim);
+	algn_free(rdim);
 	// copy dimension names
 	#ifdef _DEBUG
 	for (i = 0; i < s->ndim - ndim_mult; i++)
@@ -554,7 +554,7 @@ void TensorKroneckerProduct(const tensor_t *restrict s, const tensor_t *restrict
 	assert(s->ndim == t->ndim);
 
 	// dimensions of temporary tensor 'u'
-	size_t *udim = (size_t *)MKL_malloc((s->ndim + t->ndim) * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *udim = (size_t *)algn_malloc((s->ndim + t->ndim) * sizeof(size_t));
 	for (i = 0; i < s->ndim; i++)
 	{
 		udim[i] = s->dim[i];
@@ -566,7 +566,7 @@ void TensorKroneckerProduct(const tensor_t *restrict s, const tensor_t *restrict
 	// create temporary tensor 'u'
 	tensor_t u;
 	AllocateTensor(s->ndim + t->ndim, udim, &u);
-	MKL_free(udim);
+	algn_free(udim);
 
 	const size_t m = NumTensorElements(s);
 	const size_t n = NumTensorElements(t);
@@ -577,7 +577,7 @@ void TensorKroneckerProduct(const tensor_t *restrict s, const tensor_t *restrict
 	cblas_zgeru(CblasColMajor, (MKL_INT)m, (MKL_INT)n, &one, s->data, 1, t->data, 1, u.data, (MKL_INT)m);
 
 	// reorder levels of 'u' and store result in 'r'
-	int *perm = (int *)MKL_malloc((s->ndim + t->ndim) * sizeof(int), MEM_DATA_ALIGN);
+	int *perm = (int *)algn_malloc((s->ndim + t->ndim) * sizeof(int));
 	for (i = 0; i < s->ndim; i++)
 	{
 		perm[i] = 2*i;
@@ -587,20 +587,20 @@ void TensorKroneckerProduct(const tensor_t *restrict s, const tensor_t *restrict
 		perm[s->ndim + i] = 2*i + 1;
 	}
 	TransposeTensor(perm, &u, r);
-	MKL_free(perm);
+	algn_free(perm);
 
 	DeleteTensor(&u);
 
 	// final dimensions of tensor 'r': pointwise products of dimensions of 's' and 't';
 	// cannot automatically determine dimension names
-	size_t *rdim = (size_t *)MKL_malloc(s->ndim * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *rdim = (size_t *)algn_malloc(s->ndim * sizeof(size_t));
 	for (i = 0; i < s->ndim; i++)
 	{
 		rdim[i] = s->dim[i] * t->dim[i];
 		assert(rdim[i] == r->dim[2*i]*r->dim[2*i+1]);
 	}
 	ReshapeTensor(s->ndim, rdim, r);
-	MKL_free(rdim);
+	algn_free(rdim);
 }
 
 

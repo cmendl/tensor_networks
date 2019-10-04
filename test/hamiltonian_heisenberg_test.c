@@ -1,7 +1,6 @@
 #include "hamiltonian_heisenberg.h"
 #include "complex.h"
 #include "util.h"
-#include <mkl.h>
 #include <stdio.h>
 
 
@@ -61,14 +60,14 @@ int HamiltonianHeisenbergTest()
 	const double hext =  2.0/7;
 
 	// construct two-site Heisenberg Hamiltonian operators
-	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)algn_malloc((L - 1)*sizeof(double *));
 	ConstructLocalHeisenbergOperators(L, Jx, Jy, Jz, hext, h);
 
 	// compare with reference
 	for (i = 0; i < L - 1; i++)
 	{
 		// load reference two-site Hamiltonian operators from disk
-		double *h_ref_i = (double *)MKL_malloc(4*4*sizeof(double), MEM_DATA_ALIGN);
+		double *h_ref_i = (double *)algn_malloc(4*4*sizeof(double));
 		char filename[1024];
 		sprintf(filename, "../test/hamiltonian_heisenberg_test_h%i.dat", i);
 		status = ReadData(filename, h_ref_i, sizeof(double), 4*4);
@@ -77,7 +76,7 @@ int HamiltonianHeisenbergTest()
 		// largest entrywise error
 		err = fmax(err, UniformDistance(4*4, h[i], h_ref_i));
 
-		MKL_free(h_ref_i);
+		algn_free(h_ref_i);
 	}
 
 	// construct matrix product operator representation
@@ -90,7 +89,7 @@ int HamiltonianHeisenbergTest()
 		const size_t num = NumTensorElements(&mpoH.A[i]);
 
 		// load reference 'W' tensor from disk
-		MKL_Complex16 *W_ref_i = (MKL_Complex16 *)MKL_malloc(num * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *W_ref_i = (MKL_Complex16 *)algn_malloc(num * sizeof(MKL_Complex16));
 		char filename[1024];
 		sprintf(filename, "../test/hamiltonian_heisenberg_test_W%i.dat", i);
 		status = ReadData(filename, W_ref_i, sizeof(MKL_Complex16), num);
@@ -99,7 +98,7 @@ int HamiltonianHeisenbergTest()
 		// largest entrywise error
 		err = fmax(err, UniformDistance(2*num, (double *)mpoH.A[i].data, (double *)W_ref_i));
 
-		MKL_free(W_ref_i);
+		algn_free(W_ref_i);
 	}
 
 	// test block structure
@@ -113,7 +112,7 @@ int HamiltonianHeisenbergTest()
 	// clean up
 	DeleteMPO(&mpoH);
 	DeleteLocalHeisenbergOperators(L, h);
-	MKL_free(h);
+	algn_free(h);
 
 	return (err < 1e-15 ? 0 : 1);
 }

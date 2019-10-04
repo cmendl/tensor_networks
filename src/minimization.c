@@ -4,7 +4,7 @@
 #include "minimization.h"
 #include "operation.h"
 #include "lanczos.h"
-#include <mkl.h>
+#include "util.h"
 #include <stdlib.h>
 #include <memory.h>
 
@@ -113,8 +113,8 @@ void CalculateGroundStateLocalSinglesite(const mpo_t *restrict H, const int maxi
 		DeleteTensor(&t);
 	}
 
-	tensor_t *BL = (tensor_t *)MKL_malloc(L * sizeof(tensor_t), MEM_DATA_ALIGN);
-	tensor_t *BR = (tensor_t *)MKL_malloc(L * sizeof(tensor_t), MEM_DATA_ALIGN);
+	tensor_t *BL = (tensor_t *)algn_malloc(L * sizeof(tensor_t));
+	tensor_t *BR = (tensor_t *)algn_malloc(L * sizeof(tensor_t));
 
 	ComputeRightOperatorBlocks(psi, H, BR);
 
@@ -189,8 +189,8 @@ void CalculateGroundStateLocalSinglesite(const mpo_t *restrict H, const int maxi
 		DeleteTensor(&BR[i]);
 		DeleteTensor(&BL[i]);
 	}
-	MKL_free(BR);
-	MKL_free(BL);
+	algn_free(BR);
+	algn_free(BL);
 }
 
 
@@ -213,12 +213,12 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 	assert(d == H->d[1]);
 
 	// effectively disable quantum numbers for now by setting them to zero
-	qnumber_t *qd = (qnumber_t *)MKL_calloc(d, sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *qd = (qnumber_t *)algn_calloc(d, sizeof(qnumber_t));
 
 	int i;
 
 	// merge neighboring Hamiltonian MPO tensors
-	tensor_t *W2 = (tensor_t *)MKL_malloc((L-1)*sizeof(tensor_t), MEM_DATA_ALIGN);
+	tensor_t *W2 = (tensor_t *)algn_malloc((L-1)*sizeof(tensor_t));
 	for (i = 0; i < L - 1; i++)
 	{
 		MergeMPOTensorPair(&H->A[i], &H->A[i+1], &W2[i]);
@@ -242,8 +242,8 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 		DeleteTensor(&t);
 	}
 
-	tensor_t *BL = (tensor_t *)MKL_malloc(L * sizeof(tensor_t), MEM_DATA_ALIGN);
-	tensor_t *BR = (tensor_t *)MKL_malloc(L * sizeof(tensor_t), MEM_DATA_ALIGN);
+	tensor_t *BL = (tensor_t *)algn_malloc(L * sizeof(tensor_t));
+	tensor_t *BR = (tensor_t *)algn_malloc(L * sizeof(tensor_t));
 
 	ComputeRightOperatorBlocks(psi, H, BR);
 
@@ -280,13 +280,13 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 			assert(A_opt.ndim == 3);
 			assert(A_opt.dim[0] == d*d);
 			// set virtual bond quantum numbers to zero
-			qnumber_t *qD0 = (qnumber_t *)MKL_calloc(A_opt.dim[1], sizeof(qnumber_t), MEM_DATA_ALIGN);
-			qnumber_t *qD2 = (qnumber_t *)MKL_calloc(A_opt.dim[2], sizeof(qnumber_t), MEM_DATA_ALIGN);
+			qnumber_t *qD0 = (qnumber_t *)algn_calloc(A_opt.dim[1], sizeof(qnumber_t));
+			qnumber_t *qD2 = (qnumber_t *)algn_calloc(A_opt.dim[2], sizeof(qnumber_t));
 			qnumber_t *qbond;
 			SplitMPSTensor(&A_opt, qD0, qD2, d, d, qd, qd, SVD_DISTR_RIGHT, bond_op_params, &psi->A[i], &psi->A[i+1], &qbond);
-			MKL_free(qbond);
-			MKL_free(qD2);
-			MKL_free(qD0);
+			algn_free(qbond);
+			algn_free(qD2);
+			algn_free(qD0);
 			DeleteTensor(&A_opt);
 
 			// update the left blocks
@@ -313,13 +313,13 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 			assert(A_opt.ndim == 3);
 			assert(A_opt.dim[0] == d*d);
 			// set virtual bond quantum numbers to zero
-			qnumber_t *qD0 = (qnumber_t *)MKL_calloc(A_opt.dim[1], sizeof(qnumber_t), MEM_DATA_ALIGN);
-			qnumber_t *qD2 = (qnumber_t *)MKL_calloc(A_opt.dim[2], sizeof(qnumber_t), MEM_DATA_ALIGN);
+			qnumber_t *qD0 = (qnumber_t *)algn_calloc(A_opt.dim[1], sizeof(qnumber_t));
+			qnumber_t *qD2 = (qnumber_t *)algn_calloc(A_opt.dim[2], sizeof(qnumber_t));
 			qnumber_t *qbond;
 			trunc_info_t ti = SplitMPSTensor(&A_opt, qD0, qD2, d, d, qd, qd, SVD_DISTR_LEFT, bond_op_params, &psi->A[i-1], &psi->A[i], &qbond);
-			MKL_free(qbond);
-			MKL_free(qD2);
-			MKL_free(qD0);
+			algn_free(qbond);
+			algn_free(qD2);
+			algn_free(qD0);
 			DeleteTensor(&A_opt);
 
 			entropy[i - 1] = ti.entropy;
@@ -351,14 +351,14 @@ void CalculateGroundStateLocalTwosite(const mpo_t *restrict H, const int maxiter
 	{
 		DeleteTensor(&W2[i]);
 	}
-	MKL_free(W2);
+	algn_free(W2);
 	for (i = 0; i < L; i++)
 	{
 		DeleteTensor(&BR[i]);
 		DeleteTensor(&BL[i]);
 	}
-	MKL_free(BR);
-	MKL_free(BL);
+	algn_free(BR);
+	algn_free(BL);
 
-	MKL_free(qd);
+	algn_free(qd);
 }

@@ -3,8 +3,8 @@
 
 #include "bond_ops.h"
 #include "profiler.h"
+#include "util.h"
 #include "dupio.h"
-#include <mkl.h>
 #include <memory.h>
 
 
@@ -91,7 +91,7 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 		// single column of 'Q' should have norm 1
 		Q->data[0].real = 1;
 
-		(*qinterm) = (qnumber_t *)MKL_malloc(sizeof(qnumber_t), MEM_DATA_ALIGN);
+		(*qinterm) = (qnumber_t *)algn_malloc(sizeof(qnumber_t));
 		// ensure non-zero entry in 'Q' formally matches quantum numbers
 		(*qinterm)[0] = q0[0];
 
@@ -118,7 +118,7 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 	}
 
 	// corresponding quantum numbers (we might not use full length)
-	(*qinterm) = MKL_calloc(max_interm_dim, sizeof(qnumber_t), MEM_DATA_ALIGN);
+	(*qinterm) = algn_calloc(max_interm_dim, sizeof(qnumber_t));
 
 	// for each shared quantum number...
 	size_t i;
@@ -126,8 +126,8 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 	for (i = 0; i < nis; i++)
 	{
 		// indices of current quantum number
-		size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
-		size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *i0 = (size_t *)algn_malloc(A->dim[0] * sizeof(size_t));
+		size_t *i1 = (size_t *)algn_malloc(A->dim[1] * sizeof(size_t));
 
 		StartProfilingBlock(&std_profiler, PROFILE_QR);
 
@@ -162,7 +162,7 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 
 		// perform a QR decomposition
 		size_t k = (m <= n ? m : n);    // min(m, n)
-		MKL_Complex16 *tau = (MKL_Complex16 *)MKL_malloc(k * sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *tau = (MKL_Complex16 *)algn_malloc(k * sizeof(MKL_Complex16));
 		int info = LAPACKE_zgeqrf(LAPACK_COL_MAJOR, m, n, Asub.data, m, tau);
 		if (info != 0) {
 			duprintf("Call of LAPACK function 'zgeqrf()' in 'QRDecomposition()' failed, return value: %i\n", info);
@@ -208,10 +208,10 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 
 		EndProfilingBlock(&std_profiler, PROFILE_QR);
 
-		MKL_free(tau);
+		algn_free(tau);
 		DeleteTensor(&Asub);
-		MKL_free(i1);
-		MKL_free(i0);
+		algn_free(i1);
+		algn_free(i0);
 	}
 	assert(D <= max_interm_dim);
 
@@ -235,7 +235,7 @@ void QRDecomposition(const tensor_t *restrict A, const qnumber_t *restrict q0, c
 	}
 
 	DeleteTensor(&Ri);
-	MKL_free(qis);
+	algn_free(qis);
 }
 
 
@@ -254,7 +254,7 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 	ti.tol_eff = tol;
 
 	// distribute singular values into value-index pairs and sort them
-	val_idx_t *s_sort = (val_idx_t *)MKL_malloc(n * sizeof(val_idx_t), MEM_DATA_ALIGN);
+	val_idx_t *s_sort = (val_idx_t *)algn_malloc(n * sizeof(val_idx_t));
 	for (i = 0; i < n; i++)
 	{
 		s_sort[i].v = sigma[i];
@@ -272,7 +272,7 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 	// special case: all singular values zero
 	if (sqsum == 0)
 	{
-		MKL_free(s_sort);
+		algn_free(s_sort);
 
 		(*indtr) = NULL;
 		(*ntr)   = 0;
@@ -305,18 +305,18 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 	}
 
 	// restore original ordering of accumulated squares
-	double *accum = (double *)MKL_malloc(n * sizeof(double), MEM_DATA_ALIGN);
+	double *accum = (double *)algn_malloc(n * sizeof(double));
 	for (i = 0; i < n; i++)
 	{
 		accum[s_sort[i].i] = s_sort[i].v;
 	}
 
-	MKL_free(s_sort);
+	algn_free(s_sort);
 
 	// indices of accumulated squares larger than tolerance
 	// filter out singular values which are zero (almost) to machine precision
 	const double tol_mzero = fmax(tol, 1e-28);
-	(*indtr) = (size_t *)MKL_malloc(n * sizeof(size_t), MEM_DATA_ALIGN);
+	(*indtr) = (size_t *)algn_malloc(n * sizeof(size_t));
 	(*ntr) = 0;
 	for (i = 0; i < n; i++)
 	{
@@ -327,13 +327,13 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 		}
 	}
 	assert((*ntr) <= maxD);
-	MKL_free(accum);
+	algn_free(accum);
 
 	if ((*ntr) == 0)
 	{
 		// special case: all singular values truncated
 
-		MKL_free(*indtr);
+		algn_free(*indtr);
 		(*indtr) = NULL;
 
 		ti.nsigma  = 0;
@@ -342,7 +342,7 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 	}
 
 	// record norm and von Neumann entropy of retained singular values
-	double *retained = (double *)MKL_malloc((*ntr) * sizeof(double), MEM_DATA_ALIGN);
+	double *retained = (double *)algn_malloc((*ntr) * sizeof(double));
 	for (i = 0; i < (*ntr); i++)
 	{
 		retained[i] = sigma[(*indtr)[i]];
@@ -357,7 +357,7 @@ trunc_info_t TruncatedBondIndices(const size_t n, const double *restrict sigma, 
 
 	ti.entropy = VonNeumannEntropy((*ntr), retained);
 
-	MKL_free(retained);
+	algn_free(retained);
 
 	return ti;
 }
@@ -378,8 +378,8 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 
 	// overwrite 'A0' by the 'U' matrix
 	size_t k = (m <= n ? m : n);    // min(m, n)
-	double *sigma = MKL_malloc(k * sizeof(double), MEM_DATA_ALIGN);
-	double *superb = MKL_malloc((k - 1) * sizeof(double), MEM_DATA_ALIGN);
+	double *sigma = algn_malloc(k * sizeof(double));
+	double *superb = algn_malloc((k - 1) * sizeof(double));
 	const size_t dim_kn[2] = { k, n };
 	tensor_t Vt;
 	AllocateTensor(2, dim_kn, &Vt);
@@ -409,7 +409,7 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 		}
 		#endif
 
-		MKL_free(indtr);
+		algn_free(indtr);
 	}
 
 	if (k == 0)
@@ -423,8 +423,8 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 
 		// clean up
 		DeleteTensor(&Vt);
-		MKL_free(superb);
-		MKL_free(sigma);
+		algn_free(superb);
+		algn_free(sigma);
 
 		return ti;
 	}
@@ -483,8 +483,8 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 		// invalid option
 		assert(false);
 	}
-	MKL_free(superb);
-	MKL_free(sigma);
+	algn_free(superb);
+	algn_free(sigma);
 
 	// transpose 'V' matrix and store result in 'A1'
 	TransposeTensor(perm2, &V, A1);
@@ -519,7 +519,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		AllocateTensor(2, dimA0, A0);
 		AllocateTensor(2, dimA1, A1);
 
-		(*qbond) = (qnumber_t *)MKL_calloc(1, sizeof(qnumber_t), MEM_DATA_ALIGN);
+		(*qbond) = (qnumber_t *)algn_calloc(1, sizeof(qnumber_t));
 
 		trunc_info_t ti = { 0 };
 		ti.tol_eff = params->tol;
@@ -530,13 +530,13 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 	{
 		// special case: just a single quantum number
 
-		MKL_free(qis);
+		algn_free(qis);
 
 		trunc_info_t ti = SplitMatrixBasic(A, svd_distr, params, A0, A1);
 		assert(A0->dim[1] == A1->dim[0]);
 
 		// fill bond quantum numbers with the single common quantum number
-		(*qbond) = (qnumber_t *)MKL_malloc(A0->dim[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		(*qbond) = (qnumber_t *)algn_malloc(A0->dim[1] * sizeof(qnumber_t));
 		size_t i;
 		for (i = 0; i < A0->dim[1]; i++)
 		{
@@ -564,8 +564,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		AllocateTensor(2, dimT1, &T1);
 	}
 	// corresponding singular values and quantum numbers
-	double    *S  = MKL_malloc(max_bond_dim * sizeof(double), MEM_DATA_ALIGN);
-	qnumber_t *qS = MKL_malloc(max_bond_dim * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	double    *S  = algn_malloc(max_bond_dim * sizeof(double));
+	qnumber_t *qS = algn_malloc(max_bond_dim * sizeof(qnumber_t));
 
 	// for each shared quantum number...
 	size_t i;
@@ -575,8 +575,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		size_t j;
 
 		// indices of current quantum number
-		size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
-		size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *i0 = (size_t *)algn_malloc(A->dim[0] * sizeof(size_t));
+		size_t *i1 = (size_t *)algn_malloc(A->dim[1] * sizeof(size_t));
 
 		// subindices of current quantum number qis[i]
 		size_t m = 0;
@@ -609,8 +609,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 
 		// perform a SVD to split the submatrix; overwrite 'Asub' by the 'U' matrix
 		size_t k = (m <= n ? m : n);    // min(m, n)
-		double *sigma = MKL_malloc(k * sizeof(double), MEM_DATA_ALIGN);
-		double *superb = MKL_malloc((k - 1) * sizeof(double), MEM_DATA_ALIGN);
+		double *sigma = algn_malloc(k * sizeof(double));
+		double *superb = algn_malloc((k - 1) * sizeof(double));
 		tensor_t Vt;
 		const size_t dim_kn[2] = { k, n };
 		AllocateTensor(2, dim_kn, &Vt);
@@ -658,14 +658,14 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		}
 
 		DeleteTensor(&Vt);
-		MKL_free(superb);
-		MKL_free(sigma);
+		algn_free(superb);
+		algn_free(sigma);
 		DeleteTensor(&Asub);
-		MKL_free(i1);
-		MKL_free(i0);
+		algn_free(i1);
+		algn_free(i0);
 	}
 
-	MKL_free(qis);
+	algn_free(qis);
 
 	// obtain truncated bond indices
 	size_t *indtr;
@@ -682,12 +682,12 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		AllocateTensor(2, dimA0, A0);
 		AllocateTensor(2, dimA1, A1);
 
-		(*qbond) = (qnumber_t *)MKL_calloc(1, sizeof(qnumber_t), MEM_DATA_ALIGN);
+		(*qbond) = (qnumber_t *)algn_calloc(1, sizeof(qnumber_t));
 
 		// clean up
-		MKL_free(indtr);
-		MKL_free(qS);
-		MKL_free(S);
+		algn_free(indtr);
+		algn_free(qS);
+		algn_free(S);
 		DeleteTensor(&T1);
 		DeleteTensor(&T0);
 
@@ -716,8 +716,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 
 	// extract truncated bond submatrices of T0 and T1 and store them in A0 and A1, respectively
 	// set 'i0' and 'i1' to identity index sets
-	size_t *i0 = (size_t *)MKL_malloc(A->dim[0] * sizeof(size_t), MEM_DATA_ALIGN);
-	size_t *i1 = (size_t *)MKL_malloc(A->dim[1] * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *i0 = (size_t *)algn_malloc(A->dim[0] * sizeof(size_t));
+	size_t *i1 = (size_t *)algn_malloc(A->dim[1] * sizeof(size_t));
 	for (i = 0; i < A->dim[0]; i++)
 	{
 		i0[i] = i;
@@ -738,8 +738,8 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		const size_t sdim[2] = { Dtrunc, A->dim[1] };
 		SubTensor(&T1, sdim, idx, A1);
 	}
-	MKL_free(i1);
-	MKL_free(i0);
+	algn_free(i1);
+	algn_free(i0);
 
 	// distribute singular values
 	if (svd_distr == SVD_DISTR_LEFT)
@@ -767,7 +767,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 	{
 		// distribute square root of singular values to both A0 and A1 matrices
 
-		double *sqrt_sigma = (double *)MKL_malloc(Dtrunc * sizeof(double), MEM_DATA_ALIGN);
+		double *sqrt_sigma = (double *)algn_malloc(Dtrunc * sizeof(double));
 		for (i = 0; i < Dtrunc; i++)
 		{
 			sqrt_sigma[i] = sqrt(S[indtr[i]]);
@@ -784,7 +784,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 			}
 		}
 
-		MKL_free(sqrt_sigma);
+		algn_free(sqrt_sigma);
 	}
 	else
 	{
@@ -793,7 +793,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 	}
 
 	// copy bond quantum numbers
-	(*qbond) = (qnumber_t *)MKL_malloc(Dtrunc * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	(*qbond) = (qnumber_t *)algn_malloc(Dtrunc * sizeof(qnumber_t));
 	for (i = 0; i < Dtrunc; i++)
 	{
 		(*qbond)[i] = qS[indtr[i]];
@@ -802,9 +802,9 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 	EndProfilingBlock(&std_profiler, PROFILE_SPLIT_REASSEMBLE);
 
 	// clean up
-	MKL_free(indtr);
-	MKL_free(qS);
-	MKL_free(S);
+	algn_free(indtr);
+	algn_free(qS);
+	algn_free(S);
 	DeleteTensor(&T1);
 	DeleteTensor(&T0);
 
@@ -895,8 +895,8 @@ trunc_info_t CompressVirtualBonds(tensor_t *restrict A0, tensor_t *restrict A1,
 		MultiplyTensor(&Q0, &R0, 1, A0);
 		MultiplyTensor(&L1, &Q1, 1, A1);
 
-		MKL_free(qi0);
-		MKL_free(qi1);
+		algn_free(qi0);
+		algn_free(qi1);
 		DeleteTensor(&Q0);
 		DeleteTensor(&R0);
 		DeleteTensor(&Q1);

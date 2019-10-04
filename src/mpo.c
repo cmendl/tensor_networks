@@ -4,7 +4,7 @@
 #include "mpo.h"
 #include "profiler.h"
 #include "dupio.h"
-#include <mkl.h>
+#include "util.h"
 #include <stdlib.h>
 #include <memory.h>
 #include <stdio.h>
@@ -22,7 +22,7 @@ void AllocateMPO(const int L, const size_t d[2], const size_t *D, mpo_t *restric
 
 	assert(L >= 1);
 
-	mpo->A = (tensor_t *)MKL_calloc(L, sizeof(tensor_t), MEM_DATA_ALIGN);
+	mpo->A = (tensor_t *)algn_calloc(L, sizeof(tensor_t));
 
 	int i;
 	for (i = 0; i < L; i++)
@@ -32,12 +32,12 @@ void AllocateMPO(const int L, const size_t d[2], const size_t *D, mpo_t *restric
 	}
 
 	// initialize quantum numbers with zeros
-	mpo->qd[0] = (qnumber_t *)MKL_calloc(d[0], sizeof(qnumber_t), MEM_DATA_ALIGN);
-	mpo->qd[1] = (qnumber_t *)MKL_calloc(d[1], sizeof(qnumber_t), MEM_DATA_ALIGN);
-	mpo->qD = (qnumber_t **)MKL_malloc((L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	mpo->qd[0] = (qnumber_t *)algn_calloc(d[0], sizeof(qnumber_t));
+	mpo->qd[1] = (qnumber_t *)algn_calloc(d[1], sizeof(qnumber_t));
+	mpo->qD = (qnumber_t **)algn_malloc((L + 1) * sizeof(qnumber_t *));
 	for (i = 0; i < L + 1; i++)
 	{
-		mpo->qD[i] = (qnumber_t *)MKL_calloc(D[i], sizeof(qnumber_t), MEM_DATA_ALIGN);
+		mpo->qD[i] = (qnumber_t *)algn_calloc(D[i], sizeof(qnumber_t));
 	}
 }
 
@@ -52,17 +52,17 @@ void DeleteMPO(mpo_t *mpo)
 
 	for (i = 0; i < mpo->L + 1; i++)
 	{
-		MKL_free(mpo->qD[i]);
+		algn_free(mpo->qD[i]);
 	}
-	MKL_free(mpo->qD);
-	MKL_free(mpo->qd[1]);
-	MKL_free(mpo->qd[0]);
+	algn_free(mpo->qD);
+	algn_free(mpo->qd[1]);
+	algn_free(mpo->qd[0]);
 
 	for (i = 0; i < mpo->L; i++)
 	{
 		DeleteTensor(&mpo->A[i]);
 	}
-	MKL_free(mpo->A);
+	algn_free(mpo->A);
 
 	mpo->d[0] = 0;
 	mpo->d[1] = 0;
@@ -80,7 +80,7 @@ void CopyMPO(const mpo_t *restrict src, mpo_t *restrict dst)
 	dst->d[0] = src->d[0];
 	dst->d[1] = src->d[1];
 
-	dst->A = (tensor_t *)MKL_calloc(src->L, sizeof(tensor_t), MEM_DATA_ALIGN);
+	dst->A = (tensor_t *)algn_calloc(src->L, sizeof(tensor_t));
 
 	int i;
 	for (i = 0; i < src->L; i++)
@@ -89,16 +89,16 @@ void CopyMPO(const mpo_t *restrict src, mpo_t *restrict dst)
 	}
 
 	// copy physical quantum numbers
-	dst->qd[0] = (qnumber_t *)MKL_malloc(src->d[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	dst->qd[1] = (qnumber_t *)MKL_malloc(src->d[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	dst->qd[0] = (qnumber_t *)algn_malloc(src->d[0] * sizeof(qnumber_t));
+	dst->qd[1] = (qnumber_t *)algn_malloc(src->d[1] * sizeof(qnumber_t));
 	memcpy(dst->qd[0], src->qd[0], src->d[0] * sizeof(qnumber_t));
 	memcpy(dst->qd[1], src->qd[1], src->d[1] * sizeof(qnumber_t));
 	// copy virtual bond quantum numbers
-	dst->qD = (qnumber_t **)MKL_malloc((src->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	dst->qD = (qnumber_t **)algn_malloc((src->L + 1) * sizeof(qnumber_t *));
 	for (i = 0; i < src->L + 1; i++)
 	{
 		const size_t D = MPOBondDim(src, i);
-		dst->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		dst->qD[i] = (qnumber_t *)algn_malloc(D * sizeof(qnumber_t));
 		memcpy(dst->qD[i], src->qD[i], D * sizeof(qnumber_t));
 	}
 }
@@ -113,14 +113,14 @@ void CreateIdentityMPO(const int L, const size_t d, mpo_t *restrict mpo)
 	int i;
 
 	// set virtual bond dimensions to 1
-	size_t *D = (size_t *)MKL_malloc((L + 1)*sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *D = (size_t *)algn_malloc((L + 1)*sizeof(size_t));
 	for (i = 0; i <= L; i++) {
 		D[i] = 1;
 	}
 
 	const size_t dim[2] = { d, d };
 	AllocateMPO(L, dim, D, mpo);
-	MKL_free(D);
+	algn_free(D);
 
 	for (i = 0; i < L; i++)
 	{
@@ -161,7 +161,7 @@ void TransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoT)
 	mpoT->d[0] = mpo->d[1];
 	mpoT->d[1] = mpo->d[0];
 
-	mpoT->A = (tensor_t *)MKL_calloc(mpo->L, sizeof(tensor_t), MEM_DATA_ALIGN);
+	mpoT->A = (tensor_t *)algn_calloc(mpo->L, sizeof(tensor_t));
 
 	// interchange physical dimensions
 	const int perm[4] = { 1, 0, 2, 3 };
@@ -175,16 +175,16 @@ void TransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoT)
 	}
 
 	// interchange and copy physical quantum numbers
-	mpoT->qd[0] = (qnumber_t *)MKL_malloc(mpo->d[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	mpoT->qd[1] = (qnumber_t *)MKL_malloc(mpo->d[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	mpoT->qd[0] = (qnumber_t *)algn_malloc(mpo->d[1] * sizeof(qnumber_t));
+	mpoT->qd[1] = (qnumber_t *)algn_malloc(mpo->d[0] * sizeof(qnumber_t));
 	memcpy(mpoT->qd[0], mpo->qd[1], mpo->d[1] * sizeof(qnumber_t));
 	memcpy(mpoT->qd[1], mpo->qd[0], mpo->d[0] * sizeof(qnumber_t));
 	// flip signs of virtual bond quantum numbers
-	mpoT->qD = (qnumber_t **)MKL_malloc((mpo->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	mpoT->qD = (qnumber_t **)algn_malloc((mpo->L + 1) * sizeof(qnumber_t *));
 	for (i = 0; i < mpo->L + 1; i++)
 	{
 		const size_t D = MPOBondDim(mpo, i);
-		mpoT->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		mpoT->qD[i] = (qnumber_t *)algn_malloc(D * sizeof(qnumber_t));
 		size_t j;
 		for (j = 0; j < D; j++)
 		{
@@ -207,7 +207,7 @@ void ConjugateTransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoH)
 	mpoH->d[0] = mpo->d[1];
 	mpoH->d[1] = mpo->d[0];
 
-	mpoH->A = (tensor_t *)MKL_calloc(mpo->L, sizeof(tensor_t), MEM_DATA_ALIGN);
+	mpoH->A = (tensor_t *)algn_calloc(mpo->L, sizeof(tensor_t));
 
 	// interchange physical dimensions
 	const int perm[4] = { 1, 0, 2, 3 };
@@ -221,16 +221,16 @@ void ConjugateTransposeMPO(const mpo_t *restrict mpo, mpo_t *restrict mpoH)
 	}
 
 	// interchange and copy physical quantum numbers
-	mpoH->qd[0] = (qnumber_t *)MKL_malloc(mpo->d[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	mpoH->qd[1] = (qnumber_t *)MKL_malloc(mpo->d[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	mpoH->qd[0] = (qnumber_t *)algn_malloc(mpo->d[1] * sizeof(qnumber_t));
+	mpoH->qd[1] = (qnumber_t *)algn_malloc(mpo->d[0] * sizeof(qnumber_t));
 	memcpy(mpoH->qd[0], mpo->qd[1], mpo->d[1] * sizeof(qnumber_t));
 	memcpy(mpoH->qd[1], mpo->qd[0], mpo->d[0] * sizeof(qnumber_t));
 	// flip signs of virtual bond quantum numbers
-	mpoH->qD = (qnumber_t **)MKL_malloc((mpo->L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	mpoH->qD = (qnumber_t **)algn_malloc((mpo->L + 1) * sizeof(qnumber_t *));
 	for (i = 0; i < mpo->L + 1; i++)
 	{
 		const size_t D = MPOBondDim(mpo, i);
-		mpoH->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		mpoH->qD[i] = (qnumber_t *)algn_malloc(D * sizeof(qnumber_t));
 		size_t j;
 		for (j = 0; j < D; j++)
 		{
@@ -339,7 +339,7 @@ MKL_Complex16 MPOTrace(const mpo_t *restrict X)
 	assert(X->d[0] == X->d[1]);
 
 	// start with 1D vector
-	MKL_Complex16 *v = (MKL_Complex16 *)MKL_malloc(sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *v = (MKL_Complex16 *)algn_malloc(sizeof(MKL_Complex16));
 	v[0].real = 1;
 	v[0].imag = 0;
 
@@ -355,7 +355,7 @@ MKL_Complex16 MPOTrace(const mpo_t *restrict X)
 
 		// trace out physical dimensions
 		const size_t D[2] = { X->A[i].dim[2], X->A[i].dim[3] };
-		MKL_Complex16 *t = (MKL_Complex16 *)MKL_calloc(D[0]*D[1], sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *t = (MKL_Complex16 *)algn_calloc(D[0]*D[1], sizeof(MKL_Complex16));
 		size_t j;
 		for (j = 0; j < X->d[0]; j++)
 		{
@@ -363,19 +363,19 @@ MKL_Complex16 MPOTrace(const mpo_t *restrict X)
 		}
 
 		// w = t*v
-		MKL_Complex16 *w = (MKL_Complex16 *)MKL_malloc(D[0]*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+		MKL_Complex16 *w = (MKL_Complex16 *)algn_malloc(D[0]*sizeof(MKL_Complex16));
 		cblas_zgemv(CblasColMajor, CblasNoTrans, D[0], D[1], &one, t, D[0], v, 1, &zero, w, 1);
-		MKL_free(t);
+		algn_free(t);
 
 		// update 'v' vector
-		MKL_free(v);
+		algn_free(v);
 		v = w;
 	}
 
 	// after traversing chain from right to left, v should again be a 1D vector
 
 	MKL_Complex16 tr = v[0];
-	MKL_free(v);
+	algn_free(v);
 
 	return tr;
 }
@@ -599,7 +599,7 @@ void MPOAdd(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict Z)
 	int i;
 
 	// add virtual bond dimensions, except for first and last virtual bond with dimension 1
-	size_t *D = (size_t *)MKL_malloc((L + 1)*sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *D = (size_t *)algn_malloc((L + 1)*sizeof(size_t));
 	// leftmost (dummy) virtual bond
 	{
 		assert(X->A[0].dim[2] == 1);
@@ -618,7 +618,7 @@ void MPOAdd(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *restrict Z)
 	}
 
 	AllocateMPO(L, d, D, Z);
-	MKL_free(D);
+	algn_free(D);
 
 	// store tensors in X and Y as diagonal blocks in output tensors
 	for (i = 0; i < L; i++)
@@ -712,12 +712,12 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 		const size_t dim[6] = { d0, d1, d0, d1, A->dim[2], A->dim[3] };
 
 		As.ndim = 6;
-		As.dim = (size_t *)MKL_malloc(6 * sizeof(size_t), MEM_DATA_ALIGN);
+		As.dim = (size_t *)algn_malloc(6 * sizeof(size_t));
 		memcpy(As.dim, dim, 6*sizeof(size_t));
 		assert(NumTensorElements(&As) == NumTensorElements(A));
 
 		#ifdef _DEBUG
-		As.dnames = (string_t *)MKL_calloc(As.ndim, sizeof(string_t), MEM_DATA_ALIGN);
+		As.dnames = (string_t *)algn_calloc(As.ndim, sizeof(string_t));
 		#endif
 
 		// just copy data pointers
@@ -736,13 +736,13 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 
 	// 'As' no longer needed
 	#ifdef _DEBUG
-	MKL_free(As.dnames);
+	algn_free(As.dnames);
 	#endif
-	MKL_free(As.dim);
+	algn_free(As.dim);
 
 	// compute quantum numbers of matrix representation
-	qnumber_t *q0 = (qnumber_t *)MKL_malloc(d0 * d0 * A->dim[2] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	qnumber_t *q2 = (qnumber_t *)MKL_malloc(d1 * d1 * A->dim[3] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q0 = (qnumber_t *)algn_malloc(d0 * d0 * A->dim[2] * sizeof(qnumber_t));
+	qnumber_t *q2 = (qnumber_t *)algn_malloc(d1 * d1 * A->dim[3] * sizeof(qnumber_t));
 	size_t i, j, k;
 	// q0
 	for (k = 0; k < A->dim[2]; k++)
@@ -777,8 +777,8 @@ trunc_info_t SplitMPOTensor(const tensor_t *restrict A, const qnumber_t *restric
 	assert(A0->dim[1] == A1t.dim[0]);
 
 	// quantum numbers of matrix representation and 'Ar' no longer needed
-	MKL_free(q2);
-	MKL_free(q0);
+	algn_free(q2);
+	algn_free(q0);
 	DeleteTensor(&Ar);
 
 	// reshape (and transpose) A0 and A1 to restore original physical dimensions
@@ -841,8 +841,8 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	const size_t D2 = A1->dim[3];
 
 	// compute quantum numbers of matrix representation
-	qnumber_t *q0 = (qnumber_t *)MKL_malloc(d0 * d0 * D0 * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	qnumber_t *q2 = (qnumber_t *)MKL_malloc(d1 * d1 * D2 * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q0 = (qnumber_t *)algn_malloc(d0 * d0 * D0 * sizeof(qnumber_t));
+	qnumber_t *q2 = (qnumber_t *)algn_malloc(d1 * d1 * D2 * sizeof(qnumber_t));
 	size_t i, j, k;
 	// q0
 	for (k = 0; k < D0; k++)
@@ -903,8 +903,8 @@ trunc_info_t CompressMPOTensors(tensor_t *restrict A0, tensor_t *restrict A1,
 	}
 
 	DeleteTensor(&A1t);
-	MKL_free(q2);
-	MKL_free(q0);
+	algn_free(q2);
+	algn_free(q0);
 
 	EndProfilingBlock(&std_profiler, PROFILE_COMPRESS_MPO_TENSORS);
 
@@ -929,7 +929,7 @@ void CompressMPO(mpo_t *restrict mpo, const sweep_dir_t direction, const bond_op
 			// bond quantum numbers after compression
 			qnumber_t *qcD1;
 			ti[i] = CompressMPOTensors(&mpo->A[i], &mpo->A[i+1], mpo->qD[i], mpo->qD[i+1], mpo->qD[i+2], mpo->qd[0], mpo->qd[1], SVD_DISTR_RIGHT, params, &qcD1);
-			MKL_free(mpo->qD[i+1]);
+			algn_free(mpo->qD[i+1]);
 			mpo->qD[i+1] = qcD1;
 		}
 	}
@@ -940,7 +940,7 @@ void CompressMPO(mpo_t *restrict mpo, const sweep_dir_t direction, const bond_op
 			// bond quantum numbers after compression
 			qnumber_t *qcD1;
 			ti[i] = CompressMPOTensors(&mpo->A[i], &mpo->A[i+1], mpo->qD[i], mpo->qD[i+1], mpo->qD[i+2], mpo->qd[0], mpo->qd[1], SVD_DISTR_LEFT, params, &qcD1);
-			MKL_free(mpo->qD[i+1]);
+			algn_free(mpo->qD[i+1]);
 			mpo->qD[i+1] = qcD1;
 		}
 	}
@@ -1021,14 +1021,14 @@ void MPOComposition(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *res
 	ret->d[1] = Y->d[1];
 
 	// physical quantum numbers
-	ret->qd[0] = (qnumber_t *)MKL_malloc(ret->d[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	ret->qd[1] = (qnumber_t *)MKL_malloc(ret->d[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	ret->qd[0] = (qnumber_t *)algn_malloc(ret->d[0] * sizeof(qnumber_t));
+	ret->qd[1] = (qnumber_t *)algn_malloc(ret->d[1] * sizeof(qnumber_t));
 	memcpy(ret->qd[0], X->qd[0], X->d[0]*sizeof(qnumber_t));
 	memcpy(ret->qd[1], Y->qd[1], Y->d[1]*sizeof(qnumber_t));
 
-	ret->A = (tensor_t *)MKL_calloc(L, sizeof(tensor_t), MEM_DATA_ALIGN);
+	ret->A = (tensor_t *)algn_calloc(L, sizeof(tensor_t));
 
-	ret->qD = (qnumber_t **)MKL_malloc((L + 1) * sizeof(qnumber_t *), MEM_DATA_ALIGN);
+	ret->qD = (qnumber_t **)algn_malloc((L + 1) * sizeof(qnumber_t *));
 
 	int i;
 	for (i = 0; i < L; i++)
@@ -1038,14 +1038,14 @@ void MPOComposition(const mpo_t *restrict X, const mpo_t *restrict Y, mpo_t *res
 		// virtual bond quantum numbers
 		const size_t D = ret->A[i].dim[2];
 		assert(D == X->A[i].dim[2] * Y->A[i].dim[2]);
-		ret->qD[i] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		ret->qD[i] = (qnumber_t *)algn_malloc(D * sizeof(qnumber_t));
 		CombineQuantumNumbers(X->A[i].dim[2], Y->A[i].dim[2], X->qD[i], Y->qD[i], ret->qD[i]);
 	}
 	// rightmost virtual bond quantum numbers
 	{
 		const size_t D = ret->A[L-1].dim[3];
 		assert(D == X->A[L-1].dim[3] * Y->A[L-1].dim[3]);
-		ret->qD[L] = (qnumber_t *)MKL_malloc(D * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		ret->qD[L] = (qnumber_t *)algn_malloc(D * sizeof(qnumber_t));
 		CombineQuantumNumbers(X->A[L-1].dim[3], Y->A[L-1].dim[3], X->qD[L], Y->qD[L], ret->qD[L]);
 	}
 }
@@ -1061,7 +1061,7 @@ void AllocateOpchain(const size_t d, const int n, const int i, opchain_t *restri
 	opchain->n = n;
 	opchain->i = i;
 
-	opchain->op = (tensor_t *)MKL_calloc(n, sizeof(tensor_t), MEM_DATA_ALIGN);
+	opchain->op = (tensor_t *)algn_calloc(n, sizeof(tensor_t));
 
 	int j;
 	for (j = 0; j < n; j++)
@@ -1071,7 +1071,7 @@ void AllocateOpchain(const size_t d, const int n, const int i, opchain_t *restri
 	}
 
 	// initialize quantum numbers with zeros
-	opchain->qD = (qnumber_t *)MKL_calloc(n - 1, sizeof(qnumber_t), MEM_DATA_ALIGN);
+	opchain->qD = (qnumber_t *)algn_calloc(n - 1, sizeof(qnumber_t));
 }
 
 
@@ -1081,14 +1081,14 @@ void AllocateOpchain(const size_t d, const int n, const int i, opchain_t *restri
 ///
 void DeleteOpchain(opchain_t *opchain)
 {
-	MKL_free(opchain->qD);
+	algn_free(opchain->qD);
 
 	int j;
 	for (j = 0; j < opchain->n; j++)
 	{
 		DeleteTensor(&opchain->op[j]);
 	}
-	MKL_free(opchain->op);
+	algn_free(opchain->op);
 
 	opchain->n = 0;
 }
@@ -1158,14 +1158,14 @@ void MPOFromOpChains(const int L, const size_t d, const int nopc, const opchain_
 	int j, k;
 
 	// sort operator chains by rightmost site index (keeping pointers for sorted copy)
-	opchain_t *opc = MKL_malloc(nopc * sizeof(opchain_t), MEM_DATA_ALIGN);
+	opchain_t *opc = algn_malloc(nopc * sizeof(opchain_t));
 	memcpy(opc, opchains, nopc * sizeof(opchain_t));
 	qsort(opc, nopc, sizeof(opchain_t), CompareOpChains);
 
 	// right-pad first operator chain with identity matrices (required for trailing identity operations in each chain)
 	{
 		const tensor_t *op_ref = opc[0].op;
-		opc[0].op = (tensor_t *)MKL_calloc(L - opc[0].i, sizeof(tensor_t), MEM_DATA_ALIGN);
+		opc[0].op = (tensor_t *)algn_calloc(L - opc[0].i, sizeof(tensor_t));
 		// copy original operators
 		for (j = 0; j < opc[0].n; j++)
 		{
@@ -1179,7 +1179,7 @@ void MPOFromOpChains(const int L, const size_t d, const int nopc, const opchain_
 		}
 
 		const qnumber_t *qD_ref = opc[0].qD;
-		opc[0].qD = (qnumber_t *)MKL_calloc(L - opc[0].i - 1, sizeof(qnumber_t), MEM_DATA_ALIGN);
+		opc[0].qD = (qnumber_t *)algn_calloc(L - opc[0].i - 1, sizeof(qnumber_t));
 		// copy original quantum numbers
 		memcpy(opc[0].qD, qD_ref, (opc[0].n - 1) * sizeof(qnumber_t));
 		// trailing quantum numbers are zero
@@ -1202,7 +1202,7 @@ void MPOFromOpChains(const int L, const size_t d, const int nopc, const opchain_
 		const int n_new = OpChainRightIndex(&opc[maxidxS]) + 1;
 
 		const tensor_t *op_ref = opc[maxidxS].op;
-		opc[maxidxS].op = (tensor_t *)MKL_calloc(n_new, sizeof(tensor_t), MEM_DATA_ALIGN);
+		opc[maxidxS].op = (tensor_t *)algn_calloc(n_new, sizeof(tensor_t));
 		// copy original operators
 		for (j = 0; j < opc[maxidxS].n; j++)
 		{
@@ -1216,7 +1216,7 @@ void MPOFromOpChains(const int L, const size_t d, const int nopc, const opchain_
 		}
 
 		const qnumber_t *qD_ref = opc[maxidxS].qD;
-		opc[maxidxS].qD = (qnumber_t *)MKL_calloc(n_new - 1, sizeof(qnumber_t), MEM_DATA_ALIGN);
+		opc[maxidxS].qD = (qnumber_t *)algn_calloc(n_new - 1, sizeof(qnumber_t));
 		// copy original quantum numbers
 		memcpy(&opc[maxidxS].qD[opc[maxidxS].i], qD_ref, (opc[maxidxS].n - 1) * sizeof(qnumber_t));
 		// leading quantum numbers are zero
@@ -1228,13 +1228,13 @@ void MPOFromOpChains(const int L, const size_t d, const int nopc, const opchain_
 	}
 
 	// allocate virtual bond slots between operators for each operator chain
-	size_t *D = MKL_calloc(L + 1, sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *D = algn_calloc(L + 1, sizeof(size_t));
 	D[0] = 1;
 	D[L] = 1;
-	size_t **opslots = MKL_calloc(nopc, sizeof(size_t *), MEM_DATA_ALIGN);
+	size_t **opslots = algn_calloc(nopc, sizeof(size_t *));
 	for (j = 0; j < nopc; j++)
 	{
-		opslots[j] = MKL_calloc(opc[j].n, sizeof(size_t), MEM_DATA_ALIGN);
+		opslots[j] = algn_calloc(opc[j].n, sizeof(size_t));
 
 		for (k = 0; k < opc[j].n - 1; k++)
 		{
@@ -1295,10 +1295,10 @@ void MPOFromOpChains(const int L, const size_t d, const int nopc, const opchain_
 	// clean up
 	for (j = 0; j < nopc; j++)
 	{
-		MKL_free(opslots[j]);
+		algn_free(opslots[j]);
 	}
-	MKL_free(opslots);
-	MKL_free(D);
+	algn_free(opslots);
+	algn_free(D);
 	for (j = 0; j < opc[maxidxS].n; j++)
 	{
 		DeleteTensor(&opc[maxidxS].op[j]);
@@ -1307,9 +1307,9 @@ void MPOFromOpChains(const int L, const size_t d, const int nopc, const opchain_
 	{
 		DeleteTensor(&opc[0].op[j]);
 	}
-	MKL_free(opc[maxidxS].op);
-	MKL_free(opc[maxidxS].qD);
-	MKL_free(opc[0].op);
-	MKL_free(opc[0].qD);
-	MKL_free(opc);
+	algn_free(opc[maxidxS].op);
+	algn_free(opc[maxidxS].qD);
+	algn_free(opc[0].op);
+	algn_free(opc[0].qD);
+	algn_free(opc);
 }

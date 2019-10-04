@@ -3,7 +3,6 @@
 
 #include "hamiltonian_fermi_hubbard.h"
 #include "util.h"
-#include <mkl.h>
 #include <memory.h>
 #include <assert.h>
 
@@ -60,7 +59,7 @@ void ConstructLocalFermiHubbardOperators(const int L, const double t, const doub
 	int i;
 	for (i = 0; i < L - 1; i++)
 	{
-		h[i] = MKL_malloc(16*16 * sizeof(double), MEM_DATA_ALIGN);
+		h[i] = algn_malloc(16*16 * sizeof(double));
 		memcpy(h[i], tkin, 16*16 * sizeof(double));
 	}
 
@@ -102,7 +101,7 @@ void DeleteLocalFermiHubbardOperators(const int L, double **h)
 	int i;
 	for (i = 0; i < L - 1; i++)
 	{
-		MKL_free(h[i]);
+		algn_free(h[i]);
 		h[i] = NULL;
 	}
 }
@@ -121,7 +120,7 @@ void ConstructFermiHubbardMPO(const int L, const double t, const double U, const
 	// allocate matrix product operator
 	{
 		// virtual bond dimensions
-		size_t *D = (size_t *)MKL_malloc((L + 1)*sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *D = (size_t *)algn_malloc((L + 1)*sizeof(size_t));
 		D[0] = 1;
 		for (i = 1; i < L; i++) {
 			D[i] = 6;
@@ -130,7 +129,7 @@ void ConstructFermiHubbardMPO(const int L, const double t, const double U, const
 
 		const size_t dim[2] = { 4, 4 };
 		AllocateMPO(L, dim, D, H);
-		MKL_free(D);
+		algn_free(D);
 
 		// set quantum numbers
 

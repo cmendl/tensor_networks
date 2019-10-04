@@ -2,7 +2,7 @@
 #include "hamiltonian_heisenberg.h"
 #include "complex.h"
 #include "operation.h"
-#include <mkl.h>
+#include "util.h"
 #include <stdio.h>
 
 
@@ -27,7 +27,7 @@ int MinimizationTest()
 	// initial MPS psi
 	mps_t psi0;
 	{
-		size_t *Dlist = (size_t *)MKL_malloc((L+1) * sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *Dlist = (size_t *)algn_malloc((L+1) * sizeof(size_t));
 		Dlist[0] = 1;
 		int i;
 		for (i = 1; i < L; i++)
@@ -37,7 +37,7 @@ int MinimizationTest()
 		Dlist[L] = 1;
 
 		AllocateMPS(L, 2, Dlist, &psi0);
-		MKL_free(Dlist);
+		algn_free(Dlist);
 
 		// quasi-random entries
 		int c = 1;
@@ -82,12 +82,12 @@ int MinimizationTest()
 			CopyMPS(&psi0, &psi);
 
 			// smallest energy value after each sweep
-			double *en_min = (double *)MKL_malloc(maxiter * sizeof(double), MEM_DATA_ALIGN);
+			double *en_min = (double *)algn_malloc(maxiter * sizeof(double));
 
 			CalculateGroundStateLocalSinglesite(&mpoH, maxiter, en_min, &psi);
 			E0 = en_min[maxiter-1];
 
-			MKL_free(en_min);
+			algn_free(en_min);
 		}
 		else if (t == 1)
 		{
@@ -103,10 +103,10 @@ int MinimizationTest()
 			CopyMPS(&psi0, &psi);
 
 			// smallest energy value after each sweep
-			double *en_min = (double *)MKL_malloc(maxiter * sizeof(double), MEM_DATA_ALIGN);
+			double *en_min = (double *)algn_malloc(maxiter * sizeof(double));
 
 			// entropy associated with each virtual bond
-			double *entropy = (double *)MKL_malloc((L-1) * sizeof(double), MEM_DATA_ALIGN);
+			double *entropy = (double *)algn_malloc((L-1) * sizeof(double));
 
 			CalculateGroundStateLocalTwosite(&mpoH, maxiter, &params, entropy, en_min, &psi);
 			E0 = en_min[maxiter-1];
@@ -120,8 +120,8 @@ int MinimizationTest()
 			}
 			printf("\n");
 
-			MKL_free(entropy);
-			MKL_free(en_min);
+			algn_free(entropy);
+			algn_free(en_min);
 		}
 
 		printf("optimized ground state energy: %g, distance to reference value: %g\n", E0, E0 - E0ref);

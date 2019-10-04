@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 	}
 
 	// construct two-site Bose-Hubbard Hamiltonian operators
-	double **h = (double **)MKL_malloc((L - 1)*sizeof(double *), MEM_DATA_ALIGN);
+	double **h = (double **)algn_malloc((L - 1)*sizeof(double *));
 	ConstructLocalBoseHubbardOperators(L, d - 1, params.t, params.U, params.mu, h);
 
 	// start timer
@@ -234,21 +234,21 @@ int main(int argc, char *argv[])
 		ComputeDynamicsDataStrang(L, dbeta, d*d, (const double **)h, &dyn);
 
 		// effective tolerance (truncation weight)
-		double *tol_eff_beta = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+		double *tol_eff_beta = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 		// perform imaginary time evolution; using "normalization" to keep A[0] matrix entries of order 1
 		EvolveMPOStrang(&dyn, nsteps, &bond_op_params, true, &exp_betaH, tol_eff_beta);
 
 		// record virtual bond dimensions
-		size_t *D_beta = (size_t *)MKL_malloc((L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *D_beta = (size_t *)algn_malloc((L + 1) * sizeof(size_t));
 		MPOBondDims(&exp_betaH, D_beta);
 
 		// save effective tolerances and virtual bond dimensions to disk
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_tol_eff_beta.dat", argv[4], L, d - 1); WriteData(filename, tol_eff_beta, sizeof(double), nsteps*(L - 1), false);
 		sprintf(filename, "%s/bose_hubbard_L%i_M%zu_D_beta.dat",       argv[4], L, d - 1); WriteData(filename, D_beta, sizeof(size_t), L + 1, false);
 
-		MKL_free(D_beta);
-		MKL_free(tol_eff_beta);
+		algn_free(D_beta);
+		algn_free(tol_eff_beta);
 		DeleteDynamicsData(&dyn);
 	}
 
@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
 
 	// compute local density
 	{
-		double *density = (double *)MKL_malloc(L*sizeof(double), MEM_DATA_ALIGN);
+		double *density = (double *)algn_malloc(L*sizeof(double));
 
 		mpo_t exp_betaH_n;
 		CopyMPO(&exp_betaH, &exp_betaH_n);
@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
 
 		// clean up
 		DeleteMPO(&exp_betaH_n);
-		MKL_free(density);
+		algn_free(density);
 	}
 
 	// compute total energy
@@ -330,17 +330,17 @@ int main(int argc, char *argv[])
 		return -4;
 	}
 
-	MKL_Complex16 *otoc1 = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-	MKL_Complex16 *otoc2 = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
-	MKL_Complex16 *gf    = (MKL_Complex16 *)MKL_malloc((nsteps + 1)*sizeof(MKL_Complex16), MEM_DATA_ALIGN);
+	MKL_Complex16 *otoc1 = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
+	MKL_Complex16 *otoc2 = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
+	MKL_Complex16 *gf    = (MKL_Complex16 *)algn_malloc((nsteps + 1)*sizeof(MKL_Complex16));
 
 	// effective tolerance (truncation weight)
-	double *tol_eff_A = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
-	double *tol_eff_B = (double *)MKL_calloc(nsteps*(L - 1), sizeof(double), MEM_DATA_ALIGN);
+	double *tol_eff_A = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
+	double *tol_eff_B = (double *)algn_calloc(nsteps*(L - 1), sizeof(double));
 
 	// record virtual bond dimensions
-	size_t *D_XA = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
-	size_t *D_XB = (size_t *)MKL_malloc((nsteps + 1)*(L + 1) * sizeof(size_t), MEM_DATA_ALIGN);
+	size_t *D_XA = (size_t *)algn_malloc((nsteps + 1)*(L + 1) * sizeof(size_t));
+	size_t *D_XB = (size_t *)algn_malloc((nsteps + 1)*(L + 1) * sizeof(size_t));
 
 	int nstart = 0;
 
@@ -492,19 +492,19 @@ int main(int argc, char *argv[])
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_DXB.dat",       argv[4], L, d - 1); WriteData(filename, D_XB, sizeof(size_t), (nsteps + 1)*(L + 1), false);
 
 	// clean up
-	MKL_free(D_XB);
-	MKL_free(D_XA);
-	MKL_free(tol_eff_B);
-	MKL_free(tol_eff_A);
-	MKL_free(gf);
-	MKL_free(otoc2);
-	MKL_free(otoc1);
+	algn_free(D_XB);
+	algn_free(D_XA);
+	algn_free(tol_eff_B);
+	algn_free(tol_eff_A);
+	algn_free(gf);
+	algn_free(otoc2);
+	algn_free(otoc1);
 	DeleteDynamicsData(&dyn_time);
 	DeleteMPO(&XB);
 	DeleteMPO(&XA);
 	DeleteMPO(&exp_betaH);
 	DeleteLocalBoseHubbardOperators(L, h);
-	MKL_free(h);
+	algn_free(h);
 	DeleteTensor(&bn);
 	DeleteTensor(&b);
 	DeleteTensor(&bd);

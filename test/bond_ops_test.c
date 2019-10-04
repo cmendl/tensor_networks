@@ -1,7 +1,6 @@
 #include "bond_ops.h"
 #include "complex.h"
 #include "util.h"
-#include <mkl.h>
 #include <stdio.h>
 
 
@@ -50,8 +49,8 @@ int BondOperationsTest()
 	}
 
 	// load quantum numbers from disk
-	qnumber_t *q0 = (qnumber_t *)MKL_malloc(A.dim[0] * sizeof(qnumber_t), MEM_DATA_ALIGN);
-	qnumber_t *q1 = (qnumber_t *)MKL_malloc(A.dim[1] * sizeof(qnumber_t), MEM_DATA_ALIGN);
+	qnumber_t *q0 = (qnumber_t *)algn_malloc(A.dim[0] * sizeof(qnumber_t));
+	qnumber_t *q1 = (qnumber_t *)algn_malloc(A.dim[1] * sizeof(qnumber_t));
 	{
 		status = ReadData("../test/bond_ops_test_q0.dat", q0, sizeof(qnumber_t), A.dim[0]); if (status < 0) { return status; }
 		status = ReadData("../test/bond_ops_test_q1.dat", q1, sizeof(qnumber_t), A.dim[1]); if (status < 0) { return status; }
@@ -61,13 +60,13 @@ int BondOperationsTest()
 	{
 		// load singular values from disk
 		const size_t n = 27;
-		double *sigma = (double *)MKL_malloc(n * sizeof(double), MEM_DATA_ALIGN);
+		double *sigma = (double *)algn_malloc(n * sizeof(double));
 		status = ReadData("../test/bond_ops_test_sigma.dat", sigma, sizeof(double), n);
 		if (status < 0) { return status; }
 
 		// load reference data from disk
 		const size_t ntr_ref = 17;
-		size_t *indtr_ref = (size_t *)MKL_malloc(ntr_ref * sizeof(size_t), MEM_DATA_ALIGN);
+		size_t *indtr_ref = (size_t *)algn_malloc(ntr_ref * sizeof(size_t));
 		status = ReadData("../test/bond_ops_test_indtr.dat", indtr_ref, sizeof(size_t), ntr_ref); if (status < 0) { return status; }
 		// norm and Neumann entropy of retained singular values
 		double nsigma_ref;
@@ -103,13 +102,13 @@ int BondOperationsTest()
 			}
 
 			if (indtr != NULL) {
-				MKL_free(indtr);
+				algn_free(indtr);
 			}
 		}
 
 		// clean up
-		MKL_free(indtr_ref);
-		MKL_free(sigma);
+		algn_free(indtr_ref);
+		algn_free(sigma);
 	}
 
 	// split a matrix
@@ -117,7 +116,7 @@ int BondOperationsTest()
 		// load reference data from disk
 		// bond quantum numbers
 		const size_t D_ref = 7;
-		qnumber_t *qbond_ref = (qnumber_t *)MKL_malloc(D_ref * sizeof(qnumber_t), MEM_DATA_ALIGN);
+		qnumber_t *qbond_ref = (qnumber_t *)algn_malloc(D_ref * sizeof(qnumber_t));
 		status = ReadData("../test/bond_ops_test_qbond.dat", qbond_ref, sizeof(qnumber_t), D_ref); if (status < 0) { return status; }
 		// norm and Neumann entropy of retained singular values
 		double nsigma_ref;
@@ -174,14 +173,14 @@ int BondOperationsTest()
 			err = fmax(err, fabs(ti.nsigma  -  nsigma_ref));
 			err = fmax(err, fabs(ti.entropy - entropy_ref));
 
-			MKL_free(qbond);
+			algn_free(qbond);
 			DeleteTensor(&A1);
 			DeleteTensor(&A0);
 		}
 
 		// clean up
 		DeleteTensor(&A01_ref);
-		MKL_free(qbond_ref);
+		algn_free(qbond_ref);
 	}
 
 	// QR decomposition
@@ -228,7 +227,7 @@ int BondOperationsTest()
 			DeleteTensor(&QHQ);
 		}
 
-		MKL_free(qinterm);
+		algn_free(qinterm);
 		DeleteTensor(&R);
 		DeleteTensor(&Q);
 	}
@@ -236,8 +235,8 @@ int BondOperationsTest()
 	printf("Largest error: %g\n", err);
 
 	// clean up
-	MKL_free(q1);
-	MKL_free(q0);
+	algn_free(q1);
+	algn_free(q0);
 	DeleteTensor(&A);
 
 	return (err < 5e-15 ? 0 : 1);

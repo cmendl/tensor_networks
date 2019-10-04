@@ -2,7 +2,7 @@
 /// \brief Projected entangled-pair state (PEPS) in two dimensions
 
 #include "peps.h"
-#include <mkl.h>
+#include "util.h"
 #include <stdlib.h>
 #ifdef _DEBUG
 #include <stdio.h>
@@ -23,7 +23,7 @@ void AllocatePEPS2D(const int L, const size_t d, const size_t D, peps2D_t *psi)
 
 	int x, y;
 
-	psi->A = (tensor_t *)MKL_calloc(L*L, sizeof(tensor_t), MEM_DATA_ALIGN);
+	psi->A = (tensor_t *)algn_calloc(L*L, sizeof(tensor_t));
 
 	// ordering of virtual indices is left, right, up, down (omitting directions for border states)
 	const size_t dim[5] = { d, D, D, D, D };
@@ -66,7 +66,7 @@ void DeletePEPS2D(peps2D_t *psi)
 		}
 	}
 
-	MKL_free(psi->A);
+	algn_free(psi->A);
 
 	psi->D = 0;
 	psi->d = 0;
@@ -125,7 +125,7 @@ void ConstructPEPS2DMatrixProductStateOp(const peps2D_t *psi, const int y, tenso
 	int x;
 
 	// construct E_j tensors
-	tensor_t *E = (tensor_t *)MKL_malloc(psi->L * sizeof(tensor_t), MEM_DATA_ALIGN);
+	tensor_t *E = (tensor_t *)algn_malloc(psi->L * sizeof(tensor_t));
 	for (x = 0; x < psi->L; x++)
 	{
 		ConstructETensor(&psi->A[x + y*psi->L], &E[x]);
@@ -142,7 +142,7 @@ void ConstructPEPS2DMatrixProductStateOp(const peps2D_t *psi, const int y, tenso
 
 	// form MPS or MPO by accumulating products of E_j's with one another;
 	// ordering of virtual indices is left, right, up, down (omitting directions for border states)
-	tensor_t *Eprod = (tensor_t *)MKL_malloc(psi->L * sizeof(tensor_t), MEM_DATA_ALIGN);
+	tensor_t *Eprod = (tensor_t *)algn_malloc(psi->L * sizeof(tensor_t));
 	if (E[0].ndim == 2)     // MPS
 	{
 		assert(y == 0 || y == psi->L-1);    // column must be at the border
@@ -211,13 +211,13 @@ void ConstructPEPS2DMatrixProductStateOp(const peps2D_t *psi, const int y, tenso
 		}
 
 		// rearrange levels to ordering (u_1, ..., u_L, d_1, ..., d_L)
-		int *permM = (int *)MKL_malloc(2*psi->L * sizeof(int), MEM_DATA_ALIGN);
+		int *permM = (int *)algn_malloc(2*psi->L * sizeof(int));
 		for (x = 0; x < psi->L; x++) {
 			permM[2*x  ] = x;
 			permM[2*x+1] = psi->L + x;
 		}
 		TransposeTensor(permM, &Eprod[psi->L-1], mp);
-		MKL_free(permM);
+		algn_free(permM);
 	}
 
 	// clean up
@@ -226,6 +226,6 @@ void ConstructPEPS2DMatrixProductStateOp(const peps2D_t *psi, const int y, tenso
 		DeleteTensor(&Eprod[x]);
 		DeleteTensor(&E[x]);
 	}
-	MKL_free(Eprod);
-	MKL_free(E);
+	algn_free(Eprod);
+	algn_free(E);
 }

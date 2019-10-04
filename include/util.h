@@ -6,10 +6,17 @@
 
 #include <stdlib.h>
 #include <math.h>
-#include <mkl_types.h>
+#include <mkl.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <assert.h>
+
+
+#define algn_malloc(size) MKL_malloc(size, MEM_DATA_ALIGN)
+
+#define algn_free(ptr) MKL_free(ptr)
+
+#define algn_calloc(num, size) MKL_calloc(num, size, MEM_DATA_ALIGN)
 
 
 //________________________________________________________________________________________________________________________
