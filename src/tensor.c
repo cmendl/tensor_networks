@@ -442,7 +442,7 @@ void ScalarMultiplyAddTensor(const MKL_Complex16 alpha, const tensor_t *restrict
 	assert(s->ndim == t->ndim);
 	assert(nelem == NumTensorElements(t));
 
-	cblas_zaxpy((MKL_INT)nelem, &alpha, s->data, 1, t->data, 1);
+	cblas_zaxpy((int)nelem, &alpha, s->data, 1, t->data, 1);
 }
 
 
@@ -510,14 +510,14 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 			// inner product of two vectors
 			assert(nelemS == nelemT);
 			assert(NumTensorElements(r) == 1);
-			cblas_zdotu_sub((MKL_INT)nelemS, s->data, 1, t->data, 1, &r->data[0]);
+			cblas_zdotu_sub((int)nelemS, s->data, 1, t->data, 1, &r->data[0]);
 		}
 		else    // tdt > 1
 		{
 			// multiply vector 's' from left, i.e., (t^T * s)^T
 			const MKL_Complex16 one  = { 1, 0 };
 			const MKL_Complex16 zero = { 0, 0 };
-			cblas_zgemv(CblasColMajor, CblasTrans, (MKL_INT)ldt, (MKL_INT)tdt, &one, t->data, (MKL_INT)ldt, s->data, 1, &zero, r->data, 1);
+			cblas_zgemv(CblasColMajor, CblasTrans, (int)ldt, (int)tdt, &one, t->data, (int)ldt, s->data, 1, &zero, r->data, 1);
 		}
 	}
 	else    // lds > 1
@@ -527,14 +527,14 @@ void MultiplyTensor(const tensor_t *restrict s, const tensor_t *restrict t, cons
 			// matrix-vector multiplication
 			const MKL_Complex16 one  = { 1, 0 };
 			const MKL_Complex16 zero = { 0, 0 };
-			cblas_zgemv(CblasColMajor, CblasNoTrans, (MKL_INT)lds, (MKL_INT)ldt, &one, s->data, (MKL_INT)lds, t->data, 1, &zero, r->data, 1);
+			cblas_zgemv(CblasColMajor, CblasNoTrans, (int)lds, (int)ldt, &one, s->data, (int)lds, t->data, 1, &zero, r->data, 1);
 		}
 		else    // tdt > 1
 		{
 			// matrix-matrix multiplication
 			const MKL_Complex16 one  = { 1, 0 };
 			const MKL_Complex16 zero = { 0, 0 };
-			cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, (MKL_INT)lds, (MKL_INT)tdt, (MKL_INT)ldt, &one, s->data, (MKL_INT)lds, t->data, (MKL_INT)ldt, &zero, r->data, (MKL_INT)lds);
+			cblas_zgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, (int)lds, (int)tdt, (int)ldt, &one, s->data, (int)lds, t->data, (int)ldt, &zero, r->data, (int)lds);
 		}
 	}
 
@@ -574,7 +574,7 @@ void TensorKroneckerProduct(const tensor_t *restrict s, const tensor_t *restrict
 
 	// outer product; u.data must have been initialized with zeros
 	const MKL_Complex16 one = { 1, 0 };
-	cblas_zgeru(CblasColMajor, (MKL_INT)m, (MKL_INT)n, &one, s->data, 1, t->data, 1, u.data, (MKL_INT)m);
+	cblas_zgeru(CblasColMajor, (int)m, (int)n, &one, s->data, 1, t->data, 1, u.data, (int)m);
 
 	// reorder levels of 'u' and store result in 'r'
 	int *perm = (int *)algn_malloc((s->ndim + t->ndim) * sizeof(int));

@@ -457,7 +457,7 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 		// distribute singular values to 'U' matrices from SVD
 		for (i = 0; i < k; i++)
 		{
-			cblas_dscal((MKL_INT)(2*m), sigma[i], (double *)&A0->data[m*i], 1);
+			cblas_dscal((int)(2*m), sigma[i], (double *)&A0->data[m*i], 1);
 		}
 	}
 	else if (svd_distr == SVD_DISTR_RIGHT)
@@ -465,7 +465,7 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 		// distribute singular values to the 'V' matrices from SVD
 		for (i = 0; i < k; i++)
 		{
-			cblas_dscal((MKL_INT)(2*n), sigma[i], (double *)&V.data[n*i], 1);
+			cblas_dscal((int)(2*n), sigma[i], (double *)&V.data[n*i], 1);
 		}
 	}
 	else if (svd_distr == SVD_DISTR_SQRT)
@@ -474,8 +474,8 @@ static trunc_info_t SplitMatrixBasic(const tensor_t *restrict A, const svd_distr
 		for (i = 0; i < k; i++)
 		{
 			const double sqrt_sigma = sqrt(sigma[i]);
-			cblas_dscal((MKL_INT)(2*m), sqrt_sigma, (double *)&A0->data[m*i], 1);
-			cblas_dscal((MKL_INT)(2*n), sqrt_sigma, (double *)  &V.data[n*i], 1);
+			cblas_dscal((int)(2*m), sqrt_sigma, (double *)&A0->data[m*i], 1);
+			cblas_dscal((int)(2*n), sqrt_sigma, (double *)  &V.data[n*i], 1);
 		}
 	}
 	else
@@ -747,7 +747,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		// distribute singular values to A0 matrix
 		for (i = 0; i < Dtrunc; i++)
 		{
-			cblas_dscal((MKL_INT)(2*A0->dim[0]), S[indtr[i]], (double *)&A0->data[A0->dim[0]*i], 1);
+			cblas_dscal((int)(2*A0->dim[0]), S[indtr[i]], (double *)&A0->data[A0->dim[0]*i], 1);
 		}
 	}
 	else if (svd_distr == SVD_DISTR_RIGHT)
@@ -771,7 +771,7 @@ trunc_info_t SplitMatrix(const tensor_t *restrict A, const qnumber_t *restrict q
 		for (i = 0; i < Dtrunc; i++)
 		{
 			sqrt_sigma[i] = sqrt(S[indtr[i]]);
-			cblas_dscal((MKL_INT)(2*A0->dim[0]), sqrt_sigma[i], (double *)&A0->data[A0->dim[0]*i], 1);
+			cblas_dscal((int)(2*A0->dim[0]), sqrt_sigma[i], (double *)&A0->data[A0->dim[0]*i], 1);
 		}
 
 		size_t j;

@@ -103,13 +103,13 @@ int MatrixExp(const size_t n, const MKL_Complex16 t, const double *restrict A, M
 	memcpy(UexpD, Ucplx, n*n * sizeof(MKL_Complex16));
 	for (i = 0; i < n; i++)
 	{
-		cblas_zscal((MKL_INT)n, &exp_tw[i], &UexpD[i*n], 1);
+		cblas_zscal((int)n, &exp_tw[i], &UexpD[i*n], 1);
 	}
 
 	// compute U * diag(exp(-t lambda_i)) * U^H
 	const MKL_Complex16 one  = { 1, 0 };
 	const MKL_Complex16 zero = { 0, 0 };
-	cblas_zgemm(CblasColMajor, CblasNoTrans, CblasTrans, (MKL_INT)n, (MKL_INT)n, (MKL_INT)n, &one, UexpD, (MKL_INT)n, Ucplx, (MKL_INT)n, &zero, ret, (MKL_INT)n);
+	cblas_zgemm(CblasColMajor, CblasNoTrans, CblasTrans, (int)n, (int)n, (int)n, &one, UexpD, (int)n, Ucplx, (int)n, &zero, ret, (int)n);
 
 	// clean up
 	algn_free(UexpD);
@@ -142,12 +142,12 @@ void RealIdentityMatrix(const size_t d, double *id)
 ///
 /// \brief Compute the Kronecker product of two real square matrices of dimension d x d, and add to 'ret' (d^2 x d^2 matrix)
 ///
-void KroneckerProductRealSquare(const MKL_INT d, const double *restrict A, const double *restrict B, double *restrict ret)
+void KroneckerProductRealSquare(const int d, const double *restrict A, const double *restrict B, double *restrict ret)
 {
 	assert(d > 0);
-	const MKL_INT d2 = d*d;
+	const int d2 = d*d;
 
-	MKL_INT i, j;
+	int i, j;
 	for (j = 0; j < d; j++)
 	{
 		for (i = 0; i < d; i++)

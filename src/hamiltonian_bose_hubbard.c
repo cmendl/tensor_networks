@@ -99,21 +99,21 @@ void ConstructLocalBoseHubbardOperators(const int L, const size_t M, const doubl
 
 	// construct kinetic term -t (b^dagger b + b b^dagger)
 	double *tkin = algn_calloc(d2*d2, sizeof(double));
-	KroneckerProductRealSquare((MKL_INT)d, bd, b,  tkin);
-	KroneckerProductRealSquare((MKL_INT)d, b,  bd, tkin);
-	cblas_dscal((MKL_INT)(d2*d2), -t, tkin, 1);     // scale by -t
+	KroneckerProductRealSquare((int)d, bd, b,  tkin);
+	KroneckerProductRealSquare((int)d, b,  bd, tkin);
+	cblas_dscal((int)(d2*d2), -t, tkin, 1);     // scale by -t
 
 	// construct single-site term U/2 n (n - 1) - mu n
 	double *hs = algn_malloc(d2 * sizeof(double));
 	BoseInteractionOperator(d, hs);
-	cblas_dscal((MKL_INT)d2, 0.5*U, hs, 1);
-	cblas_daxpy((MKL_INT)d2, -mu, bn, 1, hs, 1);
+	cblas_dscal((int)d2, 0.5*U, hs, 1);
+	cblas_daxpy((int)d2, -mu, bn, 1, hs, 1);
 
 	// Kronecker products of hs with identity matrix
 	double *hs_id = algn_calloc(d2*d2, sizeof(double));
 	double *id_hs = algn_calloc(d2*d2, sizeof(double));
-	KroneckerProductRealSquare((MKL_INT)d, hs, id, hs_id);
-	KroneckerProductRealSquare((MKL_INT)d, id, hs, id_hs);
+	KroneckerProductRealSquare((int)d, hs, id, hs_id);
+	KroneckerProductRealSquare((int)d, id, hs, id_hs);
 
 	for (i = 0; i < L - 1; i++)
 	{
@@ -123,28 +123,28 @@ void ConstructLocalBoseHubbardOperators(const int L, const size_t M, const doubl
 
 	if (L == 2)
 	{
-		cblas_daxpy((MKL_INT)(d2*d2), 1.0, hs_id, 1, h[0], 1);
-		cblas_daxpy((MKL_INT)(d2*d2), 1.0, id_hs, 1, h[0], 1);
+		cblas_daxpy((int)(d2*d2), 1.0, hs_id, 1, h[0], 1);
+		cblas_daxpy((int)(d2*d2), 1.0, id_hs, 1, h[0], 1);
 	}
 	else
 	{
 		// case i == 0
 		{
-			cblas_daxpy((MKL_INT)(d2*d2), 1.0, hs_id, 1, h[0], 1);
-			cblas_daxpy((MKL_INT)(d2*d2), 0.5, id_hs, 1, h[0], 1);
+			cblas_daxpy((int)(d2*d2), 1.0, hs_id, 1, h[0], 1);
+			cblas_daxpy((int)(d2*d2), 0.5, id_hs, 1, h[0], 1);
 		}
 
 		// intermediate sites
 		for (i = 1; i < L - 2; i++)
 		{
-			cblas_daxpy((MKL_INT)(d2*d2), 0.5, hs_id, 1, h[i], 1);
-			cblas_daxpy((MKL_INT)(d2*d2), 0.5, id_hs, 1, h[i], 1);
+			cblas_daxpy((int)(d2*d2), 0.5, hs_id, 1, h[i], 1);
+			cblas_daxpy((int)(d2*d2), 0.5, id_hs, 1, h[i], 1);
 		}
 
 		// case i == L - 2
 		{
-			cblas_daxpy((MKL_INT)(d2*d2), 0.5, hs_id, 1, h[L-2], 1);
-			cblas_daxpy((MKL_INT)(d2*d2), 1.0, id_hs, 1, h[L-2], 1);
+			cblas_daxpy((int)(d2*d2), 0.5, hs_id, 1, h[L-2], 1);
+			cblas_daxpy((int)(d2*d2), 1.0, id_hs, 1, h[L-2], 1);
 		}
 	}
 
@@ -193,25 +193,25 @@ void ConstructLocalBoseHubbardEnergyOperator(const size_t M, const double t, con
 
 	// construct kinetic term -t (b^dagger b + b b^dagger)
 	double *tkin = algn_calloc(d2*d2, sizeof(double));
-	KroneckerProductRealSquare((MKL_INT)d, bd, b,  tkin);
-	KroneckerProductRealSquare((MKL_INT)d, b,  bd, tkin);
-	cblas_dscal((MKL_INT)(d2*d2), -t, tkin, 1);     // scale by -t
+	KroneckerProductRealSquare((int)d, bd, b,  tkin);
+	KroneckerProductRealSquare((int)d, b,  bd, tkin);
+	cblas_dscal((int)(d2*d2), -t, tkin, 1);     // scale by -t
 
 	// construct single-site term U/2 n (n - 1)
 	double *hs = algn_malloc(d2 * sizeof(double));
 	BoseInteractionOperator(d, hs);
-	cblas_dscal((MKL_INT)d2, 0.5*U, hs, 1);
+	cblas_dscal((int)d2, 0.5*U, hs, 1);
 
 	// Kronecker products of hs with identity matrix
 	double *hs_id = algn_calloc(d2*d2, sizeof(double));
 	double *id_hs = algn_calloc(d2*d2, sizeof(double));
-	KroneckerProductRealSquare((MKL_INT)d, hs, id, hs_id);
-	KroneckerProductRealSquare((MKL_INT)d, id, hs, id_hs);
+	KroneckerProductRealSquare((int)d, hs, id, hs_id);
+	KroneckerProductRealSquare((int)d, id, hs, id_hs);
 
 	// assemble local energy operator
 	memcpy(h, tkin, d2*d2 * sizeof(double));
-	cblas_daxpy((MKL_INT)(d2*d2), 0.5, hs_id, 1, h, 1);
-	cblas_daxpy((MKL_INT)(d2*d2), 0.5, id_hs, 1, h, 1);
+	cblas_daxpy((int)(d2*d2), 0.5, hs_id, 1, h, 1);
+	cblas_daxpy((int)(d2*d2), 0.5, id_hs, 1, h, 1);
 
 	// clean up
 	algn_free(id_hs);
@@ -286,14 +286,14 @@ void ConstructBoseHubbardMPO(const int L, const size_t M, const double t, const 
 	double *tbd = algn_malloc(d2 * sizeof(double));
 	memcpy(tb,  b,  d2 * sizeof(double));
 	memcpy(tbd, bd, d2 * sizeof(double));
-	cblas_dscal((MKL_INT)d2, -t, tb,  1);
-	cblas_dscal((MKL_INT)d2, -t, tbd, 1);
+	cblas_dscal((int)d2, -t, tb,  1);
+	cblas_dscal((int)d2, -t, tbd, 1);
 
 	// construct single-site term U/2 n (n - 1) - mu n
 	double *hs = algn_malloc(d2 * sizeof(double));
 	BoseInteractionOperator(d, hs);
-	cblas_dscal((MKL_INT)d2, 0.5*U, hs, 1);
-	cblas_daxpy((MKL_INT)d2, -mu, bn, 1, hs, 1);
+	cblas_dscal((int)d2, 0.5*U, hs, 1);
+	cblas_daxpy((int)d2, -mu, bn, 1, hs, 1);
 
 	// construct first 'W' tensor
 	{
