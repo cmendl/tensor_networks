@@ -3,7 +3,10 @@
 #include "sim_params.h"
 #include "profiler.h"
 #include "dupio.h"
+#include <math.h>
+#ifdef USE_MKL
 #include <mkl.h>
+#endif
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -93,7 +96,9 @@ int main(int argc, char *argv[])
 	}
 
 	// enable peak memory recording
+	#ifdef USE_MKL
 	MKL_Peak_Mem_Usage(MKL_PEAK_MEM_ENABLE);
+	#endif
 
 	sim_params_t params = { 0 };
 	int status = ParseParameterFile(argv[1], &params);
@@ -145,7 +150,9 @@ int main(int argc, char *argv[])
 	duprintf("               renormalize: %s\n", params.renormalize ? "true" : "false");
 	duprintf("                  'i' site: %i\n", i_site);
 	duprintf("                  'j' site: %i\n", j_site);
+	#ifdef USE_MKL
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
+	#endif
 	#ifdef _OPENMP
 	duprintf("        OpenMP max threads: %i\n", omp_get_max_threads());
 	#endif
@@ -298,10 +305,12 @@ int main(int argc, char *argv[])
 	}
 
 	duprintf("Current CPU time: %g seconds\n", (double)(clock() - t_cpu_start) / CLOCKS_PER_SEC);
+	#ifdef USE_MKL
 	int nbuffers;
 	MKL_INT64 nbytes_alloc = MKL_Mem_Stat(&nbuffers);
 	duprintf("MKL memory usage: currently %lld bytes in %d buffer(s)\n", nbytes_alloc, nbuffers);
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
+	#endif
 
 	duprintf("\nStarting time evolution...\n");
 
@@ -473,9 +482,11 @@ int main(int argc, char *argv[])
 	duprintf("Wall clock time: %g seconds\n", walltime);
 	#endif
 	PrintProfilerReport(&std_profiler);
+	#ifdef USE_MKL
 	nbytes_alloc = MKL_Mem_Stat(&nbuffers);
 	duprintf("MKL memory usage: currently %lld bytes in %d buffer(s)\n", nbytes_alloc, nbuffers);
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
+	#endif
 
 	// save results to disk
 	sprintf(filename, "%s/bose_hubbard_L%i_M%zu_otoc1.dat",     argv[4], L, d - 1); WriteData(filename, otoc1, sizeof(double complex),  nsteps + 1, false);
@@ -504,6 +515,7 @@ int main(int argc, char *argv[])
 	DeleteTensor(&b);
 	DeleteTensor(&bd);
 
+	#ifdef USE_MKL
 	MKL_Free_Buffers();
 
 	nbytes_alloc = MKL_Mem_Stat(&nbuffers);
@@ -515,6 +527,7 @@ int main(int argc, char *argv[])
 	{
 		duprintf("\nMKL memory leak check appears to be fine.\n");
 	}
+	#endif
 
 	fclose(fd_log);
 

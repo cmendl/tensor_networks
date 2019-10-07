@@ -2,10 +2,12 @@
 /// \brief Matrix product operator (MPO)
 
 #include "mpo.h"
+#include "linalg.h"
+#include "util.h"
 #include "profiler.h"
 #include "dupio.h"
-#include "util.h"
 #include <stdlib.h>
+#include <math.h>
 #include <memory.h>
 #include <stdio.h>
 

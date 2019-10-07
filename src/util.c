@@ -2,9 +2,10 @@
 /// \brief Utility functions
 
 #include "util.h"
+#include "linalg.h"
 #include "dupio.h"
+#include <math.h>
 #include <memory.h>
-#include <stdlib.h>
 #include <time.h>
 #ifdef _WIN32
 #include <windows.h>

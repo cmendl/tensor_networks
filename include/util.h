@@ -5,19 +5,42 @@
 #define UTIL_H
 
 #include <stdlib.h>
-#include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <complex.h>
-#include <mkl.h>
 #include <assert.h>
 
+
+#ifdef USE_MKL
+
+#include <mkl_service.h>
 
 #define algn_malloc(size) MKL_malloc(size, MEM_DATA_ALIGN)
 
 #define algn_free(ptr) MKL_free(ptr)
 
 #define algn_calloc(num, size) MKL_calloc(num, size, MEM_DATA_ALIGN)
+
+#else
+
+#include <malloc.h>
+#ifdef __GNUC__
+#include <mm_malloc.h>
+#endif
+
+#define algn_malloc(size) _mm_malloc(size, MEM_DATA_ALIGN)
+
+#define algn_free(ptr) _mm_free(ptr)
+
+static inline void *algn_calloc(size_t num, size_t size)
+{
+	size_t blocksize = num * size;
+	void *ptr = algn_malloc(blocksize);
+	memset(ptr, 0, blocksize);
+	return ptr;
+}
+
+#endif
 
 
 //________________________________________________________________________________________________________________________

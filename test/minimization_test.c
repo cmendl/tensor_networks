@@ -1,7 +1,9 @@
 #include "minimization.h"
+#include "linalg.h"
 #include "hamiltonian_heisenberg.h"
 #include "operation.h"
 #include "util.h"
+#include <math.h>
 #include <stdio.h>
 
 

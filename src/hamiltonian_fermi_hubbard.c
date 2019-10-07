@@ -2,6 +2,7 @@
 /// \brief Construct local Fermi-Hubbard Hamiltonian operator terms
 
 #include "hamiltonian_fermi_hubbard.h"
+#include "linalg.h"
 #include "util.h"
 #include <memory.h>
 #include <assert.h>

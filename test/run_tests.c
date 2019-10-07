@@ -1,4 +1,6 @@
+#ifdef USE_MKL
 #include <mkl.h>
+#endif
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -70,6 +72,7 @@ int main()
 		printf("At least one test failed or crashed :-(\n");
 	}
 
+	#ifdef USE_MKL
 	MKL_Free_Buffers();
 
 	int nbuffers;
@@ -83,6 +86,7 @@ int main()
 	{
 		printf("\nMKL memory leak check appears to be fine.\n");
 	}
+	#endif
 
 	return 0;
 }

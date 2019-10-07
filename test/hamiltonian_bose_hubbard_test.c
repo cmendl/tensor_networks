@@ -1,5 +1,6 @@
 #include "hamiltonian_bose_hubbard.h"
 #include "util.h"
+#include <math.h>
 #include <stdio.h>
 
 

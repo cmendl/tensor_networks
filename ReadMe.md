@@ -1,7 +1,7 @@
 Tensor networks for quantum simulations
 =======================================
 
-C with Intel MKL, and Mathematica reference implementation
+C code using CBLAS and LAPACKE; Mathematica reference implementation for testing.
 
 Features:
 - common operations on tensors of arbitrary dimension
@@ -25,7 +25,7 @@ The Mathematica notebooks can be opened by the free [CDF player](https://www.wol
 
 License
 -------
-Copyright (c) 2013-2018, Christian B. Mendl  
+Copyright (c) 2013-2019, Christian B. Mendl  
 All rights reserved.  
 http://christian.mendl.net
 

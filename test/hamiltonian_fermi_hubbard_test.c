@@ -1,5 +1,6 @@
 #include "hamiltonian_fermi_hubbard.h"
 #include "util.h"
+#include <math.h>
 #include <stdio.h>
 
 

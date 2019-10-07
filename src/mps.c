@@ -2,8 +2,9 @@
 /// \brief Matrix product state (MPS)
 
 #include "mps.h"
-#include "dupio.h"
+#include "linalg.h"
 #include "util.h"
+#include "dupio.h"
 #include <stdlib.h>
 #include <memory.h>
 #include <stdio.h>

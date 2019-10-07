@@ -2,6 +2,7 @@
 /// \brief Implementation of the Lanczos algorithm
 
 #include "lanczos.h"
+#include "linalg.h"
 #include "util.h"
 #include "dupio.h"
 #include <memory.h>

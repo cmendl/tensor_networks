@@ -1,5 +1,6 @@
 #include "hamiltonian_heisenberg.h"
 #include "util.h"
+#include <math.h>
 #include <stdio.h>
 
 

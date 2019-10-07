@@ -2,6 +2,7 @@
 /// \brief Tensor structure, using column-major storage convention (first x, then y, z, ...)
 
 #include "tensor.h"
+#include "linalg.h"
 #include "util.h"
 #include "profiler.h"
 #include <stdlib.h>

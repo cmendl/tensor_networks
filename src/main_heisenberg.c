@@ -3,7 +3,10 @@
 #include "sim_params.h"
 #include "profiler.h"
 #include "dupio.h"
+#include <math.h>
+#ifdef USE_MKL
 #include <mkl.h>
+#endif
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -145,7 +148,9 @@ int main(int argc, char *argv[])
 	duprintf("               renormalize: %s\n", params.renormalize ? "true" : "false");
 	duprintf("         'A' operator site: %i\n", jA);
 	duprintf("         'B' operator site: %i\n", jB);
+	#ifdef USE_MKL
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
+	#endif
 	#ifdef _OPENMP
 	duprintf("        OpenMP max threads: %i\n", omp_get_max_threads());
 	#endif
@@ -314,6 +319,7 @@ int main(int argc, char *argv[])
 	DeleteTensor(&Sdn);
 	DeleteTensor(&Sup);
 
+	#ifdef USE_MKL
 	MKL_Free_Buffers();
 
 	int nbuffers;
@@ -327,6 +333,7 @@ int main(int argc, char *argv[])
 	{
 		duprintf("\nMKL memory leak check appears to be fine.\n");
 	}
+	#endif
 
 	fclose(fd_log);
 

@@ -3,7 +3,10 @@
 #include "sim_params.h"
 #include "profiler.h"
 #include "dupio.h"
+#include <math.h>
+#ifdef USE_MKL
 #include <mkl.h>
+#endif
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -52,7 +55,9 @@ int main(int argc, char *argv[])
 	}
 
 	// enable peak memory recording
+	#ifdef USE_MKL
 	MKL_Peak_Mem_Usage(MKL_PEAK_MEM_ENABLE);
+	#endif
 
 	sim_params_t params = { 0 };
 	int status = ParseParameterFile(argv[1], &params);
@@ -85,7 +90,9 @@ int main(int argc, char *argv[])
 	duprintf("             MPO tolerance: %g\n", params.tol);
 	duprintf("max virtual bond dimension: %zu\n", params.maxD);
 	duprintf("               renormalize: %s\n", params.renormalize ? "true" : "false");
+	#ifdef USE_MKL
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
+	#endif
 	#ifdef _OPENMP
 	duprintf("        OpenMP max threads: %i\n", omp_get_max_threads());
 	#endif
@@ -161,10 +168,12 @@ int main(int argc, char *argv[])
 	duprintf("Wall clock time: %g seconds\n", walltime);
 	#endif
 	PrintProfilerReport(&std_profiler);
+	#ifdef USE_MKL
 	int nbuffers;
 	MKL_INT64 nbytes_alloc = MKL_Mem_Stat(&nbuffers);
 	duprintf("MKL memory usage: currently %lld bytes in %d buffer(s)\n", nbytes_alloc, nbuffers);
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
+	#endif
 
 	// record virtual bond dimensions
 	size_t *D_beta = (size_t *)algn_malloc((L + 1) * sizeof(size_t));
@@ -196,6 +205,7 @@ int main(int argc, char *argv[])
 	DeleteLocalFermiHubbardOperators(L, h);
 	algn_free(h);
 
+	#ifdef USE_MKL
 	MKL_Free_Buffers();
 
 	nbytes_alloc = MKL_Mem_Stat(&nbuffers);
@@ -207,6 +217,7 @@ int main(int argc, char *argv[])
 	{
 		duprintf("\nMKL memory leak check appears to be fine.\n");
 	}
+	#endif
 
 	fclose(fd_log);
 

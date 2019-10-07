@@ -2,7 +2,9 @@
 /// \brief Construct local Bose-Hubbard Hamiltonian operator terms
 
 #include "hamiltonian_bose_hubbard.h"
+#include "linalg.h"
 #include "util.h"
+#include <math.h>
 #include <memory.h>
 #include <assert.h>
 

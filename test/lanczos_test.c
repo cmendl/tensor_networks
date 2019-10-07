@@ -1,6 +1,8 @@
 #include "lanczos.h"
+#include "linalg.h"
 #include "util.h"
 #include <stdint.h>
+#include <math.h>
 #include <stdio.h>
 
 

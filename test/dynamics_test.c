@@ -1,5 +1,6 @@
 #include "dynamics.h"
 #include <stdint.h>
+#include <math.h>
 #include <memory.h>
 #include <stdio.h>
 

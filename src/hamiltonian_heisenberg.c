@@ -2,6 +2,7 @@
 /// \brief Construct local Heisenberg Hamiltonian operator terms
 
 #include "hamiltonian_heisenberg.h"
+#include "linalg.h"
 #include "util.h"
 #include <memory.h>
 #include <assert.h>

@@ -1,5 +1,6 @@
 #include "hamiltonian_ising.h"
 #include "util.h"
+#include <math.h>
 #include <stdio.h>
 
 

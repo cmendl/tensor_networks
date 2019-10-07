@@ -2,9 +2,11 @@
 /// \brief Auxiliary data structures and functions concerning virtual bonds (taking quantum numbers into account)
 
 #include "bond_ops.h"
-#include "profiler.h"
+#include "linalg.h"
 #include "util.h"
+#include "profiler.h"
 #include "dupio.h"
+#include <math.h>
 #include <memory.h>
 
 

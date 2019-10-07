@@ -3,7 +3,10 @@
 #include "sim_params.h"
 #include "profiler.h"
 #include "dupio.h"
+#include <math.h>
+#ifdef USE_MKL
 #include <mkl.h>
+#endif
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -104,7 +107,9 @@ int main(int argc, char *argv[])
 	}
 
 	// enable peak memory recording
+	#ifdef USE_MKL
 	MKL_Peak_Mem_Usage(MKL_PEAK_MEM_ENABLE);
+	#endif
 
 	sim_params_t params = { 0 };
 	int status = ParseParameterFile(argv[1], &params);
@@ -164,7 +169,9 @@ int main(int argc, char *argv[])
 	duprintf("               renormalize: %s\n", params.renormalize ? "true" : "false");
 	duprintf("     'J_{jA,jA+1}' site jA: %i\n", jA);
 	duprintf("     'J_{jB,jB+1}' site jB: %i\n", jB);
+	#ifdef USE_MKL
 	duprintf("           MKL max threads: %i\n", MKL_Get_Max_Threads());
+	#endif
 	#ifdef _OPENMP
 	duprintf("        OpenMP max threads: %i\n", omp_get_max_threads());
 	#endif
@@ -322,10 +329,12 @@ int main(int argc, char *argv[])
 	duprintf("Wall clock time: %g seconds\n", walltime);
 	#endif
 	PrintProfilerReport(&std_profiler);
+	#ifdef USE_MKL
 	int nbuffers;
 	MKL_INT64 nbytes_alloc = MKL_Mem_Stat(&nbuffers);
 	duprintf("MKL memory usage: currently %lld bytes in %d buffer(s)\n", nbytes_alloc, nbuffers);
 	duprintf("                       peak %lld bytes\n", MKL_Peak_Mem_Usage(MKL_PEAK_MEM));
+	#endif
 
 	// save results to disk
 	sprintf(filename, "%s/heisenberg_XXZ_L%i_chi.dat",       argv[4], L); WriteData(filename, chi, sizeof(double complex), nsteps + 1, false);
@@ -348,6 +357,7 @@ int main(int argc, char *argv[])
 	algn_free(h);
 	DeleteTensor(&J);
 
+	#ifdef USE_MKL
 	MKL_Free_Buffers();
 
 	nbytes_alloc = MKL_Mem_Stat(&nbuffers);
@@ -359,6 +369,7 @@ int main(int argc, char *argv[])
 	{
 		duprintf("\nMKL memory leak check appears to be fine.\n");
 	}
+	#endif
 
 	fclose(fd_log);
 

@@ -1,5 +1,6 @@
 #include "bond_ops.h"
 #include "util.h"
+#include <math.h>
 #include <stdio.h>
 
 
