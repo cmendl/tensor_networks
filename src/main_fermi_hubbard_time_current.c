@@ -69,8 +69,6 @@ static trunc_info_t ApplyTwoSiteTopOperator(const tensor_t *restrict opT, const 
 ///
 static trunc_info_t ApplyTwoSiteBottomOperator(const tensor_t *restrict opB, const bond_op_params_t *restrict params, const qnumber_t *restrict qd0, const qnumber_t *restrict qd1, tensor_t *restrict A0, tensor_t *restrict A1, const qnumber_t *restrict qA0, const qnumber_t *restrict qA2, qnumber_t *restrict *qbond)
 {
-	double nsigma = 0;
-
 	const size_t d0 = A0->dim[0];
 	const size_t d1 = A1->dim[0];
 
@@ -155,7 +153,6 @@ current_type_t;
 int main(int argc, char *argv[])
 {
 	int i;
-	size_t j;
 
 	if (argc != 7)
 	{

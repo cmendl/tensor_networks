@@ -149,7 +149,6 @@ static void ApplySingleSiteTopOperator(const tensor_t *restrict opT, tensor_t *r
 int main(int argc, char *argv[])
 {
 	int i;
-	size_t j;
 
 	if (argc != 6)
 	{

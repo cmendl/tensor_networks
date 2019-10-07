@@ -45,7 +45,6 @@ static int makedir(const char *path)
 int main(int argc, char *argv[])
 {
 	int i;
-	size_t j;
 
 	if (argc != 3)
 	{
