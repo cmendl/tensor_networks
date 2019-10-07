@@ -27,6 +27,7 @@
 #ifdef __GNUC__
 #include <mm_malloc.h>
 #endif
+#include <string.h>
 
 #define algn_malloc(size) _mm_malloc(size, MEM_DATA_ALIGN)
 
