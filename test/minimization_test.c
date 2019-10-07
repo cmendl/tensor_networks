@@ -202,5 +202,5 @@ int MinimizationTest()
 	DeleteMPS(&psi0);
 	DeleteMPO(&mpoH);
 
-	return (err < 4e-14 && err_psi < 5e-8 ? 0 : 1);
+	return (err < 5e-13 && err_psi < 5e-8 ? 0 : 1);
 }

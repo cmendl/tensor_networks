@@ -13,7 +13,9 @@ int PEPSTest2()
 
 	printf("PEPS scalar product test...\n");
 
+	#ifdef _DEBUG
 	int i;
+	#endif
 	int x, y;
 	size_t j;
 

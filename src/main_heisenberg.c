@@ -86,7 +86,6 @@ static void ApplySingleSiteBottomOperator(const tensor_t *restrict opB, tensor_t
 int main(int argc, char *argv[])
 {
 	int i;
-	size_t j;
 
 	if (argc != 5)
 	{

@@ -12,7 +12,9 @@ int PEPSTest()
 
 	printf("Testing PEPS operations...\n");
 
+	#ifdef _DEBUG
 	int i;
+	#endif
 	int x, y;
 	size_t j;
 
