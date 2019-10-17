@@ -11,6 +11,9 @@
 #include <assert.h>
 
 
+#define MEM_DATA_ALIGN 64
+
+
 #ifdef USE_MKL
 
 #include <mkl_service.h>
@@ -40,6 +43,18 @@ static inline void *algn_calloc(size_t num, size_t size)
 	memset(ptr, 0, blocksize);
 	return ptr;
 }
+
+#endif
+
+
+#ifdef __INTEL_COMPILER
+
+// Intel compiler specific
+#define assume_algned(ptr) __assume_aligned(ptr, MEM_DATA_ALIGN)
+
+#else
+
+#define assume_algned(ptr) ((void)0)
 
 #endif
 

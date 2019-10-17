@@ -133,9 +133,9 @@ int DynamicsTest()
 			// non-zero entries of reference tensor
 			const size_t nnz = 108532;
 			double complex *val = (double complex *)algn_malloc(nnz*sizeof(double complex));
-			uint64_t      *ind =      (uint64_t *)algn_malloc(nnz*sizeof(uint64_t));
+			uint64_t       *ind =       (uint64_t *)algn_malloc(nnz*sizeof(uint64_t));
 			status = ReadData("../test/dynamics_test_A_strang5i8_m_val.dat", val, sizeof(double complex), nnz); if (status < 0) { return status; }
-			status = ReadData("../test/dynamics_test_A_strang5i8_m_ind.dat", ind, sizeof(uint64_t),      nnz); if (status < 0) { return status; }
+			status = ReadData("../test/dynamics_test_A_strang5i8_m_ind.dat", ind, sizeof(uint64_t),       nnz); if (status < 0) { return status; }
 			size_t j;
 			for (j = 0; j < nnz; j++)
 			{

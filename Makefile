@@ -7,16 +7,18 @@ TSTFILES = test/matrix_exp_test.c test/tensor_test.c test/lanczos_test.c test/qn
 # This configuration uses gcc with generic CBLAS and LAPACKE libraries, and enables OpenMP parallelization.
 CC = gcc
 # compiler options
-CCOPTS = -Wall -O2 -Iinclude -DNDEBUG -DMEM_DATA_ALIGN=64 -D"__assume_aligned(p,a)" -DGIT_COMMIT=\"$(shell git describe --always)\" -DPROFILER_ENABLE
+CCOPTS = -Wall -O2 -Iinclude -DGIT_COMMIT=\"$(shell git describe --always)\"
 CCOMP  = -fopenmp
+CCPROF = -DNDEBUG -DPROFILER_ENABLE
 # set these with appropriate libraries for your system
 LIBRARIES = -lm -lblas -llapacke
 
 ## The following configuration selects the Intel compiler with MKL, and enables OpenMP parallelization.
 #CC = icc
 ## compiler options
-#CCOPTS = -Wall -O2 -restrict -Iinclude -DNDEBUG -DMEM_DATA_ALIGN=64 -DGIT_COMMIT=\"$(shell git describe --always)\" -DPROFILER_ENABLE -DUSE_MKL -Dlapack_complex_double="double _Complex" -mkl:sequential
+#CCOPTS = -Wall -O2 -restrict -Iinclude -DGIT_COMMIT=\"$(shell git describe --always)\" -DUSE_MKL -Dlapack_complex_double="double _Complex" -mkl:sequential
 #CCOMP  = -qopenmp
+#CCPROF = -DNDEBUG -DPROFILER_ENABLE
 ## set these with appropriate libraries for your system
 #LIBRARIES = -mkl:sequential -lrt
 
@@ -24,34 +26,34 @@ LIBRARIES = -lm -lblas -llapacke
 all: proj_heisenberg proj_heisenberg_XXZ_current proj_bose_hubbard proj_bose_hubbard_rho proj_bose_hubbard_time proj_bose_hubbard_otoc proj_fermi_hubbard_rho proj_fermi_hubbard_time_current proj_ising_otoc proj_ising_otoc_comm proj_test
 
 proj_heisenberg: ${SRCFILES} src/main_heisenberg.c
-	${CC} ${CCOPTS} ${CCOMP} -o bin/sim_heisenberg $? ${LIBRARIES}
+	${CC} ${CCOPTS} ${CCOMP} ${CCPROF} -o bin/sim_heisenberg $? ${LIBRARIES}
 
 proj_heisenberg_XXZ_current: ${SRCFILES} src/main_heisenberg_XXZ_current.c
-	${CC} ${CCOPTS} ${CCOMP} -o bin/sim_heisenberg_XXZ_current $? ${LIBRARIES}
+	${CC} ${CCOPTS} ${CCOMP} ${CCPROF} -o bin/sim_heisenberg_XXZ_current $? ${LIBRARIES}
 
 proj_bose_hubbard: ${SRCFILES} src/main_bose_hubbard.c
-	${CC} ${CCOPTS} ${CCOMP} -o bin/sim_bose_hubbard $? ${LIBRARIES}
+	${CC} ${CCOPTS} ${CCOMP} ${CCPROF} -o bin/sim_bose_hubbard $? ${LIBRARIES}
 
 proj_bose_hubbard_rho: ${SRCFILES} src/main_bose_hubbard_rho.c
-	${CC} ${CCOPTS} ${CCOMP} -o bin/sim_bose_hubbard_rho $? ${LIBRARIES}
+	${CC} ${CCOPTS} ${CCOMP} ${CCPROF} -o bin/sim_bose_hubbard_rho $? ${LIBRARIES}
 
 proj_bose_hubbard_time: ${SRCFILES} src/main_bose_hubbard_time.c
-	${CC} ${CCOPTS} ${CCOMP} -o bin/sim_bose_hubbard_time $? ${LIBRARIES}
+	${CC} ${CCOPTS} ${CCOMP} ${CCPROF} -o bin/sim_bose_hubbard_time $? ${LIBRARIES}
 
 proj_bose_hubbard_otoc: ${SRCFILES} src/main_bose_hubbard_otoc.c
-	${CC} ${CCOPTS} ${CCOMP} -o bin/sim_bose_hubbard_otoc $? ${LIBRARIES}
+	${CC} ${CCOPTS} ${CCOMP} ${CCPROF} -o bin/sim_bose_hubbard_otoc $? ${LIBRARIES}
 
 proj_fermi_hubbard_rho: ${SRCFILES} src/main_fermi_hubbard_rho.c
-	${CC} ${CCOPTS} ${CCOMP} -o bin/sim_fermi_hubbard_rho $? ${LIBRARIES}
+	${CC} ${CCOPTS} ${CCOMP} ${CCPROF} -o bin/sim_fermi_hubbard_rho $? ${LIBRARIES}
 
 proj_fermi_hubbard_time_current: ${SRCFILES} src/main_fermi_hubbard_time_current.c
-	${CC} ${CCOPTS} ${CCOMP} -o bin/sim_fermi_hubbard_time_current $? ${LIBRARIES}
+	${CC} ${CCOPTS} ${CCOMP} ${CCPROF} -o bin/sim_fermi_hubbard_time_current $? ${LIBRARIES}
 
 proj_ising_otoc: ${SRCFILES} src/main_ising_otoc.c
-	${CC} ${CCOPTS} ${CCOMP} -o bin/sim_ising_otoc $? ${LIBRARIES}
+	${CC} ${CCOPTS} ${CCOMP} ${CCPROF} -o bin/sim_ising_otoc $? ${LIBRARIES}
 
 proj_ising_otoc_comm:${SRCFILES} src/main_ising_otoc_comm.c
-	${CC} ${CCOPTS} ${CCOMP} -o bin/sim_ising_otoc_comm $? ${LIBRARIES}
+	${CC} ${CCOPTS} ${CCOMP} ${CCPROF} -o bin/sim_ising_otoc_comm $? ${LIBRARIES}
 
 proj_test: ${SRCFILES} ${TSTFILES} test/run_tests.c
-	${CC} ${CCOPTS} -o test/run_tests $? ${LIBRARIES}
+	${CC} ${CCOPTS} -g -o test/run_tests $? ${LIBRARIES}

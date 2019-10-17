@@ -64,14 +64,14 @@ double UniformDistance(const size_t n, const double complex *restrict x, const d
 ///
 int MatrixExp(const size_t n, const double complex t, const double *restrict A, double complex *restrict ret)
 {
-	__assume_aligned(A, MEM_DATA_ALIGN);
+	assume_algned(A);
 
 	// eigenvalues
 	double *w = algn_malloc(n * sizeof(double));
 
 	// copy 'A' matrix (will be overwritten by eigenvectors)
 	double *U = algn_malloc(n*n * sizeof(double));
-	__assume_aligned(U, MEM_DATA_ALIGN);
+	assume_algned(U);
 	memcpy(U, A, n*n * sizeof(double));
 
 	int info = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'U', (lapack_int)n, U, (lapack_int)n, w);
@@ -90,7 +90,7 @@ int MatrixExp(const size_t n, const double complex t, const double *restrict A, 
 
 	// expand 'U' to a complex matrix
 	double complex *Ucplx = algn_calloc(n*n, sizeof(double complex));
-	__assume_aligned(Ucplx, MEM_DATA_ALIGN);
+	assume_algned(Ucplx);
 	for (i = 0; i < n*n; i++)
 	{
 		Ucplx[i] = U[i];
@@ -98,7 +98,7 @@ int MatrixExp(const size_t n, const double complex t, const double *restrict A, 
 
 	// compute U * diag(exp(-t lambda_i))
 	double complex *UexpD = algn_malloc(n*n * sizeof(double complex));
-	__assume_aligned(UexpD, MEM_DATA_ALIGN);
+	assume_algned(UexpD);
 	memcpy(UexpD, Ucplx, n*n * sizeof(double complex));
 	for (i = 0; i < n; i++)
 	{

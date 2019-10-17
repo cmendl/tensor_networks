@@ -147,8 +147,8 @@ void CopyTensor(const tensor_t *restrict src, tensor_t *restrict dst)
 
 	const size_t nelem = NumTensorElements(src);
 
-	__assume_aligned(src->data, MEM_DATA_ALIGN);
-	__assume_aligned(dst->data, MEM_DATA_ALIGN);
+	assume_algned(src->data);
+	assume_algned(dst->data);
 	memcpy(dst->data, src->data, nelem*sizeof(double complex));
 
 	#ifdef _DEBUG
@@ -271,8 +271,8 @@ void TransposeTensor(const int *restrict perm, const tensor_t *restrict t, tenso
 
 		// main copy loop
 		const size_t n = t->dim[0];
-		__assume_aligned(t->data, MEM_DATA_ALIGN);
-		__assume_aligned(r->data, MEM_DATA_ALIGN);
+		assume_algned(t->data);
+		assume_algned(r->data);
 		size_t j;
 		#pragma ivdep
 		for (j = 0; j < n; j++)
@@ -349,8 +349,8 @@ void SubTensor(const tensor_t *restrict t, const size_t *restrict sdim, const si
 		// main copy loop along first dimension
 		// (treating first dimension separately to avoid calling index conversion function for each single element)
 		const size_t n = s->dim[0];
-		__assume_aligned(t->data, MEM_DATA_ALIGN);
-		__assume_aligned(s->data, MEM_DATA_ALIGN);
+		assume_algned(t->data);
+		assume_algned(s->data);
 		size_t j;
 		#pragma ivdep
 		for (j = 0; j < n; j++)
