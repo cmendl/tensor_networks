@@ -15,5 +15,13 @@ void DeleteLocalHeisenbergOperators(const int L, double **h);
 void ConstructHeisenbergMPO(const int L, const double J, const double Jz, const double hext, mpo_t *H);
 
 
+void ConstructLocalHeisenbergSpin1Operators(const int L, const double Jx, const double Jy, const double Jz, const double hext, double **h);
+
+void DeleteLocalHeisenbergSpin1Operators(const int L, double **h);
+
+
+void ConstructHeisenbergSpin1MPO(const int L, const double J, const double Jz, const double hext, mpo_t *H);
+
+
 
 #endif

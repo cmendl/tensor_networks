@@ -18,6 +18,7 @@ int MPSTest();
 int MPOTest();
 int OperationTest();
 int HamiltonianHeisenbergTest();
+int HamiltonianHeisenbergSpin1Test();
 int HamiltonianIsingTest();
 int HamiltonianBoseHubbardTest();
 int HamiltonianFermiHubbardTest();
@@ -31,7 +32,7 @@ int main()
 {
 	test_function_t tests[] = {
 		MatrixExpTest, TensorTest, LanczosTest, QuantumNumberTest, QuantumNumberTest2, BondOperationsTest, MPSTest, MPOTest, OperationTest,
-		HamiltonianHeisenbergTest, HamiltonianIsingTest, HamiltonianBoseHubbardTest, HamiltonianFermiHubbardTest,
+		HamiltonianHeisenbergTest, HamiltonianHeisenbergSpin1Test, HamiltonianIsingTest, HamiltonianBoseHubbardTest, HamiltonianFermiHubbardTest,
 		MinimizationTest, DynamicsTest, PEPSTest, PEPSTest2
 	};
 
