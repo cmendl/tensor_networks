@@ -1,3 +1,6 @@
+__Note__: Most of the functionality of this code is currently being rewritten in [chemtensor](https://github.com/qc-tum/chemtensor).
+
+
 [![Build Status](https://travis-ci.com/cmendl/tensor_networks.svg?branch=master)](https://travis-ci.com/cmendl/tensor_networks)
 
 
